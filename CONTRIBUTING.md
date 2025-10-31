@@ -50,7 +50,7 @@ docker build \
   --build-arg BUILD_DATE="$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
   --build-arg BUILD_VERSION="dev" \
   -t onion-relay:dev \
-  -f onion.container .
+  -f Dockerfile .
 
 # Test your changes
 docker run --rm onion-relay:dev cat /build-info.txt
@@ -160,7 +160,7 @@ How did you test this?
 ### Docker Build Testing
 ```bash
 # Test build
-docker build -f onion.container -t test:latest .
+docker build -f Dockerfile -t test:latest .
 
 # Verify scripts are executable
 docker run --rm test:latest ls -la /usr/local/bin/
@@ -182,7 +182,7 @@ docker run --rm \
 # Build for specific platforms
 docker buildx build \
   --platform linux/amd64,linux/arm64 \
-  -f onion.container \
+  -f Dockerfile \
   -t test:multiarch .
 ```
 

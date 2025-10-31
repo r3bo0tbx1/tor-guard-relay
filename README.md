@@ -585,7 +585,7 @@ docker build \
   --build-arg BUILD_DATE="$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
   --build-arg BUILD_VERSION="1.0" \
   -t onion-relay:latest \
-  -f onion.container .
+  -f Dockerfile .
 
 # Test locally
 docker run --rm onion-relay:latest cat /build-info.txt

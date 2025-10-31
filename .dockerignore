@@ -42,6 +42,6 @@ node_modules/
 __pycache__/
 
 # Keep only files needed for building and running the image
-!onion.container
+!Dockerfile
 !docker-entrypoint.sh
 !relay-status.sh
