@@ -41,7 +41,7 @@
         "cosmos-stack": "TorGuardRelay",
         "cosmos-stack-main": "TorGuardRelay",
         "cosmos-description": "🧅 Hardened Tor Guard Relay v1.0 with diagnostics & auto-healing",
-        "cosmos-icon": "https://image.uglycat.cc/38ckdq.png",
+        "cosmos-icon": "https://raw.githubusercontent.com/r3bo0tbx1/tor-guard-relay/refs/heads/main/src/onion.png",
         "cosmos-auto-update": "true",
         "cosmos-auto-update-type": "registry",
         "cosmos-force-network-secured": "false",
