@@ -1,4 +1,4 @@
-name: 🧅 Build & Publish Tor Guard Relay Image
+name: name: 🧅 Build
 
 on:
   workflow_dispatch:

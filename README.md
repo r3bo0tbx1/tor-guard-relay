@@ -3,10 +3,11 @@
 
 # 🧅 Tor Guard Relay
 
-[![🧱 Build & Publish](https://github.com/r3bo0tbx1/tor-guard-relay/actions/workflows/build.yml/badge.svg)](https://github.com/r3bo0tbx1/tor-guard-relay/actions)
-[![GHCR Pulls](https://img.shields.io/badge/dynamic/json?color=blue&label=GHCR%20Pulls&query=pull_count&url=https://ghcr.io/v2/r3bo0tbx1/onion-relay/manifests/latest)](https://github.com/r3bo0tbx1/tor-guard-relay/pkgs/container/onion-relay)
-[![Latest Release](https://img.shields.io/github/v/release/r3bo0tbx1/tor-guard-relay?color=blue&label=version)](https://github.com/r3bo0tbx1/tor-guard-relay/releases/latest)
-[![Platforms](https://img.shields.io/badge/platforms-amd64%20%7C%20arm64-success.svg)](https://github.com/r3bo0tbx1/tor-guard-relay)
+[![🧱 Build & Publish](https://github.com/r3bo0tbx1/tor-guard-relay/actions/workflows/build.yml/badge.svg)](https://github.com/r3bo0tbx1/tor-guard-relay/actions/workflows/build.yml)
+[![Release](https://img.shields.io/github/v/release/r3bo0tbx1/tor-guard-relay?color=blue&label=version)](https://github.com/r3bo0tbx1/tor-guard-relay/releases/latest)
+![Image Size](https://img.shields.io/badge/image%20size-~35--40MB-blue)
+![Platforms](https://img.shields.io/badge/platforms-amd64%20%7C%20arm64-2ea44f?logo=docker)
+![GHCR](https://img.shields.io/badge/GHCR-ghcr.io%2Fr3bo0tbx1%2Fonion--relay-blue?logo=github)
 [![License: MIT](https://img.shields.io/github/license/r3bo0tbx1/tor-guard-relay?color=yellow)](LICENSE.txt)
 
 <img src="src/onion.png" alt="Onion diagram" width="400"/>
