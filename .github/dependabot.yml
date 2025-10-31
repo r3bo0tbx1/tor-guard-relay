@@ -1,0 +1,32 @@
+# Dependabot configuration for Tor Guard Relay
+# Docs: https://docs.github.com/code-security/dependabot
+
+version: 2
+updates:
+  # 1️⃣ Keep GitHub Actions up to date
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "github-actions"
+    rebase-strategy: "auto"
+    open-pull-requests-limit: 5
+
+  # 2️⃣ Keep Docker base images up to date
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "docker"
+    rebase-strategy: "auto"
+    open-pull-requests-limit: 5

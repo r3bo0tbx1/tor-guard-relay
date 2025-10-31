@@ -1,0 +1,11 @@
+#!/bin/sh
+# view-logs - Display recent Tor relay logs
+# Usage: docker exec guard-relay view-logs
+
+if [ -f /var/log/tor/notices.log ]; then
+  tail -n 50 -f /var/log/tor/notices.log
+else
+  echo "⚠️  Log file not found. Tor might still be starting."
+  echo "📍 Expected location: /var/log/tor/notices.log"
+  exit 1
+fi

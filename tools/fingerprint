@@ -1,0 +1,21 @@
+#!/bin/sh
+# fingerprint - Display relay fingerprint
+# Usage: docker exec guard-relay fingerprint
+
+echo "🔑 Tor Relay Fingerprint"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+if [ -f /var/lib/tor/fingerprint ]; then
+  cat /var/lib/tor/fingerprint
+  echo ""
+  echo "🌐 Search on Tor Metrics:"
+  echo "   https://metrics.torproject.org/rs.html"
+  echo ""
+  echo "🧅 Search on Onion Metrics (Tor Browser):"
+  echo "   http://hctxrvjzfpvmzh2jllqhgvvkoepxb4kfzdjm6h7egcwlumggtktiftid.onion/rs.html"
+else
+  echo "⚠️  Fingerprint not yet generated."
+  echo "📍 Tor is still bootstrapping or generating keys."
+  echo "💡 Check back in a few minutes."
+  exit 1
+fi

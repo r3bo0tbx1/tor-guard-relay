@@ -1,0 +1,117 @@
+name: 🐛 Bug Report
+description: Report a bug or issue with Tor Guard Relay
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug! Please fill out the information below.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: A clear and concise description of the bug
+      placeholder: What happened?
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What did you expect to happen?
+      placeholder: What should have happened?
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: Steps to reproduce the behavior
+      placeholder: |
+        1. Run command '...'
+        2. Check logs '...'
+        3. See error
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Image Version
+      description: What version are you using?
+      placeholder: "e.g., 1.0, latest"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: deployment
+    attributes:
+      label: Deployment Method
+      description: How are you running the relay?
+      options:
+        - Docker CLI
+        - Docker Compose
+        - Cosmos Cloud
+        - Portainer
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: architecture
+    attributes:
+      label: Architecture
+      description: What architecture are you running on?
+      options:
+        - amd64 (x86_64)
+        - arm64 (aarch64)
+        - Unknown
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Container Logs
+      description: Relevant logs from `docker logs guard-relay`
+      render: shell
+      placeholder: Paste logs here
+
+  - type: textarea
+    id: config
+    attributes:
+      label: Configuration (Sanitized)
+      description: Your relay.conf (remove sensitive info like ContactInfo)
+      render: conf
+      placeholder: Paste sanitized config here
+
+  - type: textarea
+    id: diagnostic
+    attributes:
+      label: Diagnostic Output
+      description: Output from `docker exec guard-relay relay-status`
+      render: shell
+      placeholder: Paste diagnostic output here
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Any other context about the problem
+      placeholder: Add any other context here
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: I have searched existing issues for duplicates
+          required: true
+        - label: I am using the latest version
+          required: false
+        - label: I have removed sensitive information from logs/config
+          required: true

@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  tor-guard-relay:
+    image: ghcr.io/r3bo0tbx1/onion-relay:latest
+    container_name: guard-relay
+    restart: unless-stopped
+    
+    # Use host network for dual-stack IPv4/IPv6 support
+    network_mode: host
+    
+    # Mount your configuration file (read-only)
+    volumes:
+      - ./relay.conf:/etc/tor/torrc:ro
+      - tor-data:/var/lib/tor
+      - tor-logs:/var/log/tor
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "tor", "--verify-config", "-f", "/etc/tor/torrc"]
+      interval: 10m
+      timeout: 15s
+      start_period: 30s
+      retries: 3
+    
+    # Resource limits (adjust based on your bandwidth)
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 1G
+        reservations:
+          cpus: '1.0'
+          memory: 512M
+    
+    # Labels for organization
+    labels:
+      com.example.service: "tor-guard-relay"
+      com.example.version: "1.0"
+
+volumes:
+  tor-data:
+    driver: local
+  tor-logs:
+    driver: local
+
+# Example configuration file (relay.conf):
+# Create a file named 'relay.conf' in the same directory with your Tor settings
+# See: https://github.com/r3bo0tbx1/tor-guard-relay#%EF%B8%8F-usage-guide

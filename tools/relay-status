@@ -1,0 +1,105 @@
+#!/bin/sh
+# relay-status - Comprehensive relay health check
+# Usage: docker exec guard-relay relay-status
+
+echo "🧅 Tor Relay Status Report"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+
+# Build Info
+echo "📦 Build Information:"
+if [ -f /build-info.txt ]; then
+  cat /build-info.txt | sed 's/^/   /'
+else
+  echo "   Version: Unknown"
+fi
+echo ""
+
+# Bootstrap Progress
+echo "🚀 Bootstrap Progress:"
+if [ -f /var/log/tor/notices.log ]; then
+  BOOTSTRAP=$(grep "Bootstrapped" /var/log/tor/notices.log | tail -5)
+  if [ -n "$BOOTSTRAP" ]; then
+    echo "$BOOTSTRAP" | sed 's/^/   /'
+    if echo "$BOOTSTRAP" | grep -q "Bootstrapped 100%"; then
+      echo "   ✅ Relay is fully bootstrapped!"
+    fi
+  else
+    echo "   ⏳ No bootstrap messages yet. Tor is starting..."
+  fi
+else
+  echo "   ⚠️  Log file not found."
+fi
+echo ""
+
+# Reachability Status
+echo "🌍 Reachability Status:"
+if [ -f /var/log/tor/notices.log ]; then
+  REACHABLE=$(grep -iE "reachable|self-testing" /var/log/tor/notices.log | tail -3)
+  if [ -n "$REACHABLE" ]; then
+    echo "$REACHABLE" | sed 's/^/   /'
+    if echo "$REACHABLE" | grep -q "reachable from the outside"; then
+      echo "   ✅ ORPort is reachable!"
+    fi
+  else
+    echo "   ⏳ No reachability test results yet."
+  fi
+else
+  echo "   ⚠️  Log file not found."
+fi
+echo ""
+
+# Fingerprint
+echo "🔑 Relay Fingerprint:"
+if [ -f /var/lib/tor/fingerprint ]; then
+  cat /var/lib/tor/fingerprint | sed 's/^/   /'
+else
+  echo "   ⏳ Fingerprint not generated yet."
+fi
+echo ""
+
+# ORPort Configuration
+echo "🔌 ORPort Configuration:"
+if [ -f /etc/tor/torrc ]; then
+  ORPORT=$(grep -iE "^(ORPort|DirPort|ObfsPort)" /etc/tor/torrc)
+  if [ -n "$ORPORT" ]; then
+    echo "$ORPORT" | sed 's/^/   /'
+  else
+    echo "   ⚠️  No ORPort configuration found."
+  fi
+else
+  echo "   ⚠️  Configuration file not found."
+fi
+echo ""
+
+# Relay Information
+echo "📝 Relay Information:"
+if [ -f /etc/tor/torrc ]; then
+  RELAY_INFO=$(grep -iE "^(Nickname|ContactInfo|ExitRelay|BridgeRelay)" /etc/tor/torrc)
+  if [ -n "$RELAY_INFO" ]; then
+    echo "$RELAY_INFO" | sed 's/^/   /'
+  else
+    echo "   ⚠️  No relay information found."
+  fi
+else
+  echo "   ⚠️  Configuration file not found."
+fi
+echo ""
+
+# Recent Errors
+echo "⚠️  Recent Errors/Warnings:"
+if [ -f /var/log/tor/notices.log ]; then
+  ERRORS=$(grep -iE "(error|warn|critical)" /var/log/tor/notices.log | tail -5)
+  if [ -n "$ERRORS" ]; then
+    echo "$ERRORS" | sed 's/^/   /'
+  else
+    echo "   ✅ No recent errors or warnings."
+  fi
+else
+  echo "   ⚠️  Log file not found."
+fi
+echo ""
+
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "💡 For live monitoring: docker logs -f <container-name>"
+echo "🔗 Search your relay: https://metrics.torproject.org/rs.html"

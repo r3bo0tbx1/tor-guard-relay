@@ -1,0 +1,42 @@
+changelog:
+  exclude:
+    labels:
+      - ignore-for-release
+      - dependencies
+    authors:
+      - dependabot
+  categories:
+    - title: 🎉 New Features
+      labels:
+        - feature
+        - enhancement
+        - new
+    - title: 🐛 Bug Fixes
+      labels:
+        - bug
+        - fix
+        - bugfix
+    - title: 📚 Documentation
+      labels:
+        - documentation
+        - docs
+    - title: 🔒 Security
+      labels:
+        - security
+    - title: ⚡ Performance
+      labels:
+        - performance
+        - optimization
+    - title: 🔧 Maintenance
+      labels:
+        - maintenance
+        - chore
+        - refactor
+    - title: 🏗️ Infrastructure
+      labels:
+        - ci
+        - build
+        - docker
+    - title: Other Changes
+      labels:
+        - "*"
