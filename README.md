@@ -734,11 +734,28 @@ This project is licensed under the [MIT License](LICENSE.txt).
 If you find this project useful:
 
 - ⭐ **Star the repository** to show your support
+- 🍴 **Fork it** if you want to build something on top
 - 🧅 **Run a relay** and contribute to the Tor network
 - 📢 **Share** with others who might benefit
 - 🐛 **Report issues** to help improve the project
 - 💡 **Suggest features** for future versions
 - 🤝 **Contribute** code, documentation, or ideas
+
+### ☕ Support Development
+
+Spent weeks building this. If it saved you time and you want to help me keep making privacy tools:
+
+**Bitcoin (BTC):**
+```
+bc1qltkajaswmzx9jwets8hfz43nkvred5w92syyq4
+```
+
+**Monero (XMR):**
+```
+45mNg5cG1S2B2C5dndJP65SSEXseHFVqFdv1N6paAraD1Jk9kQxQQArVcjfQmgCcmthrUF3jbNs74c5AbWqMwAAgAjDYzrZ
+```
+
+Stars and feedback mean just as much though! 🙏
 
 ---
 
