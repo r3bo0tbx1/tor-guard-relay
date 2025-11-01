@@ -708,7 +708,7 @@ See [SECURITY.md](SECURITY.md) for complete security policy and reporting proced
 
 <div align="center">
 
-[![Star History Chart](https://api.star-history.com/svg?repos=r3bo0tbx1/tor-guard-relay&type=Date)](https://star-history.com/#r3bo0tbx1/tor-guard-relay&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=r3bo0tbx1/tor-guard-relay&type=date&legend=top-left)](https://www.star-history.com/#r3bo0tbx1/tor-guard-relay&type=date&legend=top-left)
 
 </div>
 
