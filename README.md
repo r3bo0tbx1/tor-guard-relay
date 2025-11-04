@@ -3,7 +3,7 @@
 
 # 🧅 Tor Guard Relay
 
-[![🧱 Build & Publish](https://github.com/r3bo0tbx1/tor-guard-relay/actions/workflows/build.yml/badge.svg)](https://github.com/r3bo0tbx1/tor-guard-relay/actions/workflows/release.yml)
+[![🚀 Release & Weekly Builds](https://github.com/r3bo0tbx1/tor-guard-relay/actions/workflows/release.yml/badge.svg)](https://github.com/r3bo0tbx1/tor-guard-relay/actions/workflows/release.yml)
 [![Release](https://img.shields.io/github/v/release/r3bo0tbx1/tor-guard-relay?color=blue&label=version)](https://github.com/r3bo0tbx1/tor-guard-relay/releases/latest)
 ![Platforms](https://img.shields.io/badge/platforms-amd64%20%7C%20arm64-2ea44f?logo=docker)
 ![GHCR](https://img.shields.io/badge/GHCR-ghcr.io%2Fr3bo0tbx1%2Fonion--relay-blue?logo=github)
