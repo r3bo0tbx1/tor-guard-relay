@@ -271,8 +271,8 @@ jobs:
       - name: 📦 Load Docker Image
         run: docker load -i /tmp/tor-relay-test.tar
 
-      - name: 🧪 Test: Help Flags
-        if: matrix.test-case == 'help-flags'
+      - name: "🧪 Test: Help Flags"
+        if: "matrix.test-case == 'help-flags'"
         run: |
           # Test that tools respond to --help
           docker run --rm tor-relay:test sh -c "
@@ -281,8 +281,8 @@ jobs:
             /usr/local/bin/dashboard --help > /dev/null && echo '✓ dashboard --help' || true
           " || true
 
-      - name: 🧪 Test: File Permissions
-        if: matrix.test-case == 'file-permissions'
+      - name: "🧪 Test: File Permissions"
+        if: "matrix.test-case == 'file-permissions'"
         run: |
           # Verify executable permissions
           docker run --rm tor-relay:test sh -c "
@@ -291,8 +291,8 @@ jobs:
             test -x /usr/local/bin/dashboard && echo '✓ dashboard is executable' || exit 1
           "
 
-      - name: 🧪 Test: Alpine Compatibility
-        if: matrix.test-case == 'alpine-compatibility'
+      - name: "🧪 Test: Alpine Compatibility"
+        if: "matrix.test-case == 'alpine-compatibility'"
         run: |
           # Verify Alpine base image
           docker run --rm tor-relay:test sh -c "
@@ -321,10 +321,10 @@ jobs:
           - Test Matrix: ${{ needs.test-matrix.result }}
 
           ## Build Information
-          - **Branch:** \`${{ github.ref }}\`
-          - **Commit:** \`${{ github.sha }}\`
-          - **Run Number:** \`${{ github.run_number }}\`
-          - **Date:** \`$(date -u +'%Y-%m-%dT%H:%M:%SZ')\`
+          - **Branch:** `${{ github.ref }}`
+          - **Commit:** `${{ github.sha }}`
+          - **Run Number:** `${{ github.run_number }}`
+          - **Date:** `$(date -u +'%Y-%m-%dT%H:%M:%SZ')`
 
           ## Checks Performed
           - ✅ Dockerfile syntax validation
