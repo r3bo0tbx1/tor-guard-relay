@@ -1,4 +1,4 @@
-# 🚀 Deployment Guide - Tor Guard Relay v1.4
+# 🚀 Deployment Guide - Tor Guard Relay v1.1
 
 Complete deployment instructions for various hosting environments.
 

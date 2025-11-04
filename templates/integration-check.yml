@@ -1,0 +1,402 @@
+# integration-check.yml - Tor Guard Relay Tool Validation Rules
+# Defines validation criteria for all executable tools and scripts
+# Format: YAML with structured test definitions
+
+version: "1.0"
+description: "Tor Guard Relay Integration Test Suite"
+
+# Global configuration
+config:
+  timeout_seconds: 30
+  alpine_safe: true
+  require_json_valid: true
+  require_yaml_valid: true
+
+# Tool definitions with validation rules
+tools:
+  status:
+    enabled: true
+    description: "Comprehensive relay health report"
+    executable: "/usr/local/bin/status"
+    type: "shell"
+    expected_format: "text"
+    tests:
+      - name: "existence"
+        command: "test -f /usr/local/bin/status"
+        expected_exit_code: 0
+        description: "Tool file exists"
+      
+      - name: "executable"
+        command: "test -x /usr/local/bin/status"
+        expected_exit_code: 0
+        description: "Tool is executable"
+      
+      - name: "output_structure"
+        command: "/usr/local/bin/status 2>&1"
+        expected_exit_code: 0
+        expected_output_contains:
+          - "🧅 Tor Relay Status Report"
+          - "📦 Build Information"
+          - "🚀 Bootstrap Progress"
+        description: "Output contains required headers"
+      
+      - name: "no_syntax_errors"
+        command: "bash -n /usr/local/bin/status"
+        expected_exit_code: 0
+        description: "Shell syntax is valid"
+
+  fingerprint:
+    enabled: true
+    description: "Display relay fingerprint with Tor Metrics links"
+    executable: "/usr/local/bin/fingerprint"
+    type: "shell"
+    expected_format: "text"
+    tests:
+      - name: "existence"
+        command: "test -f /usr/local/bin/fingerprint"
+        expected_exit_code: 0
+        description: "Tool file exists"
+      
+      - name: "executable"
+        command: "test -x /usr/local/bin/fingerprint"
+        expected_exit_code: 0
+        description: "Tool is executable"
+      
+      - name: "output_structure"
+        command: "/usr/local/bin/fingerprint 2>&1 || true"
+        expected_exit_code: [0, 1]
+        expected_output_contains:
+          - "🔑 Tor Relay Fingerprint"
+          - "metrics.torproject.org"
+        description: "Output contains fingerprint header and Metrics link"
+      
+      - name: "no_syntax_errors"
+        command: "bash -n /usr/local/bin/fingerprint"
+        expected_exit_code: 0
+        description: "Shell syntax is valid"
+
+  view-logs:
+    enabled: true
+    description: "Stream live Tor relay logs"
+    executable: "/usr/local/bin/view-logs"
+    type: "shell"
+    expected_format: "text"
+    tests:
+      - name: "existence"
+        command: "test -f /usr/local/bin/view-logs"
+        expected_exit_code: 0
+        description: "Tool file exists"
+      
+      - name: "executable"
+        command: "test -x /usr/local/bin/view-logs"
+        expected_exit_code: 0
+        description: "Tool is executable"
+      
+      - name: "no_syntax_errors"
+        command: "bash -n /usr/local/bin/view-logs"
+        expected_exit_code: 0
+        description: "Shell syntax is valid"
+
+  health:
+    enabled: true
+    description: "JSON health report with bootstrap and uptime info"
+    executable: "/usr/local/bin/health"
+    type: "shell"
+    expected_format: "json"
+    tests:
+      - name: "existence"
+        command: "test -f /usr/local/bin/health"
+        expected_exit_code: 0
+        description: "Tool file exists"
+      
+      - name: "executable"
+        command: "test -x /usr/local/bin/health"
+        expected_exit_code: 0
+        description: "Tool is executable"
+      
+      - name: "json_output"
+        command: "/usr/local/bin/health 2>&1"
+        expected_exit_code: 0
+        expected_format: "json"
+        json_schema:
+          required_fields:
+            - "status"
+            - "uptime"
+            - "bootstrap"
+            - "timestamp"
+        description: "Output is valid JSON with required fields"
+      
+      - name: "json_valid"
+        command: "/usr/local/bin/health 2>&1 | jq empty"
+        expected_exit_code: 0
+        description: "JSON output is parseable"
+      
+      - name: "no_syntax_errors"
+        command: "bash -n /usr/local/bin/health"
+        expected_exit_code: 0
+        description: "Shell syntax is valid"
+
+  metrics:
+    enabled: true
+    description: "Prometheus-compatible metrics output"
+    executable: "/usr/local/bin/metrics"
+    type: "shell"
+    expected_format: "prometheus"
+    tests:
+      - name: "existence"
+        command: "test -f /usr/local/bin/metrics"
+        expected_exit_code: 0
+        description: "Tool file exists"
+      
+      - name: "executable"
+        command: "test -x /usr/local/bin/metrics"
+        expected_exit_code: 0
+        description: "Tool is executable"
+      
+      - name: "prometheus_format"
+        command: "/usr/local/bin/metrics 2>&1"
+        expected_exit_code: 0
+        expected_output_contains:
+          - "# HELP"
+          - "# TYPE"
+          - "tor_relay"
+        description: "Output contains Prometheus format markers"
+      
+      - name: "no_syntax_errors"
+        command: "bash -n /usr/local/bin/metrics"
+        expected_exit_code: 0
+        description: "Shell syntax is valid"
+
+  metrics-http:
+    enabled: true
+    description: "HTTP wrapper for metrics endpoint"
+    executable: "/usr/local/bin/metrics-http"
+    type: "shell"
+    expected_format: "http"
+    tests:
+      - name: "existence"
+        command: "test -f /usr/local/bin/metrics-http"
+        expected_exit_code: 0
+        description: "Tool file exists"
+      
+      - name: "executable"
+        command: "test -x /usr/local/bin/metrics-http"
+        expected_exit_code: 0
+        description: "Tool is executable"
+      
+      - name: "no_syntax_errors"
+        command: "bash -n /usr/local/bin/metrics-http"
+        expected_exit_code: 0
+        description: "Shell syntax is valid"
+
+  dashboard:
+    enabled: true
+    description: "HTML/JS real-time relay dashboard"
+    executable: "/usr/local/bin/dashboard"
+    type: "shell"
+    expected_format: "html"
+    tests:
+      - name: "existence"
+        command: "test -f /usr/local/bin/dashboard"
+        expected_exit_code: 0
+        description: "Tool file exists"
+      
+      - name: "executable"
+        command: "test -x /usr/local/bin/dashboard"
+        expected_exit_code: 0
+        description: "Tool is executable"
+      
+      - name: "html_output"
+        command: "/usr/local/bin/dashboard 2>&1"
+        expected_exit_code: 0
+        expected_output_contains:
+          - "<!DOCTYPE html"
+          - "<html"
+          - "</html>"
+        description: "Output is valid HTML"
+      
+      - name: "no_syntax_errors"
+        command: "bash -n /usr/local/bin/dashboard"
+        expected_exit_code: 0
+        description: "Shell syntax is valid"
+
+# Core scripts validation
+scripts:
+  integration-check.sh:
+    enabled: true
+    description: "Master integration test runner"
+    path: "/integration-check.sh"
+    tests:
+      - name: "existence"
+        command: "test -f /integration-check.sh"
+        expected_exit_code: 0
+        description: "Script file exists"
+      
+      - name: "executable"
+        command: "test -x /integration-check.sh"
+        expected_exit_code: 0
+        description: "Script is executable"
+      
+      - name: "syntax_valid"
+        command: "bash -n /integration-check.sh"
+        expected_exit_code: 0
+        description: "Shell syntax is valid"
+
+  docker-entrypoint.sh:
+    enabled: true
+    description: "Docker container entry point"
+    path: "/usr/local/bin/docker-entrypoint.sh"
+    tests:
+      - name: "existence"
+        command: "test -f /usr/local/bin/docker-entrypoint.sh"
+        expected_exit_code: 0
+        description: "Script file exists"
+      
+      - name: "executable"
+        command: "test -x /usr/local/bin/docker-entrypoint.sh"
+        expected_exit_code: 0
+        description: "Script is executable"
+      
+      - name: "syntax_valid"
+        command: "bash -n /usr/local/bin/docker-entrypoint.sh"
+        expected_exit_code: 0
+        description: "Shell syntax is valid"
+
+# Environment variable checks
+environment:
+  required_vars:
+    - name: "TOR_DATA_DIR"
+      default: "/var/lib/tor"
+      description: "Tor data directory path"
+    
+    - name: "TOR_LOG_DIR"
+      default: "/var/log/tor"
+      description: "Tor log directory path"
+    
+    - name: "PATH"
+      default: "/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin"
+      description: "System PATH must include /usr/local/bin"
+
+# Directory structure checks
+directories:
+  required_paths:
+    - path: "/usr/local/bin"
+      mode: "755"
+      description: "Executable tools directory"
+    
+    - path: "/var/lib/tor"
+      mode: "700"
+      owner: "tor"
+      description: "Tor data directory (secure permissions)"
+    
+    - path: "/var/log/tor"
+      mode: "755"
+      owner: "tor"
+      description: "Tor logs directory"
+
+# File permissions validation
+file_permissions:
+  strict_mode: true
+  checks:
+    - path: "/usr/local/bin/status"
+      mode: "0755"
+      description: "status must be executable"
+    
+    - path: "/usr/local/bin/fingerprint"
+      mode: "0755"
+      description: "fingerprint must be executable"
+    
+    - path: "/usr/local/bin/view-logs"
+      mode: "0755"
+      description: "view-logs must be executable"
+    
+    - path: "/usr/local/bin/health"
+      mode: "0755"
+      description: "health must be executable"
+    
+    - path: "/usr/local/bin/metrics"
+      mode: "0755"
+      description: "metrics must be executable"
+    
+    - path: "/usr/local/bin/metrics-http"
+      mode: "0755"
+      description: "metrics-http must be executable"
+    
+    - path: "/usr/local/bin/dashboard"
+      mode: "0755"
+      description: "dashboard must be executable"
+
+# JSON schema for health tool output
+json_schemas:
+  health_output:
+    type: "object"
+    required:
+      - "status"
+      - "uptime"
+      - "bootstrap"
+      - "timestamp"
+      - "relay_info"
+    properties:
+      status:
+        type: "string"
+        enum: ["healthy", "warning", "error", "bootstrapping"]
+        description: "Overall relay health status"
+      
+      uptime:
+        type: "integer"
+        description: "Uptime in seconds"
+      
+      bootstrap:
+        type: "object"
+        required: ["percent", "status"]
+        properties:
+          percent:
+            type: "integer"
+            minimum: 0
+            maximum: 100
+          status:
+            type: "string"
+      
+      timestamp:
+        type: "string"
+        format: "iso8601"
+        description: "UTC timestamp of health check"
+      
+      relay_info:
+        type: "object"
+        properties:
+          nickname:
+            type: "string"
+          fingerprint:
+            type: "string"
+          or_port:
+            type: "integer"
+          dir_port:
+            type: "integer"
+      
+      errors:
+        type: "array"
+        items:
+          type: "string"
+
+# Test execution order
+test_sequence:
+  phase_1:
+    name: "File Existence & Permissions"
+    priority: 1
+    description: "Verify all executables exist and have correct permissions"
+  
+  phase_2:
+    name: "Syntax Validation"
+    priority: 2
+    description: "Validate shell script syntax and JSON/YAML formats"
+  
+  phase_3:
+    name: "Runtime Tests"
+    priority: 3
+    description: "Execute tools and validate output format and content"
+  
+  phase_4:
+    name: "Integration Tests"
+    priority: 4
+    description: "Run tools together and verify compatibility"

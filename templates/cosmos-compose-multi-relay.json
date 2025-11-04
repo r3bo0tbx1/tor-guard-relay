@@ -1,0 +1,218 @@
+{
+  "minVersion": "0.8.0",
+  "services": {
+    "TorRelay1": {
+      "image": "ghcr.io/r3bo0tbx1/onion-relay:latest",
+      "container_name": "TorRelay1",
+      "restart": "unless-stopped",
+      "environment": [
+        "TZ=UTC",
+        "TOR_DATA_DIR=/var/lib/tor/relay-1",
+        "TOR_LOG_DIR=/var/log/tor/relay-1",
+        "ENABLE_METRICS=true",
+        "METRICS_PORT=9035"
+      ],
+      "network_mode": "host",
+      "volumes": [
+        {
+          "type": "bind",
+          "source": "/opt/tor-relay/relay-1.conf",
+          "target": "/etc/tor/torrc",
+          "read_only": true
+        },
+        {
+          "type": "volume",
+          "source": "tor-relay-1-data",
+          "target": "/var/lib/tor/relay-1"
+        },
+        {
+          "type": "volume",
+          "source": "tor-relay-1-logs",
+          "target": "/var/log/tor/relay-1"
+        }
+      ],
+      "labels": {
+        "cosmos-stack": "TorMultiRelay",
+        "cosmos-description": "🧅 Tor Guard Relay 1 - Multi-Relay Setup"
+      }
+    },
+    "TorRelay2": {
+      "image": "ghcr.io/r3bo0tbx1/onion-relay:latest",
+      "container_name": "TorRelay2",
+      "restart": "unless-stopped",
+      "environment": [
+        "TZ=UTC",
+        "TOR_DATA_DIR=/var/lib/tor/relay-2",
+        "TOR_LOG_DIR=/var/log/tor/relay-2",
+        "ENABLE_METRICS=true",
+        "METRICS_PORT=9036"
+      ],
+      "network_mode": "host",
+      "volumes": [
+        {
+          "type": "bind",
+          "source": "/opt/tor-relay/relay-2.conf",
+          "target": "/etc/tor/torrc",
+          "read_only": true
+        },
+        {
+          "type": "volume",
+          "source": "tor-relay-2-data",
+          "target": "/var/lib/tor/relay-2"
+        },
+        {
+          "type": "volume",
+          "source": "tor-relay-2-logs",
+          "target": "/var/log/tor/relay-2"
+        }
+      ],
+      "labels": {
+        "cosmos-stack": "TorMultiRelay",
+        "cosmos-description": "🧅 Tor Guard Relay 2 - Multi-Relay Setup"
+      }
+    },
+    "TorRelay3": {
+      "image": "ghcr.io/r3bo0tbx1/onion-relay:latest",
+      "container_name": "TorRelay3",
+      "restart": "unless-stopped",
+      "environment": [
+        "TZ=UTC",
+        "TOR_DATA_DIR=/var/lib/tor/relay-3",
+        "TOR_LOG_DIR=/var/log/tor/relay-3",
+        "ENABLE_METRICS=true",
+        "METRICS_PORT=9037"
+      ],
+      "network_mode": "host",
+      "volumes": [
+        {
+          "type": "bind",
+          "source": "/opt/tor-relay/relay-3.conf",
+          "target": "/etc/tor/torrc",
+          "read_only": true
+        },
+        {
+          "type": "volume",
+          "source": "tor-relay-3-data",
+          "target": "/var/lib/tor/relay-3"
+        },
+        {
+          "type": "volume",
+          "source": "tor-relay-3-logs",
+          "target": "/var/log/tor/relay-3"
+        }
+      ],
+      "labels": {
+        "cosmos-stack": "TorMultiRelay",
+        "cosmos-description": "🧅 Tor Guard Relay 3 - Multi-Relay Setup"
+      }
+    },
+    "Prometheus": {
+      "image": "prom/prometheus:latest",
+      "container_name": "PrometheusMonitor",
+      "restart": "unless-stopped",
+      "ports": [
+        "9090:9090"
+      ],
+      "volumes": [
+        {
+          "type": "bind",
+          "source": "/opt/tor-relay/prometheus.yml",
+          "target": "/etc/prometheus/prometheus.yml",
+          "read_only": true
+        },
+        {
+          "type": "volume",
+          "source": "prometheus-data",
+          "target": "/prometheus"
+        }
+      ],
+      "command": [
+        "--config.file=/etc/prometheus/prometheus.yml",
+        "--storage.tsdb.path=/prometheus",
+        "--storage.tsdb.retention.time=30d"
+      ],
+      "labels": {
+        "cosmos-stack": "TorMultiRelay",
+        "cosmos-description": "📊 Prometheus Metrics Collector",
+        "cosmos-proxy": "9090"
+      }
+    },
+    "Grafana": {
+      "image": "grafana/grafana:latest",
+      "container_name": "GrafanaDashboard",
+      "restart": "unless-stopped",
+      "ports": [
+        "3000:3000"
+      ],
+      "environment": [
+        "GF_SECURITY_ADMIN_PASSWORD=admin",
+        "GF_USERS_ALLOW_SIGN_UP=false",
+        "GF_INSTALL_PLUGINS=grafana-clock-panel"
+      ],
+      "volumes": [
+        {
+          "type": "volume",
+          "source": "grafana-data",
+          "target": "/var/lib/grafana"
+        },
+        {
+          "type": "bind",
+          "source": "/opt/tor-relay/grafana-datasources.yml",
+          "target": "/etc/grafana/provisioning/datasources/datasources.yml",
+          "read_only": true
+        }
+      ],
+      "labels": {
+        "cosmos-stack": "TorMultiRelay",
+        "cosmos-description": "📈 Grafana Dashboards",
+        "cosmos-proxy": "3000"
+      }
+    },
+    "Alertmanager": {
+      "image": "prom/alertmanager:latest",
+      "container_name": "AlertManager",
+      "restart": "unless-stopped",
+      "ports": [
+        "9093:9093"
+      ],
+      "volumes": [
+        {
+          "type": "bind",
+          "source": "/opt/tor-relay/alertmanager.yml",
+          "target": "/etc/alertmanager/alertmanager.yml",
+          "read_only": true
+        },
+        {
+          "type": "volume",
+          "source": "alertmanager-data",
+          "target": "/alertmanager"
+        }
+      ],
+      "command": [
+        "--config.file=/etc/alertmanager/alertmanager.yml",
+        "--storage.path=/alertmanager"
+      ],
+      "labels": {
+        "cosmos-stack": "TorMultiRelay",
+        "cosmos-description": "🚨 Alert Manager"
+      }
+    }
+  },
+  "volumes": {
+    "tor-relay-1-data": {},
+    "tor-relay-1-logs": {},
+    "tor-relay-2-data": {},
+    "tor-relay-2-logs": {},
+    "tor-relay-3-data": {},
+    "tor-relay-3-logs": {},
+    "prometheus-data": {},
+    "grafana-data": {},
+    "alertmanager-data": {}
+  },
+  "metadata": {
+    "description": "🧅 Tor Guard Relay Multi-Relay Stack with Monitoring",
+    "version": "1.1",
+    "author": "r3bo0tbx1",
+    "tags": ["tor", "relay", "privacy", "monitoring", "prometheus", "grafana"]
+  }
+}

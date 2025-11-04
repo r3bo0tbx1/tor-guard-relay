@@ -1,0 +1,322 @@
+# alertmanager.yml - Tor Guard Relay Alert Routing Configuration
+# Integrates with Prometheus for webhook-based notifications to Slack and Discord
+# Usage: Mount at /etc/alertmanager/config.yml in alertmanager container
+
+global:
+  resolve_timeout: 5m
+  slack_api_url: 'YOUR_SLACK_WEBHOOK_URL'
+  discord_api_url: 'YOUR_DISCORD_WEBHOOK_URL'
+
+# Templates for alert messages
+templates:
+  - '/etc/alertmanager/templates/*.tmpl'
+
+# The root route with all parameters, which are inherited by the child
+# routes if they are not overwritten.
+route:
+  receiver: 'default'
+  group_by: ['alertname', 'cluster', 'service']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 12h
+  routes:
+    # Critical relay alerts
+    - match:
+        severity: critical
+      receiver: 'critical-alerts'
+      group_wait: 10s
+      group_interval: 1m
+      repeat_interval: 4h
+    
+    # High priority relay issues
+    - match:
+        severity: high
+      receiver: 'high-priority'
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 8h
+    
+    # Warning level alerts
+    - match:
+        severity: warning
+      receiver: 'warnings'
+      group_wait: 2m
+      group_interval: 10m
+      repeat_interval: 24h
+    
+    # Bootstrap status alerts
+    - match:
+        alert_type: bootstrap
+      receiver: 'bootstrap-alerts'
+      group_wait: 1m
+      group_interval: 10m
+      repeat_interval: 12h
+    
+    # Reachability alerts
+    - match:
+        alert_type: reachability
+      receiver: 'reachability-alerts'
+      group_wait: 1m
+      group_interval: 5m
+      repeat_interval: 6h
+    
+    # Performance/resource alerts
+    - match:
+        alert_type: performance
+      receiver: 'performance-alerts'
+      group_wait: 2m
+      group_interval: 15m
+      repeat_interval: 24h
+
+# Receivers
+receivers:
+  # Default receiver (low priority)
+  - name: 'default'
+    slack_configs:
+      - channel: '#tor-relay-general'
+        title: '🧅 Tor Guard Relay Alert'
+        text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
+        send_resolved: true
+        color: '{{ if eq .Status "firing" }}#FFEB3B{{ else }}#4CAF50{{ end }}'
+
+  # Critical alerts - both Slack and Discord
+  - name: 'critical-alerts'
+    slack_configs:
+      - channel: '#tor-relay-critical'
+        title: '🚨 CRITICAL: Tor Guard Relay'
+        text: |
+          *Relay:* {{ .GroupLabels.relay_name }}
+          *Status:* CRITICAL
+          {{ range .Alerts.Firing }}
+            • {{ .Annotations.summary }}
+            {{ .Annotations.description }}
+          {{ end }}
+        send_resolved: true
+        color: '#F44336'
+        actions:
+          - type: button
+            text: 'View Alert'
+            url: '{{ (index .Alerts 0).GeneratorURL }}'
+          - type: button
+            text: 'Dashboard'
+            url: 'https://metrics.torproject.org/rs.html'
+    
+    discord_configs:
+      - webhook_url: '{{ .GroupLabels.discord_webhook }}'
+        title: '🚨 CRITICAL ALERT'
+        description: |
+          **Relay:** {{ .GroupLabels.relay_name }}
+          **Severity:** CRITICAL
+          {{ range .Alerts.Firing }}
+          **{{ .Labels.alertname }}**
+          {{ .Annotations.description }}
+          {{ end }}
+        color: 15744255  # Red
+
+  # High priority alerts
+  - name: 'high-priority'
+    slack_configs:
+      - channel: '#tor-relay-alerts'
+        title: '⚠️ HIGH: Tor Guard Relay'
+        text: |
+          *Relay:* {{ .GroupLabels.relay_name }}
+          *Alert:* {{ .GroupLabels.alertname }}
+          {{ range .Alerts.Firing }}
+            • {{ .Annotations.summary }}
+          {{ end }}
+        send_resolved: true
+        color: '#FF9800'
+
+  # Warning level alerts
+  - name: 'warnings'
+    slack_configs:
+      - channel: '#tor-relay-warnings'
+        title: '⚡ WARNING: Tor Guard Relay'
+        text: |
+          *Relay:* {{ .GroupLabels.relay_name }}
+          {{ range .Alerts.Firing }}
+            • {{ .Annotations.summary }}: {{ .Annotations.description }}
+          {{ end }}
+        send_resolved: true
+        color: '#FFEB3B'
+
+  # Bootstrap status alerts
+  - name: 'bootstrap-alerts'
+    slack_configs:
+      - channel: '#tor-relay-bootstrap'
+        title: '🚀 Bootstrap Status'
+        text: |
+          *Relay:* {{ .GroupLabels.relay_name }}
+          {{ range .Alerts.Firing }}
+            *Status:* {{ .Annotations.summary }}
+            {{ .Annotations.description }}
+          {{ end }}
+        send_resolved: true
+        color: '{{ if eq .Status "firing" }}#2196F3{{ else }}#4CAF50{{ end }}'
+
+  # Reachability alerts
+  - name: 'reachability-alerts'
+    slack_configs:
+      - channel: '#tor-relay-reachability'
+        title: '🌐 Reachability Status'
+        text: |
+          *Relay:* {{ .GroupLabels.relay_name }}
+          {{ range .Alerts }}
+            *{{ .Status | toUpper }}:* {{ .Annotations.summary }}
+            {{ .Annotations.description }}
+          {{ end }}
+        send_resolved: true
+        color: '{{ if eq .Status "firing" }}#F44336{{ else }}#4CAF50{{ end }}'
+
+  # Performance/resource alerts
+  - name: 'performance-alerts'
+    slack_configs:
+      - channel: '#tor-relay-performance'
+        title: '📊 Performance Alert'
+        text: |
+          *Relay:* {{ .GroupLabels.relay_name }}
+          {{ range .Alerts.Firing }}
+            • {{ .Annotations.summary }}: {{ .Annotations.description }}
+          {{ end }}
+        send_resolved: true
+        color: '#9C27B0'
+
+# Inhibition rules (prevent duplicate alerts)
+inhibit_rules:
+  # Don't send warning if critical is already firing
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'relay_name', 'instance']
+  
+  # Don't send high if critical is already firing
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'high'
+    equal: ['alertname', 'relay_name', 'instance']
+  
+  # Don't send warning if high is already firing
+  - source_match:
+      severity: 'high'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'relay_name', 'instance']
+
+# Muting rules (optional - silence specific alerts by time window)
+mute_time_intervals:
+  - name: 'maintenance-window'
+    time_intervals:
+      - times:
+          - start_time: '00:00'
+            end_time: '06:00'
+        weekdays: ['sunday']
+        months: ['january', 'july']
+        year_days: ['1', '15', '25']
+
+---
+
+# Example Prometheus alert rules that integrate with this alertmanager config
+# File: prometheus-rules.yml
+
+groups:
+  - name: tor_relay_alerts
+    interval: 30s
+    rules:
+      # Bootstrap alert
+      - alert: TorBootstrapIncomplete
+        expr: 'tor_relay_bootstrap_percent < 100'
+        for: 5m
+        labels:
+          severity: warning
+          alert_type: bootstrap
+        annotations:
+          summary: 'Relay {{ $labels.relay_name }} bootstrap incomplete'
+          description: 'Bootstrap progress: {{ $value }}% - Relay may still be starting up'
+
+      # ORPort reachability
+      - alert: TorORPortUnreachable
+        expr: 'tor_relay_orport_reachable == 0'
+        for: 10m
+        labels:
+          severity: critical
+          alert_type: reachability
+        annotations:
+          summary: 'Relay {{ $labels.relay_name }} ORPort is unreachable'
+          description: 'ORPort {{ $labels.or_port }} is not reachable from the outside network'
+
+      # High CPU usage
+      - alert: TorRelayHighCPU
+        expr: 'rate(process_cpu_seconds_total[5m]) > 0.8'
+        for: 15m
+        labels:
+          severity: high
+          alert_type: performance
+        annotations:
+          summary: 'Relay {{ $labels.relay_name }} high CPU usage'
+          description: 'CPU usage is {{ $value | humanizePercentage }} - consider tuning bandwidth limits'
+
+      # High memory usage
+      - alert: TorRelayHighMemory
+        expr: 'process_resident_memory_bytes / 1024 / 1024 > 512'
+        for: 10m
+        labels:
+          severity: warning
+          alert_type: performance
+        annotations:
+          summary: 'Relay {{ $labels.relay_name }} high memory usage'
+          description: 'Memory usage is {{ $value | humanize }}MB - monitor for leaks'
+
+      # Low bandwidth
+      - alert: TorRelayLowBandwidth
+        expr: 'rate(tor_relay_bytes_read_total[5m]) < 100000'
+        for: 30m
+        labels:
+          severity: warning
+          alert_type: performance
+        annotations:
+          summary: 'Relay {{ $labels.relay_name }} low bandwidth'
+          description: 'Bandwidth is {{ $value | humanize }}/s - check network connectivity'
+
+      # Container down
+      - alert: TorContainerDown
+        expr: 'up{job="tor-relay"} == 0'
+        for: 2m
+        labels:
+          severity: critical
+          alert_type: reachability
+        annotations:
+          summary: 'Relay {{ $labels.relay_name }} is down'
+          description: 'Relay container has been down for more than 2 minutes'
+
+      # Too many connections
+      - alert: TorTooManyConnections
+        expr: 'tor_relay_connections > 1000'
+        for: 5m
+        labels:
+          severity: high
+          alert_type: performance
+        annotations:
+          summary: 'Relay {{ $labels.relay_name }} high connection count'
+          description: 'Active connections: {{ $value }} - relay may need tuning'
+
+---
+
+# Example Slack Webhook Integration Setup
+# 1. Create a Slack App at https://api.slack.com/apps
+# 2. Enable Incoming Webhooks
+# 3. Add New Webhook to Workspace
+# 4. Copy webhook URL and set in alertmanager.yml:
+#    slack_api_url: 'https://hooks.slack.com/services/YOUR/WEBHOOK/URL'
+
+# Example Discord Webhook Integration Setup
+# 1. In Discord server, go to Channel Settings > Integrations > Webhooks
+# 2. Create New Webhook
+# 3. Copy webhook URL
+# 4. Set in alertmanager.yml:
+#    discord_api_url: 'https://discordapp.com/api/webhooks/YOUR/WEBHOOK/URL'
+
+# Environment variables for Docker
+# SLACK_WEBHOOK_URL=https://hooks.slack.com/services/YOUR/WEBHOOK/URL
+# DISCORD_WEBHOOK_URL=https://discordapp.com/api/webhooks/YOUR/WEBHOOK/URL

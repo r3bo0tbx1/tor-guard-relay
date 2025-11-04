@@ -1,32 +1,53 @@
 # Dependabot configuration for Tor Guard Relay
-# Docs: https://docs.github.com/code-security/dependabot
+# Automatically creates PRs for dependency updates
 
 version: 2
 updates:
-  # 1️⃣ Keep GitHub Actions up to date
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "daily"
-    commit-message:
-      prefix: "chore(deps)"
-      include: "scope"
+      interval: "weekly"
+      day: "monday"
+      time: "03:00"
+    open-pull-requests-limit: 5
     labels:
       - "dependencies"
       - "github-actions"
-    rebase-strategy: "auto"
-    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "ci"
+      include: "scope"
+    reviewers:
+      - "r3bo0tbx1"
+    assignees:
+      - "r3bo0tbx1"
 
-  # 2️⃣ Keep Docker base images up to date
   - package-ecosystem: "docker"
     directory: "/"
     schedule:
       interval: "weekly"
-    commit-message:
-      prefix: "chore(deps)"
-      include: "scope"
+      day: "monday"
+      time: "03:00"
+    open-pull-requests-limit: 3
     labels:
       - "dependencies"
       - "docker"
-    rebase-strategy: "auto"
-    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "build"
+      include: "scope"
+    reviewers:
+      - "r3bo0tbx1"
+    assignees:
+      - "r3bo0tbx1"
+
+# Update strategy:
+# - Weekly checks on Mondays at 03:00 UTC
+# - Automatic PR creation for security updates
+# - Manual review required before merge
+# - Limit concurrent PRs to avoid noise
+#
+# Monitored ecosystems:
+# 1. GitHub Actions (workflow dependencies)
+# 2. Docker (Alpine base image)
+#
+# Note: Shell scripts and Tor itself are updated manually
+# as they require specific testing and validation.

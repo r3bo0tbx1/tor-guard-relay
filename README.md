@@ -11,704 +11,511 @@
 
 <img src="src/onion.png" alt="Onion diagram" width="400"/>
 
-**A hardened, self-healing Tor relay container with built-in diagnostics**
+**A hardened, production-ready Tor relay with built-in diagnostics and monitoring**
 
-[Quick Start](#-quick-installation) • [Usage Guide](#%EF%B8%8F-usage-guide) • [Diagnostics](#-diagnostic-tools) • [Monitoring](#%EF%B8%8F-monitoring--verification) • [Contributing](#-community--contribution)
+[Quick Start](#-quick-start) • [Features](#-key-features) • [Documentation](#-documentation) • [Tools](#-diagnostic-tools) • [Contributing](#-contributing)
 
 </div>
 
 ---
 
-## 📖 Table of Contents
+## 🚀 What is This?
 
-- [Project Overview](#-project-overview)
-- [Quick Installation](#-quick-installation)
-- [Usage Guide](#%EF%B8%8F-usage-guide)
-- [Key Features](#-key-features)
-- [Monitoring & Verification](#%EF%B8%8F-monitoring--verification)
-- [Troubleshooting](#-troubleshooting)
-- [Development](#-development-workflow)
-- [Security Best Practices](#-security-best-practices)
-- [Contributing](#-community--contribution)
-
----
-
-## 🚀 Project Overview
-
-**Tor Guard Relay** is a **production-ready, hardened Tor relay container** designed for privacy-focused operators who want to contribute to the Tor network securely and efficiently.
+**Tor Guard Relay** is a **production-ready, self-healing Tor relay container** designed for privacy advocates who want to contribute to the Tor network securely and efficiently.
 
 > **🌉 Want to run a Tor Bridge instead?**  
-> This project focuses on guard/middle relays. For bridge setup, please visit:  
-> **[Official Tor Bridge Setup Guide](https://community.torproject.org/relay/setup/bridge/docker/)**
+> This project focuses on guard/middle relays. For bridge setup, visit the [Official Tor Bridge Guide](https://community.torproject.org/relay/setup/bridge/docker/)
 
-### Why This Project?
+### Why Choose This Project?
 
-- 🛡️ **Security-First Design**: Built with hardened Alpine Linux and non-root operations
-- 🎯 **Simplicity**: One command to deploy, minimal configuration required
-- 🔄 **Automated Updates**: GitHub Actions keep your relay current
-- 📊 **Production-Ready**: Battle-tested design with comprehensive diagnostics
-
-Built from the ground up with security, reliability, and ease of use in mind. 🕵️‍♀️🔐
+- 🛡️ **Security-First** - Hardened Alpine Linux, non-root operation, automatic permission healing
+- 🎯 **Simple** - One command to deploy, minimal configuration needed
+- 📊 **Observable** - 9 built-in diagnostic tools + Prometheus metrics
+- 🔄 **Automated** - Weekly builds, auto-updates, CI/CD ready
+- 📚 **Documented** - Comprehensive guides for deployment, monitoring, backup, and more
+- 🏗️ **Multi-Arch** - Native support for AMD64 and ARM64 (Raspberry Pi, AWS Graviton, etc.)
 
 ---
 
-## 📦 Quick Installation
+## ⚡ Quick Start
 
 ### System Requirements
 
-| Component | Minimum | Recommended | Notes |
-|-----------|---------|-------------|-------|
-| 🖥️ CPU | 1 core | 2+ cores | ARM64 and AMD64 supported |
-| 💾 RAM | 512 MB | 1 GB+ | More for high-traffic relays |
-| 💿 Disk | 10 GB | 20 GB+ | SSD recommended |
-| 🌐 Bandwidth | 10 Mbps | 100+ Mbps | Symmetric preferred |
-| 🔌 Uptime | 95%+ | 99%+ | Stability builds trust |
-| 🏗️ Architecture | amd64 or arm64 | Any | Auto-detected |
-| 🐳 Docker | 20.10+ | Latest | Buildx support recommended |
+| Component | Minimum | Recommended |
+|-----------|---------|-------------|
+| CPU | 1 core | 2+ cores |
+| RAM | 512 MB | 1 GB+ |
+| Disk | 10 GB | 20 GB+ SSD |
+| Bandwidth | 10 Mbps | 100+ Mbps |
+| Uptime | 95%+ | 99%+ |
+| Docker | 20.10+ | Latest |
 
-### Deployment Options
+**Supported Architectures:** AMD64 (x86_64) • ARM64 (aarch64)
 
-Choose your preferred deployment method:
+### Deploy in 30 Seconds
 
-| Method | Best For | Documentation |
-|--------|----------|---------------|
-| 🐳 **Docker CLI** | Quick testing, simple setups | [Guide](docs/DEPLOYMENT.md#method-1-docker-cli) |
-| 📦 **Docker Compose** | Production, version control | [Guide](docs/DEPLOYMENT.md#method-2-docker-compose) · [Template](templates/docker-compose.yml) |
-| ☁️ **Cosmos Cloud** | Beautiful UI, auto-updates | [Guide](docs/DEPLOYMENT.md#method-3-cosmos-cloud) · [Template](templates/cosmos-compose.json) |
-| 🎛️ **Portainer** | GUI management | [Guide](docs/DEPLOYMENT.md#method-4-portainer) |
-
-**New to Docker management?** Check out [Cosmos Cloud](https://cosmos-cloud.io/) by [azukaar](https://github.com/azukaar) - a modern, self-hosted platform that makes Docker container management beautiful and simple.
-
-> 📖 **Complete setup instructions**: See our detailed [Deployment Guide](docs/DEPLOYMENT.md) for step-by-step instructions for all methods.
-
----
-
-## 🌍 Multi-Architecture Support
-
-This image supports multiple CPU architectures automatically:
-
-### Supported Platforms
-
-| Architecture | Platforms | Use Cases |
-|--------------|-----------|-----------|
-| 🖥️ **linux/amd64** | x86_64 servers | VPS, dedicated servers, cloud instances |
-| 🔧 **linux/arm64** | ARM64v8 | Raspberry Pi 4/5, Oracle ARM, AWS Graviton |
-
-### How It Works
-
-Docker automatically pulls the correct architecture for your system:
+**Step 1:** Create your relay configuration (or use our [example](examples/relay.conf)):
 
 ```bash
-# On x86 server - pulls amd64 image
-docker pull ghcr.io/r3bo0tbx1/onion-relay:latest
+# Create config directory
+mkdir -p ~/tor-relay && cd ~/tor-relay
 
-# On Raspberry Pi - pulls arm64 image  
-docker pull ghcr.io/r3bo0tbx1/onion-relay:latest
+# Download example config
+curl -O https://raw.githubusercontent.com/r3bo0tbx1/tor-guard-relay/main/examples/relay.conf
 
-# Same command, different architectures!
+# Edit with your details
+nano relay.conf
+# Important: Set Nickname, ContactInfo, and bandwidth limits
 ```
 
-### Verify Your Architecture
-
-After pulling, check what you got:
-
-```bash
-docker inspect ghcr.io/r3bo0tbx1/onion-relay:latest | grep Architecture
-```
-
-Or from inside the container:
-
-```bash
-docker exec guard-relay cat /build-info.txt | grep Architecture
-```
-
-**Output:**
-```
-Architecture: arm64  # or amd64
-```
-
----
-
-## ⚙️ Usage Guide
-
-### 🌟 Basic Deployment
-
-Run your relay with an external configuration:
+**Step 2:** Run the relay:
 
 ```bash
 docker run -d \
-  --name guard-relay \
+  --name tor-relay \
+  --restart unless-stopped \
   --network host \
-  -v /path/to/relay.conf:/etc/tor/torrc:ro \
+  -v $(pwd)/relay.conf:/etc/tor/torrc:ro \
   -v tor-guard-data:/var/lib/tor \
   -v tor-guard-logs:/var/log/tor \
-  --restart unless-stopped \
   ghcr.io/r3bo0tbx1/onion-relay:latest
 ```
 
-**Important Notes:**
+**Step 3:** Verify it's running:
 
-* 🌐 Use `--network host` to support both IPv4 and IPv6 bindings
-* 🔥 Ensure your firewall allows the ORPort (typically `9001` for relays)
-* 📁 Store your `relay.conf` in a secure location with proper permissions (`chmod 600`)
+```bash
+# Check status
+docker exec tor-relay status
 
-### 🌐 Why Host Network Mode?
+# View fingerprint
+docker exec tor-relay fingerprint
 
-This project uses `--network host` instead of bridge networking for important reasons:
+# Stream logs
+docker logs -f tor-relay
+```
 
-| Benefit | Explanation |
-|---------|-------------|
-| **IPv6 Support** | Direct access to host's IPv6 stack - critical for modern Tor relays |
-| **No Port Mapping** | Tor can bind directly to ports without complex NAT traversal |
-| **Better Performance** | Eliminates network translation overhead |
-| **Tor Recommended** | Follows Tor Project best practices for relay operation |
+**That's it!** Your relay will bootstrap in 10-30 minutes and appear on [Tor Metrics](https://metrics.torproject.org/rs.html) within 1-2 hours.
 
-**Security Note**: Host networking means the container shares the host's network stack. This is safe for Tor relays as they're designed to be internet-facing services. The container still runs as a non-root user with restricted permissions.
+> 📖 **Need more?** See our comprehensive [Deployment Guide](docs/DEPLOYMENT.md) for Docker Compose, Cosmos Cloud, Portainer, and advanced setups.
 
 ---
 
-## 🔍 Diagnostic Tools
+## 🏗️ Deployment Methods
 
-Built-in diagnostic commands provide instant insights into your relay's health.
+Choose the method that fits your workflow:
 
-### Quick Status Check
+| Method | Best For | Guide |
+|--------|----------|-------|
+| 🐳 **Docker CLI** | Quick testing, learning | [Guide](docs/DEPLOYMENT.md#method-1-docker-cli) |
+| 📦 **Docker Compose** | Production, GitOps | [Guide](docs/DEPLOYMENT.md#method-2-docker-compose) |
+| ☁️ **Cosmos Cloud** | Beautiful UI, beginners | [Guide](docs/DEPLOYMENT.md#method-3-cosmos-cloud) |
+| 🎛️ **Portainer** | Web UI management | [Guide](docs/DEPLOYMENT.md#method-4-portainer) |
 
-Get a comprehensive overview in seconds:
+**New to Docker?** Try [Cosmos Cloud](https://cosmos-cloud.io/) by [azukaar](https://github.com/azukaar) - a gorgeous, self-hosted Docker management platform.
+
+### Multi-Relay Setup
+
+Running multiple relays? We have templates for that:
+
+- **Docker Compose:** [docker-compose-multi-relay.yml](templates/docker-compose-multi-relay.yml) - 3 relays + Prometheus + Grafana
+- **Cosmos Cloud:** [cosmos-compose-multi-relay.json](templates/cosmos-compose-multi-relay.json) - Full monitoring stack
+
+See [Deployment Guide](docs/DEPLOYMENT.md) for complete instructions.
+
+---
+
+## 🔧 Diagnostic Tools
+
+**v1.1 includes 9 production-ready diagnostic tools** - no external scripts needed!
+
+### Quick Reference
+
+| Tool | Purpose | Usage |
+|------|---------|-------|
+| **status** | Complete health report | `docker exec tor-relay status` |
+| **fingerprint** | Display relay fingerprint | `docker exec tor-relay fingerprint` |
+| **health** | JSON health check | `docker exec tor-relay health` |
+| **metrics** | Prometheus metrics | `docker exec tor-relay metrics` |
+| **dashboard** | HTML dashboard | `docker exec tor-relay dashboard` |
+| **net-check** | Network diagnostics | `docker exec tor-relay net-check` |
+| **view-logs** | Stream logs | `docker exec tor-relay view-logs` |
+| **setup** | Config wizard | `docker exec -it tor-relay setup` |
+| **metrics-http** | HTTP metrics server | Background service on port 9035 |
+
+### Example: Quick Health Check
 
 ```bash
-docker exec guard-relay relay-status
+docker exec tor-relay status
 ```
 
-**Output Example:**
+**Output:**
 ```
 🧅 Tor Relay Status Report
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+═══════════════════════════════════
 
-📦 Build Information:
-   Version: 1.0
-   Build Date: 2025-11-01T12:00:00Z
-   Architecture: amd64
+📦 Build: v1.1 (2025-11-04, amd64)
+🚀 Bootstrap: ✅ 100% Complete
+🔗 ORPort: ✅ Reachable (9001)
+📊 Uptime: 2d 14h 30m
+🔑 Fingerprint: MyRelay 1234...ABCD
 
-🚀 Bootstrap Progress:
-   [notice] Bootstrapped 100% (done): Done
-   ✅ Relay is fully bootstrapped!
-
-🌍 Reachability Status:
-   [notice] Self-testing indicates your ORPort is reachable from the outside.
-   ✅ ORPort is reachable!
-
-🔑 Relay Fingerprint:
-   MyPrivacyRelay 4A3F2E1D8C9B7A6F5E4D3C2B1A0F9E8D7C6B5A4F
-
-⚠️  Recent Errors/Warnings:
-   ✅ No recent errors or warnings.
+⚠️  Issues: ✅ No errors or warnings
 ```
+
+> 📖 **Complete reference:** See [Tools Documentation](docs/TOOLS.md) for all 9 tools with examples, environment variables, and troubleshooting.
 
 ---
 
-### Individual Diagnostic Commands
+## 📊 Monitoring & Observability
 
-| Command | Purpose | Example Output |
-|---------|---------|----------------|
-| `relay-status` | Full health report | Bootstrap, reachability, errors |
-| `fingerprint` | Show relay fingerprint | `MyRelay 4A3F2E1D...` + Metrics links |
-| `view-logs` | Stream live logs | Tail -f notices.log |
+### Built-in Metrics
 
-#### Show Fingerprint
+Expose Prometheus metrics for monitoring:
 
 ```bash
-docker exec guard-relay fingerprint
+# Enable metrics endpoint
+docker run -d \
+  --name tor-relay \
+  -e ENABLE_METRICS=true \
+  -e METRICS_PORT=9035 \
+  -p 9035:9035 \
+  ghcr.io/r3bo0tbx1/onion-relay:latest
 ```
 
-**Output:**
-```
-🔑 Tor Relay Fingerprint
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-MyPrivacyRelay 4A3F2E1D8C9B7A6F5E4D3C2B1A0F9E8D7C6B5A4F
+Access metrics at `http://localhost:9035/metrics`
 
-🌐 Search on Tor Metrics:
-   https://metrics.torproject.org/rs.html
+### Full Monitoring Stack
 
-🧅 Search on Onion Metrics (Tor Browser):
-   http://hctxrvjzfpvmzh2jllqhgvvkoepxb4kfzdjm6h7egcwlumggtktiftid.onion/rs.html
-```
-
-#### Stream Logs
+Deploy with **Prometheus + Grafana + Alertmanager**:
 
 ```bash
-docker exec guard-relay view-logs
+# Download multi-relay template with monitoring
+curl -O https://raw.githubusercontent.com/r3bo0tbx1/tor-guard-relay/main/templates/docker-compose-multi-relay.yml
+
+# Start everything
+docker-compose -f docker-compose-multi-relay.yml up -d
+
+# Access dashboards
+# Grafana:     http://localhost:3000 (admin/admin)
+# Prometheus:  http://localhost:9090
 ```
 
-Displays the last 50 lines and follows new entries in real-time.
+**Includes:**
+- Pre-configured Prometheus scraping
+- [Grafana dashboard](templates/grafana-dashboard.json) with visualizations
+- [Alert rules](templates/prometheus.yml) for relay health
+- [Alertmanager](templates/alertmanager.yml) for Slack/Discord notifications
+
+> 📖 **Complete setup:** See [Monitoring Guide](docs/MONITORING.md) for metrics reference, alert rules, dashboard setup, and troubleshooting.
 
 ---
 
-### Build Information
+## 🎯 Key Features
 
-Check what version you're running:
+### Security & Reliability
+- ✅ Non-root execution (runs as `tor` user)
+- ✅ Hardened Alpine Linux base (~35 MB)
+- ✅ Automatic permission healing on startup
+- ✅ Configuration validation before start
+- ✅ Tini init for proper signal handling
+- ✅ Graceful shutdown with cleanup
 
-```bash
-docker exec guard-relay cat /build-info.txt
-```
+### Operations & Automation
+- ✅ **9 diagnostic tools** built-in (status, health, metrics, etc.)
+- ✅ **Prometheus metrics** for monitoring
+- ✅ **HTML dashboard** for at-a-glance status
+- ✅ **Multi-architecture** builds (AMD64, ARM64)
+- ✅ **Weekly auto-builds** via GitHub Actions
+- ✅ **Docker Compose templates** for single/multi-relay
+- ✅ **Cosmos Cloud support** with one-click deploy
 
-**Output:**
-```
-Version: 1.0
-Build Date: 2025-11-01T12:00:00Z
-Architecture: amd64
-```
+### Developer Experience
+- ✅ Comprehensive documentation (8 guides)
+- ✅ Example configurations included
+- ✅ GitHub issue templates
+- ✅ Automated dependency updates (Dependabot)
+- ✅ CI/CD validation and testing
+- ✅ Multi-arch support (same command, any platform)
 
 ---
 
-### 📝 Example Configuration Files
+## 📚 Documentation
 
-#### Guard Relay Configuration
+**v1.1 includes comprehensive documentation** organized by topic:
 
-```text
-# relay.conf - Guard Relay Example
-Nickname MyPrivacyRelay
-ContactInfo privacy@example.com <0xYOUR_PGP_KEY>
+### Getting Started
+- **[Deployment Guide](docs/DEPLOYMENT.md)** - Complete installation for Docker CLI, Compose, Cosmos Cloud, and Portainer
+- **[Migration Guide](docs/MIGRATION.md)** - Upgrade from v1.0 or migrate from other Tor setups
+
+### Operations
+- **[Tools Reference](docs/TOOLS.md)** - Complete guide to all 9 diagnostic tools
+- **[Monitoring Guide](docs/MONITORING.md)** - Prometheus, Grafana, alerts, and observability
+- **[Backup Guide](docs/BACKUP.md)** - Data persistence, recovery, and disaster planning
+- **[Performance Guide](docs/PERFORMANCE.md)** - Optimization, tuning, and resource management
+
+### Legal & Community
+- **[Legal Considerations](docs/LEGAL.md)** - Legal aspects of running a Tor relay
+- **[Documentation Index](docs/README.md)** - Complete documentation navigation
+
+### Project Info
+- **[Security Policy](SECURITY.md)** - Security practices and vulnerability reporting
+- **[Contributing Guide](CONTRIBUTING.md)** - How to contribute to the project
+- **[Code of Conduct](CODE_OF_CONDUCT.md)** - Community guidelines
+- **[Changelog](CHANGELOG.md)** - Version history and changes
+
+> 💡 **Tip:** Start with the [Documentation Index](docs/README.md) to find what you need quickly.
+
+---
+
+## 🛠️ Configuration
+
+### Minimal Configuration
+
+The simplest relay needs just these settings:
+
+```ini
+# relay.conf
+Nickname MyTorRelay
+ContactInfo your-email@example.com
 ORPort 9001
 ORPort [::]:9001
 DirPort 9030
 
-# Relay type
 ExitRelay 0
 SocksPort 0
-ExitPolicy reject *:*
-
-# Paths
 DataDirectory /var/lib/tor
 Log notice file /var/log/tor/notices.log
+```
 
-# Bandwidth (optional)
-RelayBandwidthRate 1 MBytes
-RelayBandwidthBurst 2 MBytes
+### Production Configuration
 
-# Performance tuning
+Add bandwidth limits and optimizations:
+
+```ini
+# Bandwidth (MB/s)
+RelayBandwidthRate 50 MBytes
+RelayBandwidthBurst 100 MBytes
+
+# Performance
 NumCPUs 2
+MaxMemInQueues 512 MB
+
+# IPv6 support
+ORPort [::]:9001
 ```
 
-See [examples/relay.conf](examples/relay.conf) for a complete, well-documented configuration template.
+### Example Configurations
+
+See the [`examples/`](examples/) directory for complete, annotated configuration files:
+
+- **[relay.conf](examples/relay.conf)** - Recommended production config
+- Additional examples for specific use cases
+
+> 📖 **Configuration help:** See [Deployment Guide](docs/DEPLOYMENT.md#configuration) for complete reference.
 
 ---
 
-## 🧰 Key Features
+## 🔍 Monitoring Your Relay
 
-<table>
-<tr>
-<td>
+### Check Bootstrap Status
 
-### 🔐 Security
-- Non-root operation
-- Hardened permissions
-- Auto-permission healing
-- Minimal attack surface
-- Regular security updates
-- Configuration validation
+```bash
+# Quick status
+docker exec tor-relay status
 
-</td>
-<td>
+# JSON output for automation
+docker exec tor-relay health | jq .bootstrap
+```
 
-### ⚡ Performance
-- Lightweight Alpine base (~35 MB)
-- Optimized resource usage
-- Dual-stack IPv4/IPv6
-- Health check monitoring
-- Efficient multi-arch builds
-- GitHub Actions caching
+### View on Tor Metrics
 
-</td>
-</tr>
-<tr>
-<td>
+After 1-2 hours, find your relay:
 
-### 🔧 Operations
-- External configuration
-- Persistent data volumes
-- Auto-restart support
-- Cosmos-compatible
-- Built-in diagnostics
-- Self-healing startup
+🔗 **[Tor Metrics Relay Search](https://metrics.torproject.org/rs.html)**
 
-</td>
-<td>
+Search by:
+- Nickname (e.g., "MyTorRelay")
+- Fingerprint (get with `docker exec tor-relay fingerprint`)
+- IP address
 
-### 🤖 Automation
-- Weekly auto-builds
-- Multi-arch support (amd64/arm64)
-- GHCR publishing
-- CI/CD integration
-- Version tagging
-- SHA-based rollback
+### Expected Timeline
 
-</td>
-</tr>
-<tr>
-<td>
+| Milestone | Time | What to Expect |
+|-----------|------|----------------|
+| Bootstrap Complete | 10-30 min | Logs show "Bootstrapped 100%" |
+| Appears on Metrics | 1-2 hours | Relay visible in search |
+| First Statistics | 24-48 hours | Bandwidth graphs appear |
+| Guard Flag | 8+ days | Trusted for entry connections |
 
-### 🔍 Observability
-- `relay-status` command
-- `fingerprint` command
-- `view-logs` command
-- Build metadata tracking
-- Structured logging
-- Health endpoints
-
-</td>
-<td>
-
-### 🛡️ Reliability
-- Tini init system
-- Graceful shutdowns
-- Zombie process reaping
-- Config validation on boot
-- Automatic error recovery
-- Zero-downtime restarts
-
-</td>
-</tr>
-</table>
+> 📖 **Detailed monitoring:** See [Monitoring Guide](docs/MONITORING.md) for complete observability setup with Prometheus and Grafana.
 
 ---
 
-## 🛰️ Monitoring & Verification
+## 🐛 Troubleshooting
 
-After deployment, Tor requires time to bootstrap and publish its descriptor. This section helps you verify it's running correctly and visible on the network.
+### Quick Diagnostics
 
-### 🕒 Bootstrap Timeline
+```bash
+# Check overall status
+docker exec tor-relay status
 
-| Relay Type | Initial Bootstrap | Full Integration | More Info |
-|------------|------------------|------------------|-----------|
-| 🛡️ Guard Relay | 10–30 minutes | 2–4 hours | See below |
-| 🌉 Bridge | 30–90 minutes | 4–8 hours | [Official Bridge Guide](https://community.torproject.org/relay/setup/bridge/docker/) |
+# Run network diagnostics
+docker exec tor-relay net-check
 
-**Success Indicator:** Look for `"Bootstrapped 100% (done): Done"` in logs.
+# View recent errors
+docker exec tor-relay view-logs --errors
+
+# Check JSON health
+docker exec tor-relay health | jq .
+```
+
+### Common Issues
+
+| Problem | Quick Fix |
+|---------|-----------|
+| Container won't start | Check logs: `docker logs tor-relay` |
+| ORPort not reachable | Verify firewall: `sudo ufw allow 9001/tcp` |
+| Not on Tor Metrics | Wait 24h, verify bootstrap complete |
+| Low/no traffic | Normal for new relays (2-8 weeks to build reputation) |
+
+> 📖 **Full troubleshooting:** See [Tools Documentation](docs/TOOLS.md#troubleshooting) for detailed diagnostic procedures.
 
 ---
 
-### 📜 Checking Logs
+## 🏢 Architecture & Design
 
-#### Docker CLI Method
+### Why Host Network Mode?
+
+This project uses `--network host` for important reasons:
+
+✅ **IPv6 Support** - Direct access to host's IPv6 stack  
+✅ **No NAT** - Tor binds directly to ports without translation  
+✅ **Better Performance** - Eliminates network overhead  
+✅ **Tor Recommended** - Follows Tor Project best practices  
+
+**Security:** The container still runs as non-root with restricted permissions. Host networking is standard for Tor relays.
+
+### Multi-Architecture Support
+
+Docker automatically pulls the correct architecture:
 
 ```bash
-# Follow logs in real-time
-docker logs -f guard-relay
-
-# View last 50 lines
-docker logs --tail 50 guard-relay
-
-# Search for specific events
-docker logs guard-relay 2>&1 | grep "Bootstrapped"
+# Same command works on:
+# - x86_64 servers (pulls amd64)
+# - Raspberry Pi (pulls arm64)
+# - AWS Graviton (pulls arm64)
+docker pull ghcr.io/r3bo0tbx1/onion-relay:latest
 ```
 
-#### Using the Diagnostic Commands
-
+Verify what you got:
 ```bash
-# Quick status overview
-docker exec guard-relay relay-status
-
-# Stream logs
-docker exec guard-relay view-logs
-```
-
-#### Using the Status Script
-
-Download and use our automated status checker:
-
-```bash
-# Download the script
-wget https://raw.githubusercontent.com/r3bo0tbx1/tor-guard-relay/main/relay-status.sh
-
-# Make it executable
-chmod +x relay-status.sh
-
-# Run status check
-./relay-status.sh
+docker exec tor-relay cat /build-info.txt | grep Architecture
 ```
 
 ---
 
-### 🌐 Verify on Tor Metrics (Clearnet)
+## 🤝 Contributing
 
-Once bootstrapped, verify your relay is publicly visible:
+We welcome contributions! Here's how you can help:
 
-**🔗 [Tor Metrics Relay Search](https://metrics.torproject.org/rs.html)**
+- 🐛 **Report bugs** via [GitHub Issues](https://github.com/r3bo0tbx1/tor-guard-relay/issues)
+- 💡 **Suggest features** or improvements
+- 📖 **Improve documentation** (typos, clarity, examples)
+- 🔧 **Submit pull requests** (code, configs, workflows)
+- ⭐ **Star the repository** to show support
+- 🧅 **Run a relay** and strengthen the network!
 
-#### Expected Timeline
-
-- ⏰ **First appearance:** 1 to 2 hours after bootstrap
-- 📊 **Full statistics:** 24 to 48 hours
-- 🛡️ **Guard flag:** 8+ days of stable operation
-
----
-
-### 📈 Healthy Relay Indicators (24–48 Hours)
-
-On Tor Metrics, you should see:
-
-| Status | Expected Value | Meaning |
-|--------|---------------|---------|
-| 🟢 Running | `True` | Currently online |
-| ✅ Valid | `True` | Accepted by directory authorities |
-| 🛡️ Guard | `True` (eventually) | Trusted for entry connections |
-| 🚫 Exit | `False` | Non-exit relay (safer) |
-| 📊 Bandwidth | Increasing | Network trust growing |
-| ⏰ Uptime | High % | Stability demonstrated |
-
----
-
-## 🔧 Troubleshooting
-
-### Common Issues & Solutions
-
-<details>
-<summary><b>🔴 Container won't start</b></summary>
-
-**Symptoms:** Container exits immediately or restarts repeatedly
-
-**Solutions:**
-```bash
-# Check logs for errors
-docker logs guard-relay
-
-# Verify configuration syntax
-docker run --rm -v /path/to/relay.conf:/etc/tor/torrc:ro \
-  ghcr.io/r3bo0tbx1/onion-relay:latest tor --verify-config -f /etc/tor/torrc
-
-# Check file permissions
-ls -la /path/to/relay.conf
-# Should be readable (644 or 600)
-```
-</details>
-
-<details>
-<summary><b>🟡 ORPort not reachable</b></summary>
-
-**Symptoms:** Logs show "ORPort reachability test failed"
-
-**Solutions:**
-```bash
-# Check firewall rules
-sudo ufw status
-sudo ufw allow 9001/tcp
-
-# Test port from outside
-# (from another machine)
-nc -zv YOUR_IP 9001
-
-# Verify Docker network mode
-docker inspect guard-relay | grep NetworkMode
-# Should show "host"
-```
-</details>
-
-<details>
-<summary><b>🟠 Relay not appearing on metrics</b></summary>
-
-**Symptoms:** Can't find relay after several hours
-
-**Solutions:**
-1. Wait 24 hours (initial propagation takes time)
-2. Verify bootstrap completed:
-   ```bash
-   docker logs guard-relay 2>&1 | grep "Bootstrapped 100"
-   ```
-3. Check fingerprint is correct:
-   ```bash
-   docker exec guard-relay fingerprint
-   ```
-4. Ensure ContactInfo is set in torrc
-</details>
-
-<details>
-<summary><b>⚪ Low bandwidth or no traffic</b></summary>
-
-**Symptoms:** Relay shows minimal traffic after days
-
-**Possible causes:**
-- New relays need time to build reputation (2–8 weeks)
-- Bandwidth limits too restrictive
-- Network connectivity issues
-- Competition from established relays
-
-**Monitor:**
-```bash
-# Check bandwidth allocation
-docker exec guard-relay grep Relay /etc/tor/torrc
-
-# Watch traffic patterns
-docker stats guard-relay
-```
-</details>
-
-<details>
-<summary><b>🟤 Wrong architecture pulled</b></summary>
-
-**Symptoms:** Container fails with "exec format error"
-
-**Solutions:**
-
-This means Docker pulled the wrong architecture variant:
+### Development
 
 ```bash
-# Check your system architecture
-uname -m
-# aarch64 = ARM64
-# x86_64 = AMD64
-
-# Force pull correct architecture
-docker pull --platform linux/amd64 ghcr.io/r3bo0tbx1/onion-relay:latest
-# or
-docker pull --platform linux/arm64 ghcr.io/r3bo0tbx1/onion-relay:latest
-
-# Verify architecture
-docker inspect ghcr.io/r3bo0tbx1/onion-relay:latest | grep Architecture
-```
-</details>
-
-For more troubleshooting help, see the [Deployment Guide](docs/DEPLOYMENT.md#troubleshooting-deployments).
-
----
-
-## 🚧 Development Workflow
-
-### 🛠️ Local Build
-
-```bash
-# Clone the repository
+# Clone repository
 git clone https://github.com/r3bo0tbx1/tor-guard-relay.git
 cd tor-guard-relay
 
-# Build the Docker image
-docker build \
-  --build-arg BUILD_DATE="$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
-  --build-arg BUILD_VERSION="1.0" \
-  -t onion-relay:latest \
-  -f Dockerfile .
+# Build locally
+docker build -t tor-relay:dev .
 
-# Test locally
-docker run --rm onion-relay:latest cat /build-info.txt
+# Test
+docker run --rm tor-relay:dev status
 ```
 
-### 🧪 Testing
-
-```bash
-# Run with test configuration
-docker run --rm -v ./examples/relay.conf:/etc/tor/torrc:ro \
-  onion-relay:latest tor --verify-config -f /etc/tor/torrc
-
-# Interactive debugging
-docker run -it --rm onion-relay:latest /bin/sh
-```
+See [Contributing Guide](CONTRIBUTING.md) for detailed instructions.
 
 ---
 
-## 🤖 Automated Workflows
+## 📦 Templates & Examples
 
-GitHub Actions handle continuous integration and delivery:
+All templates are in the [`templates/`](templates/) directory:
 
-| Workflow | Trigger | Purpose |
-|----------|---------|---------|
-| 🔁 Weekly Build | Monday 03:00 UTC | Keep Tor updated |
-| 📦 Auto-publish | On successful build | Update GHCR |
-| 📊 Build Summary | Every build | Generate reports |
+### Docker Compose
+- [docker-compose.yml](templates/docker-compose.yml) - Single relay
+- [docker-compose-multi-relay.yml](templates/docker-compose-multi-relay.yml) - 3 relays + monitoring
 
-View `.github/workflows/build.yml` for complete automation setup.
+### Cosmos Cloud
+- [cosmos-compose.json](templates/cosmos-compose.json) - Single relay
+- [cosmos-compose-multi-relay.json](templates/cosmos-compose-multi-relay.json) - Multi-relay stack
 
----
+### Monitoring
+- [prometheus.yml](templates/prometheus.yml) - Prometheus configuration
+- [alertmanager.yml](templates/alertmanager.yml) - Alert routing
+- [grafana-dashboard.json](templates/grafana-dashboard.json) - Pre-built dashboard
 
-## 🔒 Security Best Practices
-
-### Configuration Security
-
-- ✅ Store `relay.conf` with restricted permissions (`600`)
-- ✅ Never commit sensitive configs to version control
-- ✅ Use PGP key in ContactInfo for verification
-- ✅ Regularly update Docker image
-- ✅ Monitor logs for suspicious activity
-
-### Operational Security
-
-```bash
-# Create secure config directory
-sudo mkdir -p /opt/tor-relay
-sudo chmod 700 /opt/tor-relay
-
-# Set proper ownership
-sudo chown root:root /opt/tor-relay
-
-# Use read-only mounts when possible
--v /opt/tor-relay/relay.conf:/etc/tor/torrc:ro
-```
-
-### Network Security
-
-- 🔥 Configure firewall properly
-- 🌐 Use IPv6 if available
-- 📊 Monitor bandwidth usage
-- 🚨 Set up alerts for downtime
-- 🔍 Regular log audits
-
-See [SECURITY.md](SECURITY.md) for complete security policy and reporting procedures.
+### Configuration Examples
+See [`examples/`](examples/) directory for relay configurations.
 
 ---
 
-## 🌈 Community & Contribution
+## 🔐 Security
 
-**Tor Guard Relay** is maintained by **r3bo0tbx1** and built for the privacy-loving Tor community.
+### Best Practices
 
-### Ways to Contribute
+✅ Store `relay.conf` with restricted permissions (`chmod 600`)  
+✅ Never commit configs with sensitive info to Git  
+✅ Use PGP key in ContactInfo for verification  
+✅ Regularly update Docker image for security patches  
+✅ Monitor logs for suspicious activity  
+✅ Configure firewall properly  
 
-- 🐛 Report bugs via [GitHub Issues](https://github.com/r3bo0tbx1/tor-guard-relay/issues)
-- 💡 Suggest features or improvements
-- 📖 Improve documentation
-- 🔧 Submit pull requests
-- ⭐ Star the repository
-- 🧅 Run your own relay!
+### Security Policy
 
-### Resources
+Found a vulnerability? See our [Security Policy](SECURITY.md) for responsible disclosure.
 
-- 📚 [Tor Project Documentation](https://community.torproject.org/relay/)
-- 💬 [Tor Relay Operators Forum](https://forum.torproject.net/)
-- 📧 [Tor Relay Mailing List](https://lists.torproject.org/cgi-bin/mailman/listinfo/tor-relays)
-- 🛡️ [Good/Bad Relays List](https://metrics.torproject.org/rs.html)
+### Updates
+
+Images are automatically rebuilt weekly to include security patches:
+- **Schedule:** Every Monday at 03:00 UTC
+- **Includes:** Latest Tor + Alpine updates
+- **Auto-published:** To GitHub Container Registry
 
 ---
 
-## 📊 Project Stats
+## 🌐 Resources
+
+### Official Tor Project
+- 📚 [Relay Setup Guide](https://community.torproject.org/relay/setup/)
+- 💬 [Relay Operators Forum](https://forum.torproject.org/c/relay-operators)
+- 📧 [Mailing List](https://lists.torproject.org/cgi-bin/mailman/listinfo/tor-relays)
+- 📊 [Tor Metrics](https://metrics.torproject.org/)
+
+### This Project
+- 📖 [Documentation](docs/README.md)
+- 🐛 [Issue Tracker](https://github.com/r3bo0tbx1/tor-guard-relay/issues)
+- 💬 [Discussions](https://github.com/r3bo0tbx1/tor-guard-relay/discussions)
+- 📦 [Container Registry](https://github.com/r3bo0tbx1/tor-guard-relay/pkgs/container/onion-relay)
+
+---
+
+## 📊 Project Status
 
 <div align="center">
 
 ![Docker Pulls](https://img.shields.io/docker/pulls/r3bo0tbx1/onion-relay?style=for-the-badge)
 ![GitHub Stars](https://img.shields.io/github/stars/r3bo0tbx1/tor-guard-relay?style=for-the-badge)
 ![GitHub Issues](https://img.shields.io/github/issues/r3bo0tbx1/tor-guard-relay?style=for-the-badge)
-![GitHub License](https://img.shields.io/github/license/r3bo0tbx1/tor-guard-relay?style=for-the-badge)
 
-</div>
-
----
-
-## 🔗 Quick Links
-
-| Resource | Link |
-|----------|------|
-| 📦 **Docker Image** | [GHCR Package](https://github.com/r3bo0tbx1/tor-guard-relay/pkgs/container/onion-relay) |
-| 🚀 **Deployment Guide** | [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) |
-| 📖 **Contributing** | [CONTRIBUTING.md](CONTRIBUTING.md) |
-| 🔒 **Security** | [SECURITY.md](SECURITY.md) |
-| 📜 **Changelog** | [CHANGELOG.md](CHANGELOG.md) |
-| 💬 **Discussions** | [GitHub Discussions](https://github.com/r3bo0tbx1/tor-guard-relay/discussions) |
-| 🐛 **Report Bug** | [New Issue](https://github.com/r3bo0tbx1/tor-guard-relay/issues/new/choose) |
-| 💡 **Feature Request** | [New Issue](https://github.com/r3bo0tbx1/tor-guard-relay/issues/new/choose) |
-
----
-
-## 🌟 Star History
-
-<div align="center">
-
-[![Star History Chart](https://api.star-history.com/svg?repos=r3bo0tbx1/tor-guard-relay&type=date&legend=top-left)](https://www.star-history.com/#r3bo0tbx1/tor-guard-relay&type=date&legend=top-left)
+**Current Version:** v1.1  
+**Status:** Production Ready  
+**Last Build:** Weekly (Mondays 03:00 UTC)
 
 </div>
 
@@ -718,46 +525,50 @@ See [SECURITY.md](SECURITY.md) for complete security policy and reporting proced
 
 This project is licensed under the [MIT License](LICENSE.txt).
 
+Free to use, modify, and distribute. See license file for details.
+
 ---
 
 ## 🙏 Acknowledgments
 
-- **[The Tor Project](https://www.torproject.org/)** - For building the foundation of online privacy
-- **[Alpine Linux](https://alpinelinux.org/)** - For the minimal, secure base image
-- **[azukaar](https://github.com/azukaar)** - For [Cosmos Cloud](https://cosmos-cloud.io/), making Docker management beautiful
-- **All relay operators** - For strengthening the Tor network
+- **[The Tor Project](https://www.torproject.org/)** - Building the foundation of online privacy
+- **[Alpine Linux](https://alpinelinux.org/)** - Minimal, secure base image
+- **[azukaar](https://github.com/azukaar)** - Creator of [Cosmos Cloud](https://cosmos-cloud.io/)
+- **All relay operators** - Strengthening the Tor network worldwide
 
 ---
 
 ## 💖 Support the Project
 
-If you find this project useful:
+### Support Development
 
-- ⭐ **Star the repository** to show your support
-- 🍴 **Fork it** if you want to build something on top
-- 🧅 **Run a relay** and contribute to the Tor network
-- 📢 **Share** with others who might benefit
-- 🐛 **Report issues** to help improve the project
-- 💡 **Suggest features** for future versions
-- 🤝 **Contribute** code, documentation, or ideas
-
-### ☕ Support Development
-
-Spent weeks building this. If it saved you time and you want to help me keep making privacy tools:
+This project is free and open source. If it saved you time and you want to support future development:
 
 **Bitcoin (BTC):**
 ```
 bc1qltkajaswmzx9jwets8hfz43nkvred5w92syyq4
 ```
-Directly via 👤 [AnonPay (any crypto to BTC)](https://trocador.app/anonpay?ticker_to=btc&network_to=Mainnet&address=bc1qltkajaswmzx9jwets8hfz43nkvred5w92syyq4&ref=sqKNYGZbRl&direct=True&name=rE-Bo0tbx1+%28r3bo0tbx1%29&description=Support+FOSS+Development&email=r3bo0tbx1%40brokenbotnet.com)
+
+Or via **[AnonPay](https://trocador.app/anonpay?ticker_to=btc&network_to=Mainnet&address=bc1qltkajaswmzx9jwets8hfz43nkvred5w92syyq4&ref=sqKNYGZbRl&direct=True&name=rE-Bo0tbx1+%28r3bo0tbx1%29&description=Support+FOSS+Development&email=r3bo0tbx1%40brokenbotnet.com)** (convert any crypto)
 
 **Monero (XMR):**
 ```
 45mNg5cG1S2B2C5dndJP65SSEXseHFVqFdv1N6paAraD1Jk9kQxQQArVcjfQmgCcmthrUF3jbNs74c5AbWqMwAAgAjDYzrZ
 ```
-Directly via 👤 [AnonPay (any crypto to XMR)](https://trocador.app/anonpay?ticker_to=xmr&network_to=Mainnet&address=85ft7ehMfcKSSp8Ve92Y9oARmqvDjYvEiKQkzdp3qiyzP9dpLeJXFahgHcoXUPeE9TacqDCUXWppNffE3YDC1Wu1NnQ71rT&ref=sqKNYGZbRl&direct=True&name=rE-Bo0tbx1+%28r3bo0tbx1%29&description=Support+FOSS+Development&email=r3bo0tbx1%40brokenbotnet.com)
 
-Stars and feedback mean just as much though! 🙏
+Or via **[AnonPay](https://trocador.app/anonpay?ticker_to=xmr&network_to=Mainnet&address=85ft7ehMfcKSSp8Ve92Y9oARmqvDjYvEiKQkzdp3qiyzP9dpLeJXFahgHcoXUPeE9TacqDCUXWppNffE3YDC1Wu1NnQ71rT&ref=sqKNYGZbRl&direct=True&name=rE-Bo0tbx1+%28r3bo0tbx1%29&description=Support+FOSS+Development&email=r3bo0tbx1%40brokenbotnet.com)** (convert any crypto)
+
+### Other Ways to Support
+
+- ⭐ **Star this repository**
+- 🐛 **Report bugs** and issues
+- 💡 **Suggest features** for future versions
+- 📖 **Improve documentation**
+- 🤝 **Contribute code** or configs
+- 🧅 **Run a relay** and help the network
+- 📢 **Share** with others who might benefit
+
+Stars and feedback are just as valuable! 🙏
 
 ---
 
@@ -767,6 +578,6 @@ Stars and feedback mean just as much though! 🙏
 
 *Protecting privacy, one relay at a time* 🧅✨
 
-🌍 [Support Internet Freedom](https://donate.torproject.org/) • ⬆ [Back to top](#readme-top)
+🌍 [Support Internet Freedom](https://donate.torproject.org/) • 📚 [Documentation](docs/README.md) • ⬆ [Back to top](#readme-top)
 
 </div>
