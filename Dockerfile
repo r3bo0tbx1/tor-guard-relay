@@ -1,12 +1,12 @@
 # syntax=docker/dockerfile:1.7
-FROM alpine:edge
+FROM alpine:latest
 
-#Metadata Arguments
+# Metadata Arguments
 ARG BUILD_DATE
 ARG BUILD_VERSION
 ARG TARGETARCH
 
-# Image Labels
+# Labels
 LABEL maintainer="rE-Bo0t.bx1 <r3bo0tbx1@brokenbotnet.com>" \
       org.opencontainers.image.title="Tor Guard Relay" \
       org.opencontainers.image.description="🧅 Hardened Tor Guard Relay with diagnostics & auto-healing" \
@@ -17,51 +17,81 @@ LABEL maintainer="rE-Bo0t.bx1 <r3bo0tbx1@brokenbotnet.com>" \
       org.opencontainers.image.licenses="MIT" \
       org.opencontainers.image.revision="${TARGETARCH}"
 
-# Base Install
+# Core dependencies
+# - tor: main service
+# - bash: entrypoint logic
+# - tini: init process manager
+# - curl: for diagnostics and network checks
+# - jq, grep, coreutils: JSON parsing & utils
+# - bind-tools: provides nslookup/dig for DNS diagnostics
+# - netcat-openbsd: for port checking in net-check
 RUN apk add --no-cache \
     tor \
     bash \
     tini \
+    curl \
+    jq \
     grep \
-    coreutils && \
+    coreutils \
+    bind-tools \
+    netcat-openbsd && \
     rm -rf /var/cache/apk/*
 
-# Directory Setup
+# Directory structure setup
 RUN mkdir -p /var/lib/tor /var/log/tor /run/tor && \
     chown -R tor:tor /var/lib/tor /var/log/tor /run/tor && \
     chmod 700 /var/lib/tor && \
-    chmod 755 /var/log/tor
+    chmod 755 /var/log/tor /run/tor
 
-# Default Configuration
-RUN echo "# Tor configuration is mounted at runtime" > /etc/tor/torrc
+# Default configuration placeholder
+RUN echo "# 🧅 Tor configuration is mounted at runtime" > /etc/tor/torrc
 
-# Build Metadata File
-RUN echo "Version: ${BUILD_VERSION}" > /build-info.txt && \
-    echo "Build Date: ${BUILD_DATE}" >> /build-info.txt && \
-    echo "Architecture: ${TARGETARCH}" >> /build-info.txt
+# Build metadata
+RUN printf "Version: %s\nBuild Date: %s\nArchitecture: %s\n" \
+    "${BUILD_VERSION:-dev}" "${BUILD_DATE:-unknown}" "${TARGETARCH:-amd64}" > /build-info.txt
 
-# Copy Entrypoint and Tools
+# Copy entrypoint and diagnostic tools
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 COPY tools/ /usr/local/bin/
 
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh && \
-    find /usr/local/bin -type f -exec chmod +x {} \; && \
-    ls -la /usr/local/bin/
+# Normalize scripts: remove CRLFs, BOMs, and fix permissions
+RUN set -eux; \
+  for f in /usr/local/bin/*; do \
+    [ -f "$f" ] || continue; \
+    tr -d '\r' < "$f" > "$f.tmp" && mv "$f.tmp" "$f"; \
+    sed -i '1s/^\xEF\xBB\xBF//' "$f" || true; \
+    chmod +x "$f"; \
+  done; \
+  echo "🧩 Installed tools:"; \
+  ls -1 /usr/local/bin | grep -E 'docker-entrypoint|net-check|metrics|health|view-logs' || true
 
-# Environment
+# Environment defaults
 ENV TOR_DATA_DIR=/var/lib/tor \
     TOR_LOG_DIR=/var/log/tor \
+    TOR_CONFIG=/etc/tor/torrc \
+    ENABLE_METRICS=false \
+    ENABLE_HEALTH_CHECK=true \
+    ENABLE_NET_CHECK=true \
     PATH="/usr/local/bin:$PATH"
 
-# Security Cleanup
-RUN rm -rf /usr/share/man /tmp/* /var/tmp/*
+# Cleanup
+RUN rm -rf /usr/share/man /tmp/* /var/tmp/* /root/.cache/*
 
-# Runtime Settings
+# Runtime permissions (non-root safe)
+RUN mkdir -p /run/tor && \
+    chown -R tor:tor /run/tor && \
+    chmod 770 /run/tor
+
+# Non-root execution
 USER tor
-EXPOSE 9001
 
+# Expose relay + diagnostics ports
+EXPOSE 9001 9035 9036
+
+# Healthcheck - ensures Tor config remains valid
 HEALTHCHECK --interval=10m --timeout=15s --start-period=30s --retries=3 \
-  CMD tor --verify-config -f /etc/tor/torrc || exit 1
+  CMD tor --verify-config -f "$TOR_CONFIG" || exit 1
 
-ENTRYPOINT ["/sbin/tini", "--", "docker-entrypoint.sh"]
+# Entrypoint through tini
+ENTRYPOINT ["/sbin/tini", "--", "/usr/local/bin/docker-entrypoint.sh"]
 CMD ["tor", "-f", "/etc/tor/torrc"]

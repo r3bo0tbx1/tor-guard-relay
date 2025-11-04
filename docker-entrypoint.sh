@@ -1,59 +1,249 @@
 #!/bin/bash
-# docker-entrypoint.sh - Tor Guard Relay initialization script
-# Ensures proper permissions and validates configuration before starting Tor
+# docker-entrypoint.sh - Tor Guard Relay initialization and process management
+# Handles startup sequence: preflight checks → configuration validation → health monitoring →
+# metrics exposure → main Tor process, with proper signal handling and background process management
 
 set -euo pipefail
 
-echo "🧅 Tor Guard Relay - Starting initialization..."
-echo ""
+# Configuration
+readonly TOR_CONFIG="${TOR_CONFIG:-/etc/tor/torrc}"
+readonly TOR_DATA_DIR="${TOR_DATA_DIR:-/var/lib/tor}"
+readonly TOR_LOG_DIR="${TOR_LOG_DIR:-/var/log/tor}"
+readonly METRICS_PORT="${METRICS_PORT:-9035}"
+readonly HEALTH_PORT="${HEALTH_PORT:-9036}"
+readonly ENABLE_METRICS="${ENABLE_METRICS:-false}"
+readonly ENABLE_HEALTH_CHECK="${ENABLE_HEALTH_CHECK:-true}"
+readonly ENABLE_NET_CHECK="${ENABLE_NET_CHECK:-false}"
 
-# Ensure directory structure exists
-echo "🔧 Ensuring directory structure..."
-mkdir -p /var/lib/tor /var/log/tor /run/tor
+# Signal handlers for clean shutdown
+trap 'on_sigterm' SIGTERM SIGINT
 
-# Fix permissions (critical for security)
-echo "🔐 Setting secure permissions..."
-chown -R tor:tor /var/lib/tor /var/log/tor /run/tor 2>/dev/null || true
-chmod 700 /var/lib/tor
-chmod 755 /var/log/tor
-
-# Check if torrc exists
-if [ ! -f /etc/tor/torrc ]; then
-  echo "⚠️  WARNING: No torrc mounted at /etc/tor/torrc"
-  echo "📝 Using minimal placeholder configuration."
-  echo "# Placeholder configuration - mount your relay.conf here" > /etc/tor/torrc
-fi
-
-# Validate configuration
-echo "🧩 Validating Tor configuration..."
-if ! tor --verify-config -f /etc/tor/torrc 2>&1; then
+on_sigterm() {
   echo ""
-  echo "❌ ERROR: Invalid Tor configuration detected!"
-  echo "Please check your mounted torrc file for syntax errors."
+  echo "🛑 Shutdown signal received. Gracefully stopping Tor..."
+  if [ -n "${TOR_PID:-}" ]; then
+    kill -TERM "$TOR_PID" 2>/dev/null || true
+    wait "$TOR_PID" 2>/dev/null || true
+  fi
+  echo "✅ Tor relay shut down cleanly."
+  exit 0
+}
+
+# Startup phase: Initialization
+startup_phase_init() {
+  echo "🧅 Tor Guard Relay - Initialization Sequence"
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
   echo ""
-  exit 1
-fi
-
-echo "✅ Configuration validated successfully."
-echo ""
-
-# Display build information
-if [ -f /build-info.txt ]; then
-  echo "📦 Build Information:"
-  cat /build-info.txt | sed 's/^/   /'
+  
+  echo "🔧 Phase 1: Directory Structure"
+  mkdir -p "$TOR_DATA_DIR" "$TOR_LOG_DIR" /run/tor /tmp
+  echo "   🗂️  Created required directories and /tmp ensured"
+  echo "   💽 Available disk space:"
+  df -h "$TOR_DATA_DIR" | tail -n 1 | awk '{printf "   • %s used of %s (%s available)\n", $3, $2, $4}'
   echo ""
-fi
+  
+  echo "🔐 Phase 2: Permission Hardening"
+  chown -R tor:tor "$TOR_DATA_DIR" "$TOR_LOG_DIR" /run/tor 2>/dev/null || true
+  chmod 700 "$TOR_DATA_DIR"
+  chmod 755 "$TOR_LOG_DIR"
+  echo "   ✓ Permissions set securely"
+  
+  echo "📁 Phase 3: Configuration Detection"
+  if [ ! -f "$TOR_CONFIG" ]; then
+    echo "   ⚠️  No configuration found at $TOR_CONFIG"
+    echo "   📝 Using minimal placeholder (configure before use)"
+    echo "# Placeholder - mount your relay.conf at $TOR_CONFIG" > "$TOR_CONFIG"
+  else
+    echo "   ✓ Configuration found"
+  fi
+  echo ""
+}
 
-# Display helpful commands
-echo "💡 Helpful commands:"
-echo "   docker exec <container> relay-status  - View full status"
-echo "   docker exec <container> fingerprint   - Show fingerprint"
-echo "   docker exec <container> view-logs     - Stream logs"
-echo ""
+# Validation phase: Configuration and preflight checks
+validation_phase() {
+  echo "🧩 Phase 4: Configuration Validation"
 
-echo "🚀 Launching Tor relay..."
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo ""
+  # Ensure Tor binary is accessible
+  if ! command -v tor >/dev/null 2>&1; then
+    echo "❌ ERROR: Tor binary not found in PATH."
+    echo "   Verify that Tor is installed and executable."
+    exit 1
+  fi
 
-# Execute the command passed to the container (typically "tor -f /etc/tor/torrc")
-exec "$@"
+  TOR_VERSION=$(tor --version | head -n1 || echo "unknown")
+  echo "   🧱 Tor Version: $TOR_VERSION"
+
+  # Check configuration presence and size
+  if [ ! -f "$TOR_CONFIG" ]; then
+    echo "⚠️  No configuration file found at $TOR_CONFIG"
+    echo "   📝 Mount your relay.conf or torrc before running."
+    exit 1
+  elif [ ! -s "$TOR_CONFIG" ]; then
+    echo "⚠️  Configuration file exists but is empty!"
+  else
+    echo "   ✓ Configuration file detected"
+  fi
+
+  # Show config preview in debug mode
+  if [ "${DEBUG:-false}" = "true" ]; then
+    echo "   🧩 Config Preview (first 10 lines):"
+    head -n 10 "$TOR_CONFIG" | sed 's/^/   /'
+    echo ""
+  fi
+
+  echo "   🔎 Validating syntax..."
+  if ! tor --verify-config -f "$TOR_CONFIG" >/tmp/tor-verify.log 2>&1; then
+    echo ""
+    echo "❌ ERROR: Tor configuration validation failed!"
+    echo "   Review /tmp/tor-verify.log for details."
+    if [ "${DEBUG:-false}" = "true" ]; then
+      echo ""
+      echo "   🧩 Error Output:"
+      sed 's/^/   /' /tmp/tor-verify.log | head -n 15
+    fi
+    echo ""
+    exit 1
+  fi
+  echo "   ✓ Configuration is valid"
+  echo ""
+
+  echo "🔍 Phase 5: Preflight Diagnostics"
+  echo "   🌐 Checking basic network connectivity..."
+  if ping -c1 -W2 1.1.1.1 >/dev/null 2>&1; then
+    echo "   ✓ IPv4 connectivity OK"
+  else
+    echo "   ⚠️ IPv4 connectivity unavailable"
+  fi
+
+  if ping6 -c1 -W2 ipv6.google.com >/dev/null 2>&1; then
+    echo "   ✓ IPv6 connectivity OK"
+  else
+    echo "   ⚠️ IPv6 connectivity unavailable"
+  fi
+
+  # Extended diagnostics via net-check (with timeout)
+  if [ "${ENABLE_NET_CHECK:-false}" = "true" ] && command -v net-check >/dev/null 2>&1; then
+    echo ""
+    echo "   Running extended network diagnostics..."
+    if timeout 15s net-check --text 2>&1 | sed 's/^/   /'; then
+      echo "   ✓ Network diagnostics completed successfully"
+    else
+      echo "   ⚠️ Network diagnostics encountered warnings or timeouts"
+    fi
+  else
+    echo "   ⏭️  Skipping extended network diagnostics (ENABLE_NET_CHECK=false)"
+  fi
+
+  # NOTE: Health check skipped here intentionally.
+  # Tor is not yet started at this stage.
+  # Health monitoring begins later in start_health_service().
+  echo ""
+}
+
+# Build info phase
+buildinfo_phase() {
+  echo "📦 Phase 6: Build Information"
+  if [ -f /build-info.txt ]; then
+    echo "   🔖 Build metadata found:"
+    cat /build-info.txt | sed 's/^/   /'
+  else
+    echo "   ⚠️  No build-info.txt found, version unknown."
+  fi
+
+  if [ "${DEBUG:-false}" = "true" ]; then
+    echo ""
+    echo "   🧩 Environment Snapshot:"
+    echo "   • User: $(whoami)"
+    echo "   • UID:GID: $(id -u):$(id -g)"
+    echo "   • Hostname: $(hostname)"
+    echo "   • Date: $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+    echo "   • Arch: $(uname -m)"
+  fi
+  echo ""
+}
+
+# Metrics service (background)
+start_metrics_service() {
+  if [ "$ENABLE_METRICS" != "true" ]; then
+    echo "📊 Phase 7: Metrics Service disabled (ENABLE_METRICS=false)"
+    echo ""
+    return 0
+  fi
+
+  echo "📊 Phase 7: Starting Metrics Service"
+  if ! command -v metrics-http &>/dev/null; then
+    echo "   ⚠️  metrics-http tool not found, skipping."
+    echo ""
+    return 0
+  fi
+
+  metrics-http "$METRICS_PORT" &
+  METRICS_PID=$!
+  echo "   ✓ Metrics service active on port $METRICS_PORT (PID: $METRICS_PID)"
+  echo ""
+}
+
+# Health check service (background)
+start_health_service() {
+  if [ "$ENABLE_HEALTH_CHECK" != "true" ]; then
+    echo "💚 Phase 8: Health Check Service disabled (ENABLE_HEALTH_CHECK=false)"
+    echo ""
+    return 0
+  fi
+
+  echo "💚 Phase 8: Starting Health Check Service"
+  (
+    while true; do
+      sleep 30
+      if command -v health &>/dev/null; then
+        HEALTH_JSON=$(health 2>&1 || echo '{}')
+        HEALTH_STATUS=$(echo "$HEALTH_JSON" | grep -o '"status":"[^"]*"' | cut -d'"' -f4 || echo "unknown")
+        if [ "$HEALTH_STATUS" = "error" ]; then
+          echo "⚠️  Health check failed: $HEALTH_STATUS"
+        elif [ "${DEBUG:-false}" = "true" ]; then
+          echo "   🩺 Health OK at $(date -u +"%H:%M:%S")"
+        fi
+      fi
+    done
+  ) &
+  HEALTH_PID=$!
+  echo "   ✓ Health monitor active (PID: $HEALTH_PID)"
+  echo ""
+}
+
+# Main startup message
+startup_message() {
+  echo "🚀 Phase 9: Launching Tor Relay"
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo ""
+  echo "💡 Available Diagnostic Commands:"
+  echo "   docker exec <container> status        - Full health report"
+  echo "   docker exec <container> fingerprint   - Relay fingerprint"
+  echo "   docker exec <container> view-logs     - Stream Tor logs"
+  echo "   docker exec <container> health        - JSON health check"
+  if [ "$ENABLE_METRICS" = "true" ]; then
+    echo "   curl http://<host>:$METRICS_PORT/metrics   - Prometheus metrics"
+  fi
+  echo ""
+  echo "🧅 Tor relay starting..."
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo ""
+}
+
+# Main Tor process
+run_tor() {
+  exec "$@"
+}
+
+# Main execution flow
+main() {
+  startup_phase_init
+  validation_phase
+  buildinfo_phase
+  start_metrics_service
+  start_health_service
+  startup_message
+  run_tor "$@"
+}
+
+main "$@"

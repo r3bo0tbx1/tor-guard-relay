@@ -6,7 +6,10 @@
       "container_name": "TorGuardRelay",
       "restart": "unless-stopped",
       "environment": [
-        "TZ=Asia/Tokyo"
+        "TZ=UTC",
+        "ENABLE_METRICS=false",
+        "ENABLE_HEALTH_CHECK=true",
+        "ENABLE_NET_CHECK=true"
       ],
       "network_mode": "host",
       "volumes": [
@@ -47,7 +50,7 @@
         "cosmos-force-network-secured": "false",
         "cosmos-auto-update-notify": "true",
         "cosmos-auto-update-restart": "true",
-        "cosmos-version": "1.0",
+        "cosmos-version": "1.1",
         "maintainer": "rE-Bo0t.bx1 <r3bo0tbx1@brokenbotnet.com>"
       }
     }

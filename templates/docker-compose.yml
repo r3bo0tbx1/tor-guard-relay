@@ -36,7 +36,7 @@ services:
     # Labels for organization
     labels:
       com.example.service: "tor-guard-relay"
-      com.example.version: "1.0"
+      com.example.version: "1.1"
 
 volumes:
   tor-data:

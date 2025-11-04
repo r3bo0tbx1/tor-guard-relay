@@ -8,10 +8,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Planned Features
-- Advanced monitoring scripts
 - Bridge relay variant
 
-## [1.0] - 2025-11-01
+## [1.1.1] - 2025-11-05
+
+### 🎉 Major Restructuring
+
+**Repository Organization**
+- Reorganized repository into professional directory structure
+- Created `.github/`, `docs/`, `templates/`, `tools/` directories
+- All files now in proper locations per project standards
+
+**New Documentation (4 files)**
+- `docs/TOOLS.md` - Comprehensive tool reference (11.8KB)
+- `docs/MONITORING.md` - Complete observability guide (12.5KB)
+- `docs/MIGRATION.md` - Version upgrade procedures (13.9KB)
+- `docs/README.md` - Documentation navigation hub (6.2KB)
+
+**GitHub Integration**
+- Updated Dependabot for automated dependency updates (`.github/dependabot.yml`)
+
+**Improved Documentation**
+- Updated README.md - cleaner, more scannable, better organized
+- All documentation now properly linked and cross-referenced
+- ~2,010 lines of new comprehensive documentation
+
+**Breaking Changes**
+- None! Fully backward compatible with v1.0
+- Same Docker commands work
+- Same tool interfaces
+- Volume mounts unchanged
+
+
+## [1.0.0] - 2025-11-01
 
 ### 🎉 Initial Release
 
