@@ -13,7 +13,7 @@ on:
           - minor
           - patch
   schedule:
-    - cron: '0 3 * * 1' # Weekly build every Monday at 03:00 UTC
+    - cron: '0 3 * * 1'
   push:
     tags:
       - 'v*.*.*'

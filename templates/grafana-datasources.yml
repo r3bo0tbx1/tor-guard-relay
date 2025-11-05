@@ -11,19 +11,19 @@ datasources:
     url: http://prometheus:9090
     isDefault: true
     editable: true
+    version: 1
     jsonData:
       httpMethod: POST
       timeInterval: 15s
-    version: 1
 
 # Usage:
-# This file is automatically loaded by Grafana on startup
-# It configures Prometheus as the default datasource
+# This file is automatically loaded by Grafana on startup.
+# It configures Prometheus as the default datasource.
 #
 # After Grafana starts:
 # 1. Login at http://localhost:3000 (admin/admin)
-# 2. Prometheus datasource will be pre-configured
-# 3. Import dashboard from templates/grafana-dashboard.json
+# 2. Prometheus datasource will be pre-configured.
+# 3. Import dashboard from templates/grafana-dashboard.json.
 # 4. Start monitoring your relays!
 #
-# See docs/MONITORING.md for complete setup guide
+# See docs/MONITORING.md for complete setup guide.
