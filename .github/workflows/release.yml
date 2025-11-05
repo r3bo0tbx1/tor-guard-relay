@@ -101,7 +101,6 @@ jobs:
     name: 🏗️ Multi-Arch Build and Push
     runs-on: ubuntu-latest
     needs: determine-version
-    # Only run if validation succeeded when triggered by workflow_run
     if: |
       github.event_name != 'workflow_run' || 
       github.event.workflow_run.conclusion == 'success'
@@ -212,13 +211,27 @@ jobs:
           SHORT_SHA="${{ needs.determine-version.outputs.short_sha }}"
           TAGS=""
           if [ "$BUILD_TYPE" = "release" ]; then
-            TAGS="${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:latest,${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION},${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION}-${SHORT_SHA},${{ env.DOCKERHUB_IMAGE_NAME }}:latest,${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION},${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}-${SHORT_SHA}"
+            TAGS="${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:latest,\
+ ${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION},\
+ ${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION}-${SHORT_SHA},\
+ ${{ env.DOCKERHUB_IMAGE_NAME }}:latest,\
+ ${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION},\
+ ${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}-${SHORT_SHA}"
           elif [ "$BUILD_TYPE" = "weekly" ]; then
-            TAGS="${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION}-weekly,${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION}-${SHORT_SHA},${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}-weekly,${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}-${SHORT_SHA}"
+            TAGS="${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION}-weekly,\
+ ${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION}-${SHORT_SHA},\
+ ${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}-weekly,\
+ ${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}-${SHORT_SHA}"
           elif [ "$BUILD_TYPE" = "validated" ]; then
-            TAGS="${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION}-validated,${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION}-${SHORT_SHA},${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}-validated,${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}-${SHORT_SHA}"
+            TAGS="${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION}-validated,\
+ ${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION}-${SHORT_SHA},\
+ ${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}-validated,\
+ ${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}-${SHORT_SHA}"
           else
-            TAGS="${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION},${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION}-${SHORT_SHA},${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION},${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}-${SHORT_SHA}"
+            TAGS="${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION},\
+ ${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION}-${SHORT_SHA},\
+ ${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION},\
+ ${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}-${SHORT_SHA}"
           fi
           echo "tags=${TAGS}" >> "$GITHUB_OUTPUT"
 
@@ -267,7 +280,8 @@ jobs:
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo ""
 
-          for REG in "${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}" "${{ env.DOCKERHUB_IMAGE_NAME }}"; do
+          for REG in "${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}" \
+            "${{ env.DOCKERHUB_IMAGE_NAME }}"; do
             IMAGE_TAG="${REG}:${VERSION}"
             echo "🔍 Testing: $IMAGE_TAG"
             docker pull "$IMAGE_TAG"
@@ -277,7 +291,8 @@ jobs:
             echo "   ✅ $TOR_VERSION"
 
             echo "   🔧 Checking tools..."
-            TOOL_COUNT=$(docker run --rm "$IMAGE_TAG" sh -c "ls -1 /usr/local/bin/*.sh 2>/dev/null | wc -l")
+            TOOL_COUNT=$(docker run --rm "$IMAGE_TAG" \
+              sh -c "ls -1 /usr/local/bin/*.sh 2>/dev/null | wc -l")
             echo "   ✅ Found $TOOL_COUNT tool scripts"
 
             echo ""
