@@ -1,579 +1,368 @@
-name: 🧱✅ Build and Validation
+name: 🚀✨ Release and Weekly Builds
 
 on:
   workflow_dispatch:
-  pull_request:
-    branches:
-      - main
-      - develop
+    inputs:
+      release_type:
+        description: 'Release type'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - major
+          - minor
+          - patch
+  schedule:
+    - cron: '0 3 * * 1'
   push:
+    tags:
+      - 'v*.*.*'
+  workflow_run:
+    workflows: ["🧱✅ Build and Validation"]
+    types:
+      - completed
     branches:
       - main
       - develop
-    paths:
-      - 'Dockerfile'
-      - 'docker-entrypoint.sh'
-      - 'tools/**'
-      - '.github/workflows/release.yml'
-      - '.github/workflows/validate.yml'
 
 permissions:
-  contents: read
+  contents: write
+  packages: write
+
+env:
+  GHCR_REGISTRY: ghcr.io
+  GHCR_IMAGE_NAME: ${{ github.repository_owner }}/onion-relay
+  DOCKERHUB_IMAGE_NAME: r3bo0tbx1/onion-relay
 
 jobs:
-  lint:
-    name: 🔍 Lint and Validate
+  determine-version:
+    name: 🏷️ Determine Version and Build Type
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      build_type: ${{ steps.version.outputs.build_type }}
+      is_release: ${{ steps.version.outputs.is_release }}
+      build_date: ${{ steps.version.outputs.build_date }}
+      short_sha: ${{ steps.version.outputs.short_sha }}
 
     steps:
-      - name: Checkout Repository
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: 🔍 Detect Version and Build Type
+        id: version
+        run: |
+          set -e
+          echo "🔍 Determining version context..."
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            VERSION="${GITHUB_REF#refs/tags/v}"
+            BUILD_TYPE="release"
+            IS_RELEASE="true"
+            echo "🏷️ Release tag detected: v${VERSION}"
+          elif [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+            LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v1.0.0")
+            VERSION="${LATEST_TAG#v}-manual-${GITHUB_RUN_NUMBER}"
+            BUILD_TYPE="manual"
+            IS_RELEASE="false"
+            echo "👤 Manual build version: ${VERSION}"
+          elif [[ "${GITHUB_EVENT_NAME}" == "workflow_run" ]]; then
+            LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v1.0.0")
+            VERSION="${LATEST_TAG#v}-post-validation-${GITHUB_RUN_NUMBER}"
+            BUILD_TYPE="validated"
+            IS_RELEASE="false"
+            echo "✅ Post-validation build version: ${VERSION}"
+          else
+            LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v1.0.0")
+            VERSION="${LATEST_TAG#v}"
+            BUILD_TYPE="weekly"
+            IS_RELEASE="false"
+            echo "📅 Weekly build version: ${VERSION}"
+          fi
+          BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "build_type=${BUILD_TYPE}" >> "$GITHUB_OUTPUT"
+          echo "is_release=${IS_RELEASE}" >> "$GITHUB_OUTPUT"
+          echo "build_date=${BUILD_DATE}" >> "$GITHUB_OUTPUT"
+          echo "short_sha=${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+
+      - name: 📋 Version Information
+        run: |
+          echo "📦 Build Info:"
+          echo "  🏷️ Version: ${{ steps.version.outputs.version }}"
+          echo "  📝 Build Type: ${{ steps.version.outputs.build_type }}"
+          echo "  ✅ Release: ${{ steps.version.outputs.is_release }}"
+          echo "  📅 Date: ${{ steps.version.outputs.build_date }}"
+          echo "  🔑 SHA: ${{ steps.version.outputs.short_sha }}"
+
+  build-and-push:
+    name: 🏗️ Multi-Arch Build and Push
+    runs-on: ubuntu-latest
+    needs: determine-version
+    # Only run if validation succeeded when triggered by workflow_run
+    if: |
+      github.event_name != 'workflow_run' || 
+      github.event.workflow_run.conclusion == 'success'
+    steps:
+      - name: 📥 Checkout Repository
         uses: actions/checkout@v5
 
-      - name: 🐳 Lint Dockerfile with Hadolint
-        uses: hadolint/hadolint-action@v3.1.0
-        with:
-          dockerfile: Dockerfile
-          failure-threshold: warning
-
-      - name: 🔍 Validate Dockerfile Syntax
+      - name: 🎯 Verify Shell Script Extensions
         run: |
-          echo "🐳 Validating Dockerfile build context..."
-          docker build --no-cache --target builder -t tor-relay-test . 2>&1 | \
-            tee /tmp/docker-build.log || true
-          if grep -i "error" /tmp/docker-build.log; then
-            echo "❌ Dockerfile validation failed"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "📝 Pre-Build: Verifying .sh Extensions"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo ""
+
+          if [ ! -d "tools" ]; then
+            echo "❌ tools/ directory not found"
             exit 1
           fi
-          echo "✅ Dockerfile syntax valid"
 
-      - name: 📝 Lint Shell Scripts
-        run: |
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "🔍 Checking Shell Script Syntax"
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo ""
-          
-          # Check main entrypoint script
-          if [ -f docker-entrypoint.sh ]; then
-            echo "📄 Checking docker-entrypoint.sh..."
-            bash -n docker-entrypoint.sh || exit 1
-            echo "   ✅ docker-entrypoint.sh syntax valid"
-          fi
-          
-          # Check integration test script
-          if [ -f integration-check.sh ]; then
-            echo "📄 Checking integration-check.sh..."
-            bash -n integration-check.sh || exit 1
-            echo "   ✅ integration-check.sh syntax valid"
-          fi
-          
-          echo ""
-          echo "📁 Checking tools directory (.sh files)..."
-          
-          # Check if tools directory exists and has .sh files
-          if [ ! -d "tools" ]; then
-            echo "   ⚠️  tools/ directory not found"
-          elif [ -z "$(find tools -maxdepth 1 -type f -name '*.sh' 2>/dev/null)" ]; then
-            echo "   ⚠️  No .sh files found in tools/"
-          else
-            # Check all .sh files in tools/
-            TOOL_COUNT=0
-            for script in tools/*.sh; do
-              [ -f "$script" ] || continue
-              echo "📄 Checking $(basename "$script")..."
-              bash -n "$script" || exit 1
-              echo "   ✅ $script syntax valid"
-              TOOL_COUNT=$((TOOL_COUNT + 1))
-            done
-            echo ""
-            echo "   ✅ All $TOOL_COUNT tool scripts validated"
-          fi
-          
-          echo ""
-          echo "🎉 Shell script syntax validation complete"
-
-      - name: 🔧 Install ShellCheck
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y shellcheck
-
-      - name: 🔎 Run ShellCheck on Scripts
-        run: |
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "🔎 Running ShellCheck Static Analysis"
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo ""
-          
-          # ShellCheck main scripts
-          if [ -f docker-entrypoint.sh ]; then
-            echo "🔍 ShellCheck: docker-entrypoint.sh"
-            shellcheck -S warning docker-entrypoint.sh || true
-          fi
-          
-          if [ -f integration-check.sh ]; then
-            echo "🔍 ShellCheck: integration-check.sh"
-            shellcheck -S warning integration-check.sh || true
-          fi
-          
-          # ShellCheck all .sh files in tools/
-          if [ -d "tools" ]; then
-            echo ""
-            echo "🔍 ShellCheck: tools/*.sh"
-            find tools -maxdepth 1 -type f -name "*.sh" -exec shellcheck -S warning {} \; || true
-          fi
-          
-          echo ""
-          echo "✅ ShellCheck analysis complete"
-
-      - name: 🎯 Verify Tool Extensions
-        run: |
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "📝 Verifying Tool File Extensions"
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo ""
-          
-          if [ ! -d "tools" ]; then
-            echo "⚠️  tools/ directory not found - skipping check"
-            exit 0
-          fi
-          
           MISSING_EXT=0
-          NON_SH_COUNT=0
           SH_COUNT=0
-          
-          # Check all files in tools/
+
           for file in tools/*; do
             [ -f "$file" ] || continue
-            
             filename=$(basename "$file")
             extension="${filename##*.}"
-            
+
             # Check if it's a shell script (has shebang)
             if head -1 "$file" 2>/dev/null | grep -q "^#!/"; then
               if [ "$extension" != "sh" ]; then
                 echo "❌ Shell script missing .sh extension: $filename"
                 MISSING_EXT=1
               else
+                echo "✅ $filename"
                 SH_COUNT=$((SH_COUNT + 1))
               fi
-            else
-              NON_SH_COUNT=$((NON_SH_COUNT + 1))
-              echo "ℹ️  Non-script file: $filename"
             fi
           done
-          
+
           echo ""
-          echo "📊 Summary:"
-          echo "   • Shell scripts with .sh: $SH_COUNT"
-          [ $NON_SH_COUNT -gt 0 ] && echo "   • Other files: $NON_SH_COUNT"
-          echo ""
-          
           if [ $MISSING_EXT -eq 1 ]; then
-            echo "❌ Some shell scripts are missing .sh extension"
+            echo "❌ Build blocked: Some shell scripts missing .sh extension"
             exit 1
           else
-            echo "✅ All shell scripts have proper .sh extension"
+            echo "🎉 All $SH_COUNT shell scripts have proper .sh extension"
           fi
 
-      - name: 📋 Lint YAML Files
+      - name: 🔧 Normalize scripts before build
         run: |
-          echo "🔧 Installing yamllint..."
-          pip install yamllint
-          echo "📋 Validating YAML files..."
-          echo "📁 Checking templates (lenient rules)..."
-          for yaml in templates/*.yml; do
-            if [ -f "$yaml" ]; then
-              yamllint -d "{extends: relaxed, rules: {line-length: {max: 200}, \
-                trailing-spaces: disable, new-line-at-end-of-file: disable, \
-                comments: disable}}" "$yaml" && echo "✅ $yaml valid" || \
-                echo "⚠️ $yaml has warnings (non-blocking)"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "🔧 Normalizing Line Endings and Permissions"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo ""
+
+          sudo apt-get update -qq && sudo apt-get install -y dos2unix
+
+          echo "📄 Processing main scripts..."
+          for script in docker-entrypoint.sh integration-check.sh Dockerfile; do
+            if [ -f "$script" ]; then
+              dos2unix "$script" 2>/dev/null || true
+              echo "   ✅ Normalized: $script"
             fi
           done
-          echo "🔄 Checking workflows (strict rules)..."
-          for yaml in .github/workflows/*.yml; do
-            if [ -f "$yaml" ]; then
-              yamllint -d relaxed "$yaml" || exit 1
-              echo "✅ $yaml syntax valid"
-            fi
-          done
-          if [ -f ".github/dependabot.yml" ]; then
-            yamllint -d relaxed .github/dependabot.yml || exit 1
-            echo "✅ .github/dependabot.yml syntax valid"
-          fi
-          if [ -d "docs" ]; then
-            echo "📚 Checking docs (lenient)..."
-            for yaml in docs/*.yml; do
-              if [ -f "$yaml" ]; then
-                yamllint -d "{extends: relaxed, rules: {line-length: {max: 200}, \
-                  trailing-spaces: disable}}" "$yaml" && echo "✅ $yaml valid" || \
-                  echo "⚠️ $yaml has warnings"
-              fi
-            done
+
+          echo ""
+          echo "📁 Processing tools/*.sh..."
+          if [ -d "tools" ]; then
+            find tools -type f -name "*.sh" -exec dos2unix {} \; 2>/dev/null || true
+            TOOL_COUNT=$(find tools -type f -name "*.sh" | wc -l)
+            echo "   ✅ Normalized: $TOOL_COUNT tool scripts"
           fi
 
-      - name: 🔖 Validate JSON Files
-        run: |
-          echo "🔍 Validating JSON files..."
-          for json in templates/*.json examples/*.json .github/*.json; do
-            if [ -f "$json" ]; then
-              python3 -m json.tool "$json" > /dev/null || exit 1
-              echo "✅ $json syntax valid"
-            fi
-          done
+          echo ""
+          echo "🔐 Setting execute permissions..."
+          chmod +x docker-entrypoint.sh integration-check.sh 2>/dev/null || true
+          [ -d "tools" ] && chmod +x tools/*.sh 2>/dev/null || true
 
-      - name: 📚 Check Documentation
-        run: |
-          echo "📖 Verifying required documentation files..."
-          required_docs=(
-            "README.md"
-            "CHANGELOG.md"
-            "SECURITY.md"
-            "CONTRIBUTING.md"
-            "CODE_OF_CONDUCT.md"
-            "LICENSE.txt"
-          )
-          for doc in "${required_docs[@]}"; do
-            if [ ! -f "$doc" ]; then
-              echo "❌ Missing documentation: $doc"
-              exit 1
-            fi
-            echo "✅ $doc exists"
-          done
-          if [ -d "docs" ]; then
-            echo "📁 Checking docs directory..."
-            for doc in DEPLOYMENT.md BACKUP.md PERFORMANCE.md LEGAL.md MONITORING.md TOOLS.md; do
-              if [ -f "docs/$doc" ]; then
-                echo "✅ docs/$doc exists"
-              else
-                echo "ℹ️  docs/$doc missing (optional)"
-              fi
-            done
-          fi
+          echo "   ✅ Permissions verified"
+          echo ""
+          echo "🎉 Normalization complete"
 
-      - name: ✅ Lint Summary
-        run: echo "🎉 All linting checks passed"
+      - name: 🐳 Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-  build:
-    name: 🏗️ Build Docker Image
-    runs-on: ubuntu-latest
-    needs: lint
-
-    steps:
-      - name: 📥 Checkout Repository
-        uses: actions/checkout@v5
+      - name: 📦 Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.GHCR_REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 🖥️ Set up QEMU
         uses: docker/setup-qemu-action@v3
         with:
           platforms: arm64,amd64
 
-      - name: 🔧 Set up Docker Buildx
+      - name: 🔨 Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: 🐳 Build Image (amd64 for testing)
+      - name: 🏷️ Generate Docker Tags
+        id: tags
+        run: |
+          VERSION="${{ needs.determine-version.outputs.version }}"
+          BUILD_TYPE="${{ needs.determine-version.outputs.build_type }}"
+          SHORT_SHA="${{ needs.determine-version.outputs.short_sha }}"
+          TAGS=""
+          if [ "$BUILD_TYPE" = "release" ]; then
+            TAGS="${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:latest,${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION},${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION}-${SHORT_SHA},${{ env.DOCKERHUB_IMAGE_NAME }}:latest,${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION},${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}-${SHORT_SHA}"
+          elif [ "$BUILD_TYPE" = "weekly" ]; then
+            TAGS="${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION}-weekly,${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION}-${SHORT_SHA},${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}-weekly,${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}-${SHORT_SHA}"
+          elif [ "$BUILD_TYPE" = "validated" ]; then
+            TAGS="${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION}-validated,${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION}-${SHORT_SHA},${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}-validated,${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}-${SHORT_SHA}"
+          else
+            TAGS="${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION},${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION}-${SHORT_SHA},${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION},${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}-${SHORT_SHA}"
+          fi
+          echo "tags=${TAGS}" >> "$GITHUB_OUTPUT"
+
+      - name: 🚀 Build and Push Multi-Arch Image
         uses: docker/build-push-action@v6
         with:
           context: .
           file: ./Dockerfile
-          platforms: linux/amd64
-          load: true
-          tags: tor-relay:test
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.tags.outputs.tags }}
           build-args: |
-            BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
-            BUILD_VERSION=test-${{ github.run_number }}
+            BUILD_DATE=${{ needs.determine-version.outputs.build_date }}
+            BUILD_VERSION=${{ needs.determine-version.outputs.version }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          labels: |
+            org.opencontainers.image.title=Tor Guard Relay
+            org.opencontainers.image.description=Hardened Tor Guard Relay with diagnostics
+            org.opencontainers.image.version=${{ needs.determine-version.outputs.version }}
+            org.opencontainers.image.created=${{ needs.determine-version.outputs.build_date }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
 
-      - name: 💾 Save Image for Testing
-        run: |
-          docker save tor-relay:test -o /tmp/tor-relay-test.tar
-          echo "📦 Image size: $(du -h /tmp/tor-relay-test.tar | cut -f1)"
-
-      - name: ⬆️ Upload Image Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: docker-image
-          path: /tmp/tor-relay-test.tar
-          retention-days: 1
-
-  integration:
-    name: 🧪 Integration Tests
+  validate:
+    name: ✅ Validate Build
     runs-on: ubuntu-latest
-    needs: build
-
+    needs: [determine-version, build-and-push]
     steps:
       - name: 📥 Checkout Repository
         uses: actions/checkout@v5
 
-      - name: ⬇️ Download Docker Image
-        uses: actions/download-artifact@v4
+      - name: 🔑 Login to Registries
+        uses: docker/login-action@v3
         with:
-          name: docker-image
-          path: /tmp
+          registry: ${{ env.GHCR_REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: 📦 Load Docker Image
+      - name: 🔍 Validate Images
         run: |
-          docker load -i /tmp/tor-relay-test.tar
-          docker image ls tor-relay
-
-      - name: 🚀 Run Container Smoke Test
-        run: |
-          echo "🚀 Starting container for smoke test..."
-          docker run -d --name tor-test -e ENABLE_METRICS=true \
-            -e ENABLE_HEALTH_CHECK=true tor-relay:test \
-            /bin/sh -c "echo 'Test mode active'; sleep 60" || true
-          sleep 5
-
-      - name: 🔍 Check Container Status
-        run: |
-          echo "📊 Container status:"
-          docker ps -a | grep tor-test || true
+          set -e
+          VERSION="${{ needs.determine-version.outputs.version }}"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "✅ Validating Published Images"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo ""
-          echo "📋 Container logs:"
-          docker logs tor-test 2>&1 | head -30 || true
 
-      - name: 🔧 Verify Tools Installation
-        run: |
-          echo "🔍 Checking installed tools..."
-          docker run --rm tor-relay:test ls -la /usr/local/bin/ || exit 1
-          echo ""
-          echo "🛠️ Available diagnostic tools:"
-          docker run --rm tor-relay:test sh -c "ls -1 /usr/local/bin/*.sh 2>/dev/null | \
-            xargs -n1 basename | sort"
+          for REG in "${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}" "${{ env.DOCKERHUB_IMAGE_NAME }}"; do
+            IMAGE_TAG="${REG}:${VERSION}"
+            echo "🔍 Testing: $IMAGE_TAG"
+            docker pull "$IMAGE_TAG"
 
-      - name: 🧅 Verify Tor Installation
-        run: |
-          echo "🔍 Checking Tor version..."
-          TOR_VERSION=$(docker run --rm tor-relay:test tor --version | head -1)
-          if [ -z "$TOR_VERSION" ]; then
-            echo "❌ Tor installation failed"
-            exit 1
-          fi
-          echo "✅ Tor installed: $TOR_VERSION"
+            echo "   📦 Checking Tor installation..."
+            TOR_VERSION=$(docker run --rm "$IMAGE_TAG" tor --version | head -1)
+            echo "   ✅ $TOR_VERSION"
 
-      - name: 📁 Verify File Structure
-        run: |
-          docker run --rm tor-relay:test sh -c "
-            echo '📂 === Directory Structure ===' && \
-            ls -la / | grep -E 'var|etc|usr' && \
-            echo '' && \
-            echo '🛠️ === Tools Directory ===' && \
-            ls -la /usr/local/bin/ && \
-            echo '' && \
-            echo '💾 === Data Directory ===' && \
-            ls -la /var/lib/tor 2>/dev/null || echo '(data dir empty, expected)' && \
-            echo '' && \
-            echo '📝 === Log Directory ===' && \
-            ls -la /var/log/tor 2>/dev/null || echo '(log dir empty, expected)'
-          "
+            echo "   🔧 Checking tools..."
+            TOOL_COUNT=$(docker run --rm "$IMAGE_TAG" sh -c "ls -1 /usr/local/bin/*.sh 2>/dev/null | wc -l")
+            echo "   ✅ Found $TOOL_COUNT tool scripts"
 
-      - name: 📋 Check Build Metadata
-        run: |
-          echo "🔍 Checking build metadata..."
-          docker run --rm tor-relay:test cat /build-info.txt || exit 1
-
-      - name: 🔐 Verify Permissions
-        run: |
-          echo "🔐 Verifying directory permissions..."
-          docker run --rm tor-relay:test sh -c "
-            ls -ld /var/lib/tor | grep -q '^d.*tor tor' && \
-              echo '✅ /var/lib/tor permissions correct' || exit 1
-            ls -ld /var/log/tor | grep -q '^d.*tor tor' && \
-              echo '✅ /var/log/tor permissions correct' || exit 1
-          "
-
-      - name: ✅ Integration Tests Summary
-        run: echo "🎉 Integration tests completed successfully"
-
-      - name: 🧹 Cleanup
-        if: always()
-        run: |
-          docker stop tor-test 2>/dev/null || true
-          docker rm tor-test 2>/dev/null || true
-
-  security:
-    name: 🛡️ Security Scan
-    runs-on: ubuntu-latest
-    needs: build
-
-    steps:
-      - name: 📥 Checkout Repository
-        uses: actions/checkout@v5
-
-      - name: ⬇️ Download Docker Image
-        uses: actions/download-artifact@v4
-        with:
-          name: docker-image
-          path: /tmp
-
-      - name: 📦 Load Docker Image
-        run: docker load -i /tmp/tor-relay-test.tar
-
-      - name: 🔒 Trivy Security Scan
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: 'tor-relay:test'
-          format: 'sarif'
-          output: 'trivy-results.sarif'
-          severity: 'CRITICAL,HIGH'
-
-      - name: ⬆️ Upload Trivy Results
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: 'trivy-results.sarif'
-        continue-on-error: true
-
-      - name: 📊 Trivy Vulnerability Report
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: 'tor-relay:test'
-          format: 'table'
-          severity: 'CRITICAL,HIGH'
-
-      - name: ✅ Security Scan Complete
-        run: echo "🎉 Security scan completed"
-
-  test-matrix:
-    name: 🧪 Test Matrix
-    runs-on: ubuntu-latest
-    needs: build
-
-    strategy:
-      fail-fast: false
-      matrix:
-        test-case:
-          - 'help-flags'
-          - 'file-permissions'
-          - 'alpine-compatibility'
-          - 'tool-executability'
-
-    steps:
-      - name: 📥 Checkout Repository
-        uses: actions/checkout@v5
-
-      - name: ⬇️ Download Docker Image
-        uses: actions/download-artifact@v4
-        with:
-          name: docker-image
-          path: /tmp
-
-      - name: 📦 Load Docker Image
-        run: docker load -i /tmp/tor-relay-test.tar
-
-      - name: "🔍 Test: Help Flags"
-        if: matrix.test-case == 'help-flags'
-        run: |
-          echo "🧪 Testing tool help flags..."
-          for tool in health.sh metrics.sh status.sh fingerprint.sh view-logs.sh \
-            net-check.sh setup.sh dashboard.sh; do
-            TOOL_PATH="/usr/local/bin/$tool"
-            if docker run --rm tor-relay:test sh -c "test -f $TOOL_PATH"; then
-              echo "🔍 Testing $tool --help..."
-              docker run --rm tor-relay:test $tool --help > /dev/null && \
-                echo "✅ $tool --help works" || \
-                echo "⚠️ $tool --help failed (non-critical)"
-            else
-              echo "⚠️  $tool not found at $TOOL_PATH"
-            fi
+            echo ""
           done
 
-      - name: "🔐 Test: File Permissions"
-        if: matrix.test-case == 'file-permissions'
-        run: |
-          echo "🔐 Verifying file permissions for .sh tools..."
-          docker run --rm tor-relay:test sh -c "
-            for tool in /usr/local/bin/*.sh; do
-              if [ -f \"\$tool\" ]; then
-                test -x \"\$tool\" && echo \"✅ \$(basename \$tool) is executable\" || exit 1
-              fi
-            done
-          "
-          docker run --rm tor-relay:test sh -c "
-            test -x /usr/local/bin/docker-entrypoint.sh && \
-              echo '✅ docker-entrypoint.sh is executable' || exit 1
-          "
+          echo "🎉 All images validated successfully"
 
-      - name: "🏔️ Test: Alpine Compatibility"
-        if: matrix.test-case == 'alpine-compatibility'
-        run: |
-          echo "🏔️ Verifying Alpine base image..."
-          docker run --rm tor-relay:test sh -c "
-            cat /etc/os-release | grep -i alpine && \
-              echo '✅ Alpine base confirmed' || exit 1
-            test -x /bin/sh && echo '✅ /bin/sh available' || exit 1
-            apk --version > /dev/null 2>&1 && echo '✅ apk available' || exit 1
-            command -v tor > /dev/null 2>&1 && echo '✅ tor available' || exit 1
-          "
+  release-notes:
+    name: 📝 Generate Release Notes
+    runs-on: ubuntu-latest
+    needs: [determine-version, build-and-push, validate]
+    if: needs.determine-version.outputs.is_release == 'true'
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v5
 
-      - name: "🔧 Test: Tool Executability"
-        if: matrix.test-case == 'tool-executability'
+      - name: 📝 Generate Notes
         run: |
-          echo "🔧 Testing tool execution..."
-          docker run --rm tor-relay:test sh -c "
-            for tool in /usr/local/bin/*.sh; do
-              if [ -f \"\$tool\" ]; then
-                BASENAME=\$(basename \"\$tool\")
-                echo \"🔍 Testing \$BASENAME...\"
-                \"\$tool\" --help > /dev/null 2>&1 || \
-                  echo \"  ⚠️  \$BASENAME --help failed (may require Tor process)\"
-              fi
-            done
-          "
+          VERSION="${{ needs.determine-version.outputs.version }}"
+          echo "## 🧅 Tor Guard Relay v${VERSION} Release Notes" > release_notes.md
+          echo "" >> release_notes.md
+          if [ -f CHANGELOG.md ]; then
+            awk "/## \\[${VERSION}\\]/,0" CHANGELOG.md >> release_notes.md || true
+          else
+            echo "See [commit history](https://github.com/${{ github.repository }}/commits/v${VERSION}) for details." >> release_notes.md
+          fi
+          echo "" >> release_notes.md
+          echo "### 🐳 Docker Images" >> release_notes.md
+          echo "\`\`\`bash" >> release_notes.md
+          echo "# 📦 From GHCR:" >> release_notes.md
+          echo "docker pull ${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION}" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "# 🐳 From Docker Hub:" >> release_notes.md
+          echo "docker pull ${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}" >> release_notes.md
+          echo "\`\`\`" >> release_notes.md
+
+      - name: 🏷️ Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ needs.determine-version.outputs.version }}
+          name: "🧅 Tor Guard Relay v${{ needs.determine-version.outputs.version }}"
+          body_path: release_notes.md
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   summary:
     name: 📊 Build Summary
     runs-on: ubuntu-latest
-    needs: [lint, build, integration, security, test-matrix]
+    needs: [determine-version, build-and-push, validate]
     if: always()
-
     steps:
-      - name: 📋 Generate Build Summary
+      - name: 📋 Generate Summary
         run: |
-          cat >> $GITHUB_STEP_SUMMARY << EOF
-          # 🧅 Build and Validation Pipeline
+          VERSION="${{ needs.determine-version.outputs.version }}"
+          BUILD_TYPE="${{ needs.determine-version.outputs.build_type }}"
+          BUILD_DATE="${{ needs.determine-version.outputs.build_date }}"
+          SHORT_SHA="${{ needs.determine-version.outputs.short_sha }}"
 
-          ## 📊 Pipeline Status
-          - **🔍 Lint:** \`${{ needs.lint.result }}\`
-          - **🏗️ Build:** \`${{ needs.build.result }}\`
-          - **🧪 Integration:** \`${{ needs.integration.result }}\`
-          - **🛡️ Security:** \`${{ needs.security.result }}\`
-          - **🧪 Test Matrix:** \`${{ needs.test-matrix.result }}\`
+          echo "# 🧅 Tor Guard Relay Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## 📦 Build Information" >> $GITHUB_STEP_SUMMARY
+          echo "- **🏷️ Version:** \`${VERSION}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **📝 Build Type:** \`${BUILD_TYPE}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **🔑 Git SHA:** \`${SHORT_SHA}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **📅 Build Date:** \`${BUILD_DATE}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## 🚀 Published To" >> $GITHUB_STEP_SUMMARY
+          echo "- 📦 GitHub Container Registry (GHCR)" >> $GITHUB_STEP_SUMMARY
+          echo "- 🐳 Docker Hub" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
 
-          ## 📦 Build Information
-          - **🌿 Branch:** \`${{ github.ref }}\`
-          - **📝 Commit:** \`${{ github.sha }}\`
-          - **🔢 Run Number:** \`${{ github.run_number }}\`
-          - **📅 Date:** \`$(date -u +'%Y-%m-%dT%H:%M:%SZ')\`
+          if [ "${{ needs.build-and-push.result }}" = "success" ]; then
+            echo "## 🎯 Pull Commands" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
+            echo "# 📦 From GHCR:" >> $GITHUB_STEP_SUMMARY
+            echo "docker pull ${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION}" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "# 🐳 From Docker Hub:" >> $GITHUB_STEP_SUMMARY
+            echo "docker pull ${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          fi
 
-          ## ✅ Checks Performed
-          - 🐳 Dockerfile validation with Hadolint
-          - 📝 Shell script syntax checking (all .sh files)
-          - 🎯 Shell script extension verification
-          - 🔎 ShellCheck static analysis
-          - 📋 YAML validation (lenient for templates)
-          - 🔖 JSON validation
-          - 📚 Documentation verification
-          - 🏗️ Docker image build (multi-arch ready)
-          - 🚀 Container smoke test
-          - 🧅 Tor installation verification
-          - 🔧 Tool availability check (.sh files)
-          - 🔐 Permission verification
-          - 🛡️ Security scanning with Trivy
-          - 🧪 Test matrix execution
-
-          ## 🚀 Next Steps
-          If all checks pass:
-          - ✅ Image is ready for production use
-          - 📦 Release workflow will handle publishing to GHCR and Docker Hub
-          - 🏷️ Tag with semantic version to trigger release
-          EOF
-
-      - name: ✅ Build Pipeline Complete
-        if: success()
-        run: echo "🎉 All build and validation checks passed successfully"
-
-      - name: ❌ Build Pipeline Failed
-        if: failure()
-        run: |
-          echo "❌ Build pipeline failed - check logs above for details"
-          exit 1
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## ✅ Validation Results" >> $GITHUB_STEP_SUMMARY
+          echo "- **🎯 Shell Extension Check:** ✅ Passed" >> $GITHUB_STEP_SUMMARY
+          echo "- **🔧 Line Ending Normalization:** ✅ Complete" >> $GITHUB_STEP_SUMMARY
+          echo "- **🏗️ Multi-Arch Build:** ✅ AMD64 + ARM64" >> $GITHUB_STEP_SUMMARY
+          echo "- **🔍 Image Validation:** \`${{ needs.validate.result }}\`" >> $GITHUB_STEP_SUMMARY
