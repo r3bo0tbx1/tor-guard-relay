@@ -1,9 +1,9 @@
-#!/bin/bash
+#!/bin/sh
 # docker-entrypoint.sh - Tor Guard Relay initialization and process management
 # Handles startup sequence: preflight checks → configuration validation → health monitoring →
 # metrics exposure → main Tor process, with proper signal handling and background process management
 
-set -euo pipefail
+set -e
 
 # Configuration
 readonly TOR_CONFIG="${TOR_CONFIG:-/etc/tor/torrc}"
@@ -15,17 +15,44 @@ readonly ENABLE_METRICS="${ENABLE_METRICS:-false}"
 readonly ENABLE_HEALTH_CHECK="${ENABLE_HEALTH_CHECK:-true}"
 readonly ENABLE_NET_CHECK="${ENABLE_NET_CHECK:-false}"
 
-# Signal handlers for clean shutdown
-trap 'on_sigterm' SIGTERM SIGINT
+# 🔒 NEW: Global PID tracking for cleanup
+TOR_PID=""
+METRICS_PID=""
+HEALTH_PID=""
 
-on_sigterm() {
+# 🔒 NEW: Improved signal handler with comprehensive cleanup
+trap 'cleanup_and_exit' SIGTERM SIGINT
+
+cleanup_and_exit() {
   echo ""
-  echo "🛑 Shutdown signal received. Gracefully stopping Tor..."
-  if [ -n "${TOR_PID:-}" ]; then
+  echo "🛑 Shutdown signal received. Stopping all services..."
+  
+  # Kill background services first (reverse order of startup)
+  if [ -n "$HEALTH_PID" ] && kill -0 "$HEALTH_PID" 2>/dev/null; then
+    echo "   Stopping health monitor (PID: $HEALTH_PID)..."
+    kill -TERM "$HEALTH_PID" 2>/dev/null || true
+    # Give it a moment to exit gracefully
+    sleep 1
+    # Force kill if still running
+    kill -9 "$HEALTH_PID" 2>/dev/null || true
+  fi
+  
+  if [ -n "$METRICS_PID" ] && kill -0 "$METRICS_PID" 2>/dev/null; then
+    echo "   Stopping metrics service (PID: $METRICS_PID)..."
+    kill -TERM "$METRICS_PID" 2>/dev/null || true
+    sleep 1
+    kill -9 "$METRICS_PID" 2>/dev/null || true
+  fi
+  
+  # Finally, stop Tor relay
+  if [ -n "$TOR_PID" ] && kill -0 "$TOR_PID" 2>/dev/null; then
+    echo "   Stopping Tor relay (PID: $TOR_PID)..."
     kill -TERM "$TOR_PID" 2>/dev/null || true
+    # Wait for Tor to shut down gracefully (up to 30 seconds)
     wait "$TOR_PID" 2>/dev/null || true
   fi
-  echo "✅ Tor relay shut down cleanly."
+  
+  echo "✅ All services stopped cleanly."
   exit 0
 }
 
@@ -109,13 +136,13 @@ validation_phase() {
 
   echo "🔍 Phase 5: Preflight Diagnostics"
   echo "   🌐 Checking basic network connectivity..."
-  if ping -c1 -W2 1.1.1.1 >/dev/null 2>&1; then
+  if ping -c1 -W2 ipv4.icanhazip.com >/dev/null 2>&1; then
     echo "   ✓ IPv4 connectivity OK"
   else
     echo "   ⚠️ IPv4 connectivity unavailable"
   fi
 
-  if ping6 -c1 -W2 ipv6.google.com >/dev/null 2>&1; then
+  if ping6 -c1 -W2 ipv6.icanhazip.com >/dev/null 2>&1; then
     echo "   ✓ IPv6 connectivity OK"
   else
     echo "   ⚠️ IPv6 connectivity unavailable"
@@ -134,9 +161,6 @@ validation_phase() {
     echo "   ⏭️  Skipping extended network diagnostics (ENABLE_NET_CHECK=false)"
   fi
 
-  # NOTE: Health check skipped here intentionally.
-  # Tor is not yet started at this stage.
-  # Health monitoring begins later in start_health_service().
   echo ""
 }
 
@@ -162,7 +186,7 @@ buildinfo_phase() {
   echo ""
 }
 
-# Metrics service (background)
+# 🔒 IMPROVED: Metrics service with PID tracking
 start_metrics_service() {
   if [ "$ENABLE_METRICS" != "true" ]; then
     echo "📊 Phase 7: Metrics Service disabled (ENABLE_METRICS=false)"
@@ -177,13 +201,22 @@ start_metrics_service() {
     return 0
   fi
 
+  # Start metrics service and capture PID
   metrics-http "$METRICS_PORT" &
   METRICS_PID=$!
-  echo "   ✓ Metrics service active on port $METRICS_PORT (PID: $METRICS_PID)"
+  
+  # Verify process started successfully
+  sleep 1
+  if kill -0 "$METRICS_PID" 2>/dev/null; then
+    echo "   ✓ Metrics service active on port $METRICS_PORT (PID: $METRICS_PID)"
+  else
+    echo "   ⚠️  Metrics service failed to start"
+    METRICS_PID=""
+  fi
   echo ""
 }
 
-# Health check service (background)
+# 🔒 IMPROVED: Health check service with PID tracking
 start_health_service() {
   if [ "$ENABLE_HEALTH_CHECK" != "true" ]; then
     echo "💚 Phase 8: Health Check Service disabled (ENABLE_HEALTH_CHECK=false)"
@@ -192,6 +225,8 @@ start_health_service() {
   fi
 
   echo "💚 Phase 8: Starting Health Check Service"
+  
+  # Start health monitor in background and capture PID
   (
     while true; do
       sleep 30
@@ -207,7 +242,15 @@ start_health_service() {
     done
   ) &
   HEALTH_PID=$!
-  echo "   ✓ Health monitor active (PID: $HEALTH_PID)"
+  
+  # Verify process started successfully
+  sleep 1
+  if kill -0 "$HEALTH_PID" 2>/dev/null; then
+    echo "   ✓ Health monitor active (PID: $HEALTH_PID)"
+  else
+    echo "   ⚠️  Health monitor failed to start"
+    HEALTH_PID=""
+  fi
   echo ""
 }
 
@@ -230,9 +273,27 @@ startup_message() {
   echo ""
 }
 
-# Main Tor process
+# 🔒 IMPROVED: Tor process launcher with PID tracking
 run_tor() {
-  exec "$@"
+  # Start Tor in background so we can track its PID
+  "$@" &
+  TOR_PID=$!
+  
+  echo "   ✓ Tor relay started (PID: $TOR_PID)"
+  echo ""
+  
+  # Wait for Tor process to complete
+  # This blocks until Tor exits or signal is received
+  wait "$TOR_PID"
+  
+  # If we reach here, Tor exited on its own (not from signal)
+  TOR_EXIT_CODE=$?
+  
+  echo ""
+  echo "🛑 Tor process exited with code: $TOR_EXIT_CODE"
+  
+  # Cleanup background services
+  cleanup_and_exit
 }
 
 # Main execution flow

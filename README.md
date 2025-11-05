@@ -37,6 +37,24 @@
 
 ---
 
+## 🔒 Security Model
+
+**Port Exposure Policy:**
+- **9001** (ORPort) - Tor relay traffic - **PUBLIC**
+- **9030** (DirPort) - Directory service - **PUBLIC**  
+- **9035** (Metrics) - Prometheus endpoint - **LOCALHOST ONLY** (127.0.0.1)
+- **9036** (Health) - Health check API - **LOCALHOST ONLY** (127.0.0.1)
+
+All monitoring and diagnostic services are bound to `127.0.0.1` by default. To expose externally:
+```bash
+# ⚠️ INSECURE - Only for testing/development
+docker run -e DASHBOARD_BIND=0.0.0.0 ...
+```
+
+**Production recommendation**: Use reverse proxy with authentication for external monitoring access.
+
+---
+
 ## ⚡ Quick Start
 
 ### System Requirements
@@ -52,10 +70,16 @@
 
 **Supported Architectures:** AMD64 (x86_64) • ARM64 (aarch64)
 
+### Network Security Notice
+
+⚠️ **Port Exposure:**
+- Only ports **9001** (ORPort) and **9030** (DirPort) should be publicly accessible
+- Monitoring services (9035, 9036) are **localhost-only** by default
+- Use `--network host` or explicit port mapping: `-p 9001:9001 -p 9030:9030`
+
 ### Deploy in 30 Seconds
 
 **Step 1:** Create your relay configuration (or use our [example](examples/relay.conf)):
-
 ```bash
 # Create config directory
 mkdir -p ~/tor-relay && cd ~/tor-relay
@@ -69,7 +93,6 @@ nano relay.conf
 ```
 
 **Step 2:** Run the relay:
-
 ```bash
 docker run -d \
   --name tor-relay \
@@ -82,7 +105,6 @@ docker run -d \
 ```
 
 **Step 3:** Verify it's running:
-
 ```bash
 # Check status
 docker exec tor-relay status
@@ -513,7 +535,7 @@ Images are automatically rebuilt weekly to include security patches:
 ![GitHub Stars](https://img.shields.io/github/stars/r3bo0tbx1/tor-guard-relay?style=for-the-badge)
 ![GitHub Issues](https://img.shields.io/github/issues/r3bo0tbx1/tor-guard-relay?style=for-the-badge)
 
-**Current Version:** v1.1  
+**Current Version:** v1.0.2  
 **Status:** Production Ready  
 **Last Build:** Weekly (Mondays 03:00 UTC)
 

@@ -9,8 +9,63 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Planned Features
 - Bridge relay variant
+- Additional monitoring integrations
 
-## [1.1.1] - 2025-11-05
+## [1.0.2] - 2025-11-05
+
+### 🔒 Security Hardening
+
+**Network Exposure Model**
+- Enforced strict two-port exposure policy (9001 ORPort, 9030 DirPort only)
+- All monitoring services (metrics, health, dashboard) bound to localhost (127.0.0.1)
+- Updated documentation to reflect secure-by-default configuration
+
+**Tool Security**
+- Changed default bind addresses from 0.0.0.0 → 127.0.0.1 (dashboard, metrics-http)
+- Added automatic configuration backup in setup tool
+- Implemented rate limiting for HTTP servers
+- Enhanced SIGTERM handling for clean shutdowns
+
+**Infrastructure**
+- Pinned base image to Alpine 3.22.2 for reproducible builds
+- Updated GitHub Actions to latest versions
+- Fixed invalid docker build commands in CI/CD
+- Enhanced process cleanup in docker-entrypoint.sh
+
+### 📚 Documentation
+
+**New Content**
+- Comprehensive port exposure policy documentation
+- Security model clarification (public vs internal ports)
+- Enhanced deployment examples with security warnings
+- Improved monitoring setup guides with localhost binding examples
+
+**Updates**
+- All documentation aligned to v1.0.2
+- Corrected version references throughout
+- Enhanced security warnings for external port exposure
+- Updated template configurations
+
+### 🛠️ Technical Improvements
+
+**Scripts**
+- Enhanced integration-check.sh with port validation
+- Improved relay-status.sh output formatting
+- Added version consistency checks
+
+**Templates**
+- Updated all docker-compose templates with explicit port policies
+- Enhanced Prometheus/Grafana configurations
+- Improved Cosmos Cloud templates with security annotations
+
+### 🐛 Fixes
+- Corrected version inconsistencies across documentation
+- Fixed port exposure examples in deployment guides
+- Updated monitoring endpoint documentation
+
+---
+
+## [1.0.1] - 2025-11-05
 
 ### 🎉 Major Restructuring
 
@@ -39,6 +94,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Same tool interfaces
 - Volume mounts unchanged
 
+---
 
 ## [1.0.0] - 2025-11-01
 
@@ -119,6 +175,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Release Information
 
 - **First Release:** v1.0 (November 1, 2025)
+- **Current Release:** v1.0.2
 - **Latest Release:** [GitHub Releases](https://github.com/r3bo0tbx1/tor-guard-relay/releases/latest)
 - **Docker Images:** [GHCR Package](https://github.com/r3bo0tbx1/tor-guard-relay/pkgs/container/onion-relay)
 
@@ -126,8 +183,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Version | Status | Support Period |
 |---------|--------|----------------|
-| 1.0.x   | ✅ Actively Supported | Current |
-| Future versions | - | TBD |
+| 1.0.2   | ✅ Actively Supported | Current |
+| 1.0.1   | ✅ Supported | Until v1.1.0 |
+| 1.0.0   | ⚠️ Legacy | Security updates only |
 
-[1.0]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.0
-[Unreleased]: https://github.com/r3bo0tbx1/tor-guard-relay/compare/v1.0...HEAD
+[1.0.2]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.0.2
+[1.0.1]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.0.1
+[1.0.0]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.0.0
+[Unreleased]: https://github.com/r3bo0tbx1/tor-guard-relay/compare/v1.0.2...HEAD

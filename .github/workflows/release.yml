@@ -41,7 +41,7 @@ jobs:
       - name: 📥 Checkout Repository
         uses: actions/checkout@v5
         with:
-          fetch-depth: 0  # Full history for tag detection
+          fetch-depth: 0
 
       - name: 🔍 Detect Version & Build Type
         id: version
@@ -109,7 +109,7 @@ jobs:
         with:
           platforms: arm64,amd64
 
-      - name: �️ Set up Docker Buildx
+      - name: 🏗️ Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
       - name: 🏷️ Generate Docker Tags
@@ -198,21 +198,49 @@ jobs:
             IMAGE_TAG="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${VERSION}"
           fi
 
-          echo "Validating image: ${IMAGE_TAG}"
+          echo "🔍 Validating image: ${IMAGE_TAG}"
 
           # Pull and verify image exists
+          echo "📦 Pulling image..."
           docker pull "${IMAGE_TAG}" || exit 1
 
           # Verify Alpine base
+          echo "🐧 Checking Alpine base..."
           docker run --rm "${IMAGE_TAG}" cat /etc/os-release | grep -i alpine || exit 1
 
           # Verify build info exists
+          echo "📋 Checking build metadata..."
           docker run --rm "${IMAGE_TAG}" cat /build-info.txt || exit 1
 
-          # Verify Tor is installed
-          docker run --rm "${IMAGE_TAG}" tor --version || exit 1
+          # Verify Tor is installed and functional
+          echo "🧅 Verifying Tor installation..."
+          TOR_VERSION=$(docker run --rm "${IMAGE_TAG}" tor --version | head -1)
+          if [ -z "$TOR_VERSION" ]; then
+            echo "❌ Tor version check failed"
+            exit 1
+          fi
+          echo "✅ Tor version: $TOR_VERSION"
 
-          echo "✅ Image validation successful"
+          # Verify required tools exist
+          echo "🛠️ Checking diagnostic tools..."
+          for tool in health metrics status fingerprint view-logs net-check setup dashboard; do
+            if docker run --rm "${IMAGE_TAG}" sh -c "command -v $tool" > /dev/null 2>&1; then
+              echo "  ✅ $tool found"
+            else
+              echo "  ⚠️ $tool not found (may be optional)"
+            fi
+          done
+
+          # Verify entrypoint is executable
+          echo "🔧 Checking entrypoint..."
+          docker run --rm "${IMAGE_TAG}" sh -c "test -x /usr/local/bin/docker-entrypoint.sh" || exit 1
+
+          # Verify permissions on critical directories
+          echo "🔒 Checking permissions..."
+          docker run --rm "${IMAGE_TAG}" sh -c "ls -ld /var/lib/tor | grep '^d.*tor tor'" || exit 1
+
+          echo ""
+          echo "✅ All validation checks passed"
 
   release-notes:
     name: 📝 Generate Release Notes
@@ -321,9 +349,9 @@ jobs:
           \`\`\`
 
           ## 📚 Documentation
-          - [Deployment Guide](https://github.com/${{ github.repository }}/blob/main/DEPLOYMENT.md)
-          - [Backup Guide](https://github.com/${{ github.repository }}/blob/main/BACKUP.md)
-          - [Performance Tuning](https://github.com/${{ github.repository }}/blob/main/PERFORMANCE.md)
+          - [Deployment Guide](https://github.com/${{ github.repository }}/blob/main/docs/DEPLOYMENT.md)
+          - [Backup Guide](https://github.com/${{ github.repository }}/blob/main/docs/BACKUP.md)
+          - [Performance Tuning](https://github.com/${{ github.repository }}/blob/main/docs/PERFORMANCE.md)
           EOF
 
       - name: ✅ Workflow Complete

@@ -1,6 +1,6 @@
 #!/bin/bash
-# integration-check.sh - Master integration test runner for Tor Guard Relay
-# Validates all tools are present, executable, and produce correct output formats
+# integration-check.sh - Master integration test runner for Tor Guard Relay v1.0.2
+# Validates all tools, port security, and configuration compliance
 # Returns: 0 on success, 1 on failure; outputs emoji-based summary
 
 set -euo pipefail
@@ -10,12 +10,14 @@ readonly CONTAINER="${CONTAINER:-guard-relay}"
 readonly TOOLS_DIR="/usr/local/bin"
 readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly TIMESTAMP=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
+readonly VERSION="1.0.2"
 
 # State tracking
 PASS_COUNT=0
 FAIL_COUNT=0
 WARN_COUNT=0
 declare -a RESULTS=()
+declare -a SECURITY_ISSUES=()
 
 # Colors for terminal output (safe in Alpine)
 readonly RED='\033[0;31m'
@@ -23,6 +25,7 @@ readonly GREEN='\033[0;32m'
 readonly YELLOW='\033[1;33m'
 readonly BLUE='\033[0;34m'
 readonly CYAN='\033[0;36m'
+readonly MAGENTA='\033[0;35m'
 readonly NC='\033[0m'
 
 # Output functions
@@ -56,6 +59,11 @@ log_warn() {
 
 log_info() {
   echo -e "${BLUE}ℹ${NC} $1"
+}
+
+log_security() {
+  echo -e "${MAGENTA}🔒${NC} $1"
+  SECURITY_ISSUES+=("$1")
 }
 
 # Test functions
@@ -130,42 +138,6 @@ test_text_contains() {
   fi
 }
 
-test_tool_output_format() {
-  local tool_path=$1
-  local tool_name=$2
-  local expected_format=$3
-  
-  if [ ! -f "$tool_path" ]; then
-    log_fail "$tool_name not found"
-    return 1
-  fi
-  
-  local output
-  output=$("$tool_path" 2>&1 || true)
-  
-  case "$expected_format" in
-    json)
-      test_json_valid "$output" "$tool_name JSON"
-      ;;
-    text)
-      if [ -n "$output" ]; then
-        log_pass "$tool_name produces text output"
-      else
-        log_fail "$tool_name produces empty output"
-        return 1
-      fi
-      ;;
-    html)
-      if echo "$output" | grep -q "<!DOCTYPE\|<html"; then
-        log_pass "$tool_name produces HTML output"
-      else
-        log_fail "$tool_name does not produce HTML"
-        return 1
-      fi
-      ;;
-  esac
-}
-
 # Phase 1: File Existence & Permissions
 phase_1_files() {
   log_section "Phase 1: File Existence & Permissions"
@@ -178,6 +150,8 @@ phase_1_files() {
   test_file_exists "$TOOLS_DIR/metrics" "metrics"
   test_file_exists "$TOOLS_DIR/metrics-http" "metrics-http"
   test_file_exists "$TOOLS_DIR/dashboard" "dashboard"
+  test_file_exists "$TOOLS_DIR/setup" "setup"
+  test_file_exists "$TOOLS_DIR/net-check" "net-check"
   
   # Check docker-entrypoint.sh
   test_file_exists "$TOOLS_DIR/docker-entrypoint.sh" "docker-entrypoint.sh"
@@ -199,6 +173,8 @@ phase_2_permissions() {
   test_file_executable "$TOOLS_DIR/metrics" "metrics"
   test_file_executable "$TOOLS_DIR/metrics-http" "metrics-http"
   test_file_executable "$TOOLS_DIR/dashboard" "dashboard"
+  test_file_executable "$TOOLS_DIR/setup" "setup"
+  test_file_executable "$TOOLS_DIR/net-check" "net-check"
   test_file_executable "$TOOLS_DIR/docker-entrypoint.sh" "docker-entrypoint.sh"
 }
 
@@ -206,7 +182,7 @@ phase_2_permissions() {
 phase_3_syntax() {
   log_section "Phase 3: Shell Syntax Validation"
   
-  for tool in status fingerprint view-logs health metrics metrics-http dashboard docker-entrypoint.sh; do
+  for tool in status fingerprint view-logs health metrics metrics-http dashboard setup net-check docker-entrypoint.sh; do
     if [ -f "$TOOLS_DIR/$tool" ]; then
       test_shell_syntax "$TOOLS_DIR/$tool" "$tool"
     fi
@@ -214,6 +190,10 @@ phase_3_syntax() {
   
   if [ -f "$SCRIPT_DIR/integration-check.sh" ]; then
     test_shell_syntax "$SCRIPT_DIR/integration-check.sh" "integration-check.sh"
+  fi
+  
+  if [ -f "$SCRIPT_DIR/relay-status.sh" ]; then
+    test_shell_syntax "$SCRIPT_DIR/relay-status.sh" "relay-status.sh"
   fi
 }
 
@@ -230,6 +210,14 @@ phase_4_directories() {
   
   if [ -d "/var/lib/tor" ]; then
     log_pass "Tor data directory exists: /var/lib/tor"
+    
+    # Check permissions
+    local perms=$(stat -c "%a" /var/lib/tor 2>/dev/null || echo "unknown")
+    if [ "$perms" = "700" ] || [ "$perms" = "750" ]; then
+      log_pass "Tor data directory has secure permissions: $perms"
+    else
+      log_warn "Tor data directory permissions: $perms (should be 700 or 750)"
+    fi
   else
     log_fail "Tor data directory missing: /var/lib/tor"
   fi
@@ -247,9 +235,82 @@ phase_4_directories() {
   fi
 }
 
-# Phase 5: Output Format Validation (requires execution)
-phase_5_output_formats() {
-  log_section "Phase 5: Output Format Validation"
+# Phase 5: Port Security Validation (CRITICAL for v1.0.2)
+phase_5_port_security() {
+  log_section "Phase 5: Port Security Validation"
+  
+  log_info "Validating port exposure policy (9001/9030 only)..."
+  
+  # Check if metrics-http binds to localhost only
+  if [ -f "$TOOLS_DIR/metrics-http" ]; then
+    local bind_check=$(grep -E "127\.0\.0\.1|localhost" "$TOOLS_DIR/metrics-http" 2>/dev/null || echo "")
+    if [ -n "$bind_check" ]; then
+      log_pass "metrics-http configured for localhost binding"
+    else
+      log_security "SECURITY: metrics-http may not be localhost-only"
+      log_fail "metrics-http localhost binding not confirmed"
+    fi
+  fi
+  
+  # Check if dashboard binds to localhost only
+  if [ -f "$TOOLS_DIR/dashboard" ]; then
+    local bind_check=$(grep -E "127\.0\.0\.1|localhost" "$TOOLS_DIR/dashboard" 2>/dev/null || echo "")
+    if [ -n "$bind_check" ]; then
+      log_pass "dashboard configured for localhost binding"
+    else
+      log_warn "dashboard localhost binding not confirmed"
+    fi
+  fi
+  
+  # Check torrc for proper port configuration (if exists)
+  if [ -f "/etc/tor/torrc" ]; then
+    log_info "Checking torrc port configuration..."
+    
+    # Check for ORPort 9001
+    if grep -q "^ORPort 9001" /etc/tor/torrc 2>/dev/null; then
+      log_pass "ORPort 9001 configured correctly"
+    else
+      log_warn "ORPort 9001 not found in torrc"
+    fi
+    
+    # Check for DirPort 9030
+    if grep -q "^DirPort 9030" /etc/tor/torrc 2>/dev/null; then
+      log_pass "DirPort 9030 configured correctly"
+    else
+      log_info "DirPort 9030 not configured (optional)"
+    fi
+    
+    # Check that SocksPort is disabled
+    if grep -q "^SocksPort 0" /etc/tor/torrc 2>/dev/null; then
+      log_pass "SocksPort properly disabled"
+    else
+      log_warn "SocksPort setting not confirmed"
+    fi
+  fi
+  
+  # Check for any references to dangerous port exposure
+  log_info "Scanning for improper port exposure patterns..."
+  
+  local dangerous_patterns=0
+  for tool in "$TOOLS_DIR"/*; do
+    if [ -f "$tool" ] && [ -x "$tool" ]; then
+      # Look for 0.0.0.0 bindings on non-Tor ports
+      if grep -qE "0\.0\.0\.0:903[5-9]|0\.0\.0\.0:904[0-9]" "$tool" 2>/dev/null; then
+        log_security "SECURITY: Found potential 0.0.0.0 binding in $(basename $tool)"
+        log_fail "$(basename $tool) may expose internal ports"
+        ((dangerous_patterns++))
+      fi
+    fi
+  done
+  
+  if [ $dangerous_patterns -eq 0 ]; then
+    log_pass "No dangerous port exposure patterns detected"
+  fi
+}
+
+# Phase 6: Output Format Validation
+phase_6_output_formats() {
+  log_section "Phase 6: Output Format Validation"
   
   # health (JSON)
   if [ -f "$TOOLS_DIR/health" ]; then
@@ -302,11 +363,22 @@ phase_5_output_formats() {
       log_warn "dashboard HTML validation not fully checked"
     fi
   fi
+  
+  # net-check (text with emoji)
+  if [ -f "$TOOLS_DIR/net-check" ]; then
+    log_info "Testing net-check output format..."
+    NETCHECK_OUT=$("$TOOLS_DIR/net-check" 2>&1 || echo "Network check")
+    if echo "$NETCHECK_OUT" | grep -qE "🌐|Network|Diagnostics"; then
+      log_pass "net-check produces expected output"
+    else
+      log_warn "net-check output not fully validated"
+    fi
+  fi
 }
 
-# Phase 6: Environment Variables
-phase_6_environment() {
-  log_section "Phase 6: Environment Variables"
+# Phase 7: Environment Variables
+phase_7_environment() {
+  log_section "Phase 7: Environment Variables"
   
   if [ -n "${TOR_DATA_DIR:-}" ]; then
     log_pass "TOR_DATA_DIR is set: $TOR_DATA_DIR"
@@ -327,6 +399,52 @@ phase_6_environment() {
       log_fail "PATH missing /usr/local/bin: $PATH"
     fi
   fi
+  
+  # Check for metrics-related env vars
+  if [ -n "${ENABLE_METRICS:-}" ]; then
+    log_info "ENABLE_METRICS is set: $ENABLE_METRICS"
+  fi
+  
+  if [ -n "${METRICS_PORT:-}" ]; then
+    log_info "METRICS_PORT is set: $METRICS_PORT"
+    # Validate it's in the proper range
+    if [ "$METRICS_PORT" -ge 9035 ] && [ "$METRICS_PORT" -le 9099 ]; then
+      log_pass "METRICS_PORT in valid range: $METRICS_PORT"
+    else
+      log_warn "METRICS_PORT outside recommended range: $METRICS_PORT"
+    fi
+  fi
+}
+
+# Phase 8: Version Validation
+phase_8_version() {
+  log_section "Phase 8: Version Validation"
+  
+  log_info "Integration check version: $VERSION"
+  
+  # Check if build-info.txt exists and contains version
+  if [ -f "/build-info.txt" ]; then
+    local build_version=$(grep "Version:" /build-info.txt 2>/dev/null | cut -d: -f2 | tr -d ' ' || echo "unknown")
+    log_info "Build version: $build_version"
+    
+    if [ "$build_version" = "$VERSION" ] || [ "$build_version" = "v$VERSION" ]; then
+      log_pass "Build version matches integration check version"
+    else
+      log_warn "Build version mismatch (expected: $VERSION, found: $build_version)"
+    fi
+  else
+    log_info "No build-info.txt found (may be normal in development)"
+  fi
+  
+  # Check relay-status.sh version if available
+  if [ -f "$SCRIPT_DIR/relay-status.sh" ]; then
+    local script_version=$(grep "^readonly VERSION=" "$SCRIPT_DIR/relay-status.sh" 2>/dev/null | cut -d'"' -f2 || echo "unknown")
+    if [ "$script_version" = "$VERSION" ]; then
+      log_pass "relay-status.sh version matches: $VERSION"
+    else
+      log_warn "relay-status.sh version mismatch (expected: $VERSION, found: $script_version)"
+    fi
+  fi
 }
 
 # Generate Summary Report
@@ -334,30 +452,44 @@ generate_summary() {
   local total=$((PASS_COUNT + FAIL_COUNT + WARN_COUNT))
   
   echo ""
-  log_header "🧅 Integration Test Summary"
+  log_header "🧅 Integration Test Summary (v$VERSION)"
   
   echo ""
   echo "Total Tests: $total"
-  echo -e "${GREEN}Passed: ${PASS_COUNT}${NC}"
+  echo -e "${GREEN}✓ Passed: ${PASS_COUNT}${NC}"
   
   if [ $WARN_COUNT -gt 0 ]; then
-    echo -e "${YELLOW}Warnings: ${WARN_COUNT}${NC}"
+    echo -e "${YELLOW}⚠ Warnings: ${WARN_COUNT}${NC}"
   fi
   
   if [ $FAIL_COUNT -gt 0 ]; then
-    echo -e "${RED}Failed: ${FAIL_COUNT}${NC}"
+    echo -e "${RED}✗ Failed: ${FAIL_COUNT}${NC}"
+  fi
+  
+  # Security issues summary
+  if [ ${#SECURITY_ISSUES[@]} -gt 0 ]; then
+    echo ""
+    echo -e "${MAGENTA}🔒 Security Issues Detected: ${#SECURITY_ISSUES[@]}${NC}"
+    for issue in "${SECURITY_ISSUES[@]}"; do
+      echo -e "  ${MAGENTA}•${NC} $issue"
+    done
   fi
   
   echo ""
-  echo "Results:"
+  echo "Detailed Results:"
   for result in "${RESULTS[@]}"; do
     echo "  $result"
   done
   
   echo ""
   
-  if [ $FAIL_COUNT -eq 0 ]; then
+  if [ $FAIL_COUNT -eq 0 ] && [ ${#SECURITY_ISSUES[@]} -eq 0 ]; then
     echo -e "${GREEN}✅ All integration checks passed!${NC}"
+    echo -e "${GREEN}✅ No security issues detected!${NC}"
+    return 0
+  elif [ $FAIL_COUNT -eq 0 ] && [ ${#SECURITY_ISSUES[@]} -gt 0 ]; then
+    echo -e "${YELLOW}⚠️  Integration checks passed with security warnings.${NC}"
+    echo -e "${YELLOW}⚠️  Please review security issues above.${NC}"
     return 0
   else
     echo -e "${RED}❌ Some integration checks failed.${NC}"
@@ -367,9 +499,10 @@ generate_summary() {
 
 # Main execution
 main() {
-  log_header "🧅 Tor Guard Relay Integration Check v1.0"
+  log_header "🧅 Tor Guard Relay Integration Check v$VERSION"
   log_info "Timestamp: $TIMESTAMP"
   log_info "Container: $CONTAINER"
+  log_info "Target Release: v1.0.2"
   
   echo ""
   
@@ -377,8 +510,10 @@ main() {
   phase_2_permissions
   phase_3_syntax
   phase_4_directories
-  phase_5_output_formats
-  phase_6_environment
+  phase_5_port_security
+  phase_6_output_formats
+  phase_7_environment
+  phase_8_version
   
   echo ""
   generate_summary

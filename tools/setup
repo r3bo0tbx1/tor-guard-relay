@@ -5,7 +5,7 @@
 set -e
 
 # Configuration
-VERSION="1.1.0"
+VERSION="1.1.1"
 CONFIG_FILE="${CONFIG_FILE:-/etc/tor/torrc}"
 RELAY_TYPE="${RELAY_TYPE:-guard}"
 AUTO_MODE="${AUTO_MODE:-false}"
@@ -14,6 +14,7 @@ DEFAULT_CONTACT="${DEFAULT_CONTACT:-admin@example.com}"
 DEFAULT_ORPORT="${DEFAULT_ORPORT:-9001}"
 DEFAULT_DIRPORT="${DEFAULT_DIRPORT:-9030}"
 DEFAULT_BANDWIDTH="${DEFAULT_BANDWIDTH:-1024}"
+CREATE_BACKUP="${CREATE_BACKUP:-true}"  # 🔒 NEW: Backup control
 
 # Colors for terminal output
 RED='\033[0;31m'
@@ -22,6 +23,15 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 PURPLE='\033[0;35m'
 NC='\033[0m' # No Color
+
+# Trap for clean exit
+trap 'cleanup' INT TERM
+
+cleanup() {
+  echo ""
+  echo -e "${YELLOW}Setup cancelled by user${NC}"
+  exit 130
+}
 
 # Parse arguments
 for arg in "$@"; do
@@ -38,6 +48,7 @@ OPTIONS:
     --auto          Use defaults for all prompts
     --config FILE   Config file path (default: /etc/tor/torrc)
     --type TYPE     Relay type: guard|exit|bridge
+    --no-backup     Skip backup creation (not recommended)
     --help, -h      Show this help message
 
 ENVIRONMENT VARIABLES:
@@ -49,11 +60,18 @@ ENVIRONMENT VARIABLES:
     DEFAULT_DIRPORT     Default DirPort
     DEFAULT_BANDWIDTH   Default bandwidth in KB/s
     AUTO_MODE          Skip prompts and use defaults
+    CREATE_BACKUP      Create backup before overwriting (default: true)
 
 RELAY TYPES:
     guard    Middle/Guard relay (recommended for beginners)
     exit     Exit relay (requires careful consideration)
     bridge   Bridge relay (helps censored users)
+
+SAFETY FEATURES:
+    🔒 Automatic backup creation before overwriting existing config
+    🔒 Backup stored as: [config].backup.[timestamp]
+    🔒 Validation before writing
+    🔒 Safe cancellation with Ctrl+C
 
 WIZARD STEPS:
     1. Relay nickname selection
@@ -67,6 +85,7 @@ EXAMPLES:
     setup                    # Interactive wizard
     setup --auto            # Auto-configure with defaults
     setup --type bridge     # Configure as bridge relay
+    setup --no-backup       # Skip backup (not recommended)
 
 OUTPUT:
     Creates a complete torrc configuration file ready
@@ -87,6 +106,7 @@ EOF
       RELAY_TYPE="$1"
       shift
       ;;
+    --no-backup) CREATE_BACKUP="false" ;;
     -*) 
       echo "❌ Unknown option: $arg"
       echo "💡 Use --help for usage information"
@@ -124,6 +144,47 @@ validate_bandwidth() {
   [ "$1" -ge 256 ] 2>/dev/null
 }
 
+# 🔒 NEW: Backup function
+create_config_backup() {
+  if [ -f "$CONFIG_FILE" ] && [ "$CREATE_BACKUP" = "true" ]; then
+    BACKUP_TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+    BACKUP_FILE="${CONFIG_FILE}.backup.${BACKUP_TIMESTAMP}"
+    
+    echo -e "${BLUE}📦 Creating backup...${NC}"
+    
+    if cp "$CONFIG_FILE" "$BACKUP_FILE" 2>/dev/null; then
+      echo -e "${GREEN}✅ Backup created: $BACKUP_FILE${NC}"
+      
+      # Keep only last 5 backups
+      BACKUP_COUNT=$(ls -1 "${CONFIG_FILE}.backup."* 2>/dev/null | wc -l)
+      if [ "$BACKUP_COUNT" -gt 5 ]; then
+        echo -e "${YELLOW}🧹 Cleaning old backups (keeping last 5)...${NC}"
+        ls -1t "${CONFIG_FILE}.backup."* | tail -n +6 | xargs rm -f 2>/dev/null || true
+      fi
+      
+      return 0
+    else
+      echo -e "${YELLOW}⚠️  Warning: Could not create backup${NC}"
+      echo -e "${YELLOW}   Proceeding anyway...${NC}"
+      return 1
+    fi
+  fi
+}
+
+# 🔒 NEW: Restore function (if setup fails)
+restore_from_backup() {
+  LATEST_BACKUP=$(ls -1t "${CONFIG_FILE}.backup."* 2>/dev/null | head -1)
+  if [ -n "$LATEST_BACKUP" ]; then
+    echo ""
+    echo -e "${YELLOW}❌ Setup failed. Restoring from backup...${NC}"
+    if cp "$LATEST_BACKUP" "$CONFIG_FILE" 2>/dev/null; then
+      echo -e "${GREEN}✅ Configuration restored from: $LATEST_BACKUP${NC}"
+    else
+      echo -e "${RED}❌ Failed to restore backup${NC}"
+    fi
+  fi
+}
+
 # Main setup wizard
 clear
 cat << EOF
@@ -138,8 +199,32 @@ ${PURPLE}╔══════════════════════�
 This wizard will help you configure a Tor relay with optimal
 settings for your network and preferences.
 
-Press Ctrl+C at any time to cancel.
+Press Ctrl+C at any time to cancel safely.
 EOF
+
+# Check if config exists
+if [ -f "$CONFIG_FILE" ]; then
+  echo ""
+  echo -e "${YELLOW}⚠️  Existing configuration found at:${NC}"
+  echo -e "${YELLOW}   $CONFIG_FILE${NC}"
+  echo ""
+  
+  if [ "$CREATE_BACKUP" = "true" ]; then
+    echo -e "${GREEN}🔒 A backup will be created before making changes.${NC}"
+  else
+    echo -e "${RED}⚠️  Backup creation is disabled!${NC}"
+  fi
+  
+  if [ "$AUTO_MODE" != "true" ]; then
+    echo ""
+    printf "Continue and overwrite existing config? [y/N]: "
+    read CONFIRM
+    if [ "$CONFIRM" != "y" ] && [ "$CONFIRM" != "Y" ]; then
+      echo -e "${YELLOW}Setup cancelled.${NC}"
+      exit 0
+    fi
+  fi
+fi
 
 # Step 1: Nickname
 print_header "Step 1: Relay Nickname"
@@ -297,8 +382,11 @@ print_header "Step 6: Generating Configuration"
 print_step "6" "Creating torrc file"
 echo ""
 
+# 🔒 Create backup before overwriting
+create_config_backup
+
 # Create configuration
-cat > "$CONFIG_FILE" << EOF
+if ! cat > "$CONFIG_FILE" << EOF
 # Tor Relay Configuration
 # Generated by Tor-Guard-Relay Setup Wizard v${VERSION}
 # Date: $(date '+%Y-%m-%d %H:%M:%S')
@@ -313,76 +401,4 @@ DirPort $DIRPORT
 
 # Bandwidth Limits
 RelayBandwidthRate $BANDWIDTH KB
-RelayBandwidthBurst $((BANDWIDTH * 2)) KB
-
-# Relay Type Configuration
-EOF
-
-case "$RELAY_TYPE" in
-  exit)
-    cat >> "$CONFIG_FILE" << EOF
-ExitRelay 1
-ExitPolicy accept *:80     # HTTP
-ExitPolicy accept *:443    # HTTPS
-ExitPolicy accept *:6667   # IRC
-ExitPolicy accept *:22     # SSH
-ExitPolicy reject *:*      # Reject everything else
-EOF
-    ;;
-  bridge)
-    cat >> "$CONFIG_FILE" << EOF
-BridgeRelay 1
-PublishServerDescriptor bridge
-ExitRelay 0
-EOF
-    ;;
-  *)
-    cat >> "$CONFIG_FILE" << EOF
-ExitRelay 0
-ExitPolicy reject *:*
-EOF
-    ;;
-esac
-
-# Add common settings
-cat >> "$CONFIG_FILE" << EOF
-
-# Logging
-Log notice file /var/log/tor/notices.log
-Log notice syslog
-
-# Data Directory
-DataDirectory /var/lib/tor
-
-# Performance
-NumCPUs 0  # Use all available CPUs
-HardwareAccel 1
-
-# Security
-NoExec 1
-EOF
-
-# Validate configuration
-echo -e "${GREEN}✓${NC} Configuration generated successfully!"
-echo ""
-echo "📋 Configuration Summary:"
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "  Nickname:    $NICKNAME"
-echo "  Contact:     $CONTACT"
-echo "  ORPort:      $ORPORT"
-echo "  DirPort:     $DIRPORT"
-echo "  Bandwidth:   $BANDWIDTH KB/s"
-echo "  Type:        $RELAY_TYPE"
-echo "  Config:      $CONFIG_FILE"
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo ""
-echo -e "${GREEN}✅ Setup complete!${NC}"
-echo ""
-echo "Next steps:"
-echo "  1. Review the configuration: cat $CONFIG_FILE"
-echo "  2. Start your relay: tor -f $CONFIG_FILE"
-echo "  3. Monitor status: /usr/local/bin/status"
-echo "  4. Check metrics: /usr/local/bin/metrics"
-echo ""
-echo "🌐 Your relay will appear on Tor Metrics after ~3 hours:"
-echo "   https://metrics.torproject.org/rs.html"
+RelayBandwidthBurst $((

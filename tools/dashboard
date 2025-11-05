@@ -5,12 +5,22 @@
 set -e
 
 # Configuration
-VERSION="1.1.0"
+VERSION="1.1.1"
 DASHBOARD_PORT="${DASHBOARD_PORT:-8080}"
-DASHBOARD_BIND="${DASHBOARD_BIND:-0.0.0.0}"
+DASHBOARD_BIND="${DASHBOARD_BIND:-127.0.0.1}"  # ⚠️ CHANGED: Secure default
 ENABLE_DASHBOARD="${ENABLE_DASHBOARD:-true}"
 REFRESH_INTERVAL="${REFRESH_INTERVAL:-10}"
 MULTI_RELAY="${MULTI_RELAY:-false}"
+MAX_CONNECTIONS="${MAX_CONNECTIONS:-5}"  # 🔒 NEW: Rate limiting
+
+# Trap for clean exit
+trap 'cleanup' INT TERM
+
+cleanup() {
+  echo ""
+  echo "🛑 Dashboard shutting down..."
+  exit 0
+}
 
 # Parse arguments
 for arg in "$@"; do
@@ -25,17 +35,26 @@ USAGE:
 
 OPTIONS:
     --port PORT     Dashboard port (default: 8080)
-    --bind ADDR     Bind address (default: 0.0.0.0)
+    --bind ADDR     Bind address (default: 127.0.0.1)
     --refresh SEC   Auto-refresh interval (default: 10)
     --multi         Enable multi-relay support
     --help, -h      Show this help message
 
 ENVIRONMENT VARIABLES:
     DASHBOARD_PORT       Port to listen on
-    DASHBOARD_BIND       Address to bind
+    DASHBOARD_BIND       Address to bind (default: 127.0.0.1)
     ENABLE_DASHBOARD     Enable dashboard (true/false)
     REFRESH_INTERVAL     Auto-refresh in seconds
     MULTI_RELAY         Multi-relay mode (true/false)
+    MAX_CONNECTIONS     Max concurrent connections (default: 5)
+
+⚠️  SECURITY NOTICE:
+    Default binding is 127.0.0.1 (localhost only).
+    To expose externally, explicitly set:
+      DASHBOARD_BIND=0.0.0.0
+    
+    ⚠️  WARNING: External exposure without authentication is NOT recommended!
+    Use a reverse proxy (nginx/caddy) with authentication for production.
 
 FEATURES:
     • Real-time relay status monitoring
@@ -53,6 +72,13 @@ ENDPOINTS:
     http://localhost:8080/api/logs     Recent logs
 
 DOCKER INTEGRATION:
+    # For localhost access only (secure):
+    ports:
+      - "127.0.0.1:8080:8080"
+    
+    # For external access (use with caution):
+    environment:
+      - DASHBOARD_BIND=0.0.0.0
     ports:
       - "8080:8080"
 
@@ -93,12 +119,23 @@ if [ "$ENABLE_DASHBOARD" != "true" ]; then
   exit 0
 fi
 
+# Security warning for external binding
+if [ "$DASHBOARD_BIND" = "0.0.0.0" ]; then
+  echo "⚠️  WARNING: Dashboard is bound to 0.0.0.0 (all interfaces)"
+  echo "⚠️  This exposes the dashboard without authentication!"
+  echo "⚠️  Consider using a reverse proxy with authentication."
+  echo ""
+fi
+
 # Check for netcat
 if ! command -v nc > /dev/null 2>&1; then
   echo "❌ Error: netcat (nc) is required"
   echo "💡 Install with: apk add netcat-openbsd"
   exit 1
 fi
+
+# Connection counter (simple rate limiting)
+CONNECTION_COUNT=0
 
 # Function to generate dashboard HTML
 generate_dashboard() {
@@ -531,4 +568,81 @@ handle_api() {
       ;;
       
     "/api/metrics")
-      CONTENT=$(/usr/local/bin/metrics 2>/dev/null || echo "# Error generating metrics
+      CONTENT=$(/usr/local/bin/metrics 2>/dev/null || echo "# Error generating metrics")
+      echo "HTTP/1.1 200 OK"
+      echo "Content-Type: text/plain"
+      echo "Cache-Control: no-cache"
+      echo "Connection: close"
+      echo ""
+      echo "$CONTENT"
+      ;;
+      
+    "/api/logs")
+      CONTENT=$(/usr/local/bin/view-logs --json 2>/dev/null || echo '{"error":"Failed to get logs"}')
+      echo "HTTP/1.1 200 OK"
+      echo "Content-Type: application/json"
+      echo "Cache-Control: no-cache"
+      echo "Connection: close"
+      echo ""
+      echo "$CONTENT"
+      ;;
+      
+    "/")
+      HTML=$(generate_dashboard)
+      CONTENT_LENGTH=$(echo -n "$HTML" | wc -c)
+      
+      echo "HTTP/1.1 200 OK"
+      echo "Content-Type: text/html"
+      echo "Content-Length: $CONTENT_LENGTH"
+      echo "Cache-Control: no-cache"
+      echo "Connection: close"
+      echo ""
+      echo "$HTML"
+      ;;
+      
+    *)
+      ERROR_MSG="404 - Not Found"
+      CONTENT_LENGTH=$(echo -n "$ERROR_MSG" | wc -c)
+      
+      echo "HTTP/1.1 404 Not Found"
+      echo "Content-Type: text/plain"
+      echo "Content-Length: $CONTENT_LENGTH"
+      echo "Connection: close"
+      echo ""
+      echo "$ERROR_MSG"
+      ;;
+  esac
+}
+
+# Start server
+echo "🎨 Starting Tor Relay Dashboard v${VERSION}"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "🌐 Listening on: http://$DASHBOARD_BIND:$DASHBOARD_PORT"
+echo "🔒 Max connections: $MAX_CONNECTIONS"
+echo "💡 Press Ctrl+C to stop"
+echo ""
+
+# Main server loop with basic connection limiting
+while true; do
+  # Simple connection limiting
+  if [ "$CONNECTION_COUNT" -ge "$MAX_CONNECTIONS" ]; then
+    sleep 1
+    CONNECTION_COUNT=0
+  fi
+  
+  # Wait for connection and parse request
+  REQUEST=$(echo "" | nc -l -p "$DASHBOARD_PORT" -s "$DASHBOARD_BIND" -w 5 2>/dev/null | head -1)
+  
+  if [ -n "$REQUEST" ]; then
+    CONNECTION_COUNT=$((CONNECTION_COUNT + 1))
+    
+    # Extract path from request
+    REQUEST_PATH=$(echo "$REQUEST" | awk '{print $2}')
+    
+    # Log request
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $REQUEST"
+    
+    # Generate and send response in background to avoid blocking
+    (handle_api "$REQUEST_PATH" | nc -l -p "$DASHBOARD_PORT" -s "$DASHBOARD_BIND" -w 1 > /dev/null 2>&1) &
+  fi
+done
