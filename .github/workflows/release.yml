@@ -130,20 +130,20 @@ jobs:
           echo "📝 Pre-Build: Verifying .sh Extensions"
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo ""
-          
+
           if [ ! -d "tools" ]; then
             echo "❌ tools/ directory not found"
             exit 1
           fi
-          
+
           MISSING_EXT=0
           SH_COUNT=0
-          
+
           for file in tools/*; do
             [ -f "$file" ] || continue
             filename=$(basename "$file")
             extension="${filename##*.}"
-            
+
             # Check if it's a shell script (has shebang)
             if head -1 "$file" 2>/dev/null | grep -q "^#!/"; then
               if [ "$extension" != "sh" ]; then
@@ -155,7 +155,7 @@ jobs:
               fi
             fi
           done
-          
+
           echo ""
           if [ $MISSING_EXT -eq 1 ]; then
             echo "❌ Build blocked: Some shell scripts missing .sh extension"
@@ -170,9 +170,9 @@ jobs:
           echo "🔧 Normalizing Line Endings and Permissions"
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo ""
-          
+
           sudo apt-get update -qq && sudo apt-get install -y dos2unix
-          
+
           echo "📄 Processing main scripts..."
           for script in docker-entrypoint.sh integration-check.sh Dockerfile; do
             if [ -f "$script" ]; then
@@ -180,7 +180,7 @@ jobs:
               echo "   ✅ Normalized: $script"
             fi
           done
-          
+
           echo ""
           echo "📁 Processing tools/*.sh..."
           if [ -d "tools" ]; then
@@ -188,12 +188,12 @@ jobs:
             TOOL_COUNT=$(find tools -type f -name "*.sh" | wc -l)
             echo "   ✅ Normalized: $TOOL_COUNT tool scripts"
           fi
-          
+
           echo ""
           echo "🔐 Setting execute permissions..."
           chmod +x docker-entrypoint.sh integration-check.sh 2>/dev/null || true
           [ -d "tools" ] && chmod +x tools/*.sh 2>/dev/null || true
-          
+
           echo "   ✅ Permissions verified"
           echo ""
           echo "🎉 Normalization complete"
@@ -279,23 +279,23 @@ jobs:
           echo "✅ Validating Published Images"
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo ""
-          
+
           for REG in "${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}" "${{ env.DOCKERHUB_IMAGE_NAME }}"; do
             IMAGE_TAG="${REG}:${VERSION}"
             echo "🔍 Testing: $IMAGE_TAG"
             docker pull "$IMAGE_TAG"
-            
+
             echo "   📦 Checking Tor installation..."
             TOR_VERSION=$(docker run --rm "$IMAGE_TAG" tor --version | head -1)
             echo "   ✅ $TOR_VERSION"
-            
+
             echo "   🔧 Checking tools..."
             TOOL_COUNT=$(docker run --rm "$IMAGE_TAG" sh -c "ls -1 /usr/local/bin/*.sh 2>/dev/null | wc -l")
             echo "   ✅ Found $TOOL_COUNT tool scripts"
-            
+
             echo ""
           done
-          
+
           echo "🎉 All images validated successfully"
 
   release-notes:
@@ -348,7 +348,7 @@ jobs:
           BUILD_TYPE="${{ needs.determine-version.outputs.build_type }}"
           BUILD_DATE="${{ needs.determine-version.outputs.build_date }}"
           SHORT_SHA="${{ needs.determine-version.outputs.short_sha }}"
-          
+
           echo "# 🧅 Tor Guard Relay Build Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "## 📦 Build Information" >> $GITHUB_STEP_SUMMARY
@@ -361,7 +361,7 @@ jobs:
           echo "- 📦 GitHub Container Registry (GHCR)" >> $GITHUB_STEP_SUMMARY
           echo "- 🐳 Docker Hub" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          
+
           if [ "${{ needs.build-and-push.result }}" = "success" ]; then
             echo "## 🎯 Pull Commands" >> $GITHUB_STEP_SUMMARY
             echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
@@ -372,7 +372,7 @@ jobs:
             echo "docker pull ${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}" >> $GITHUB_STEP_SUMMARY
             echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
           fi
-          
+
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "## ✅ Validation Results" >> $GITHUB_STEP_SUMMARY
           echo "- **🎯 Shell Extension Check:** ✅ Passed" >> $GITHUB_STEP_SUMMARY
