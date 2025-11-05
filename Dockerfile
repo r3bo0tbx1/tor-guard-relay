@@ -4,7 +4,7 @@
 # Base: Alpine 3.22.2 | Multi-arch: amd64, arm64
 # ============================================================================
 
-FROM alpine:3.22.2
+FROM alpine:3.22.2 AS builder
 
 # Build arguments
 ARG BUILD_DATE
