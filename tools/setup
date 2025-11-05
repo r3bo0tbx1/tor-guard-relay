@@ -402,3 +402,12 @@ DirPort $DIRPORT
 # Bandwidth Limits
 RelayBandwidthRate $BANDWIDTH KB
 RelayBandwidthBurst $((BANDWIDTH * 2)) KB
+
+EOF
+then
+  echo -e "${RED}❌ Failed to write configuration${NC}"
+  restore_from_backup
+  exit 1
+else
+  echo -e "${GREEN}✅ Configuration saved: $CONFIG_FILE${NC}"
+fi
