@@ -209,31 +209,37 @@ jobs:
           VERSION="${{ needs.determine-version.outputs.version }}"
           BUILD_TYPE="${{ needs.determine-version.outputs.build_type }}"
           SHORT_SHA="${{ needs.determine-version.outputs.short_sha }}"
-          TAGS=""
+          
+          # Build tags array
+          TAGS=()
+          
           if [ "$BUILD_TYPE" = "release" ]; then
-            TAGS="${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:latest,\
- ${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION},\
- ${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION}-${SHORT_SHA},\
- ${{ env.DOCKERHUB_IMAGE_NAME }}:latest,\
- ${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION},\
- ${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}-${SHORT_SHA}"
+            TAGS+=("${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:latest")
+            TAGS+=("${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION}")
+            TAGS+=("${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION}-${SHORT_SHA}")
+            TAGS+=("${{ env.DOCKERHUB_IMAGE_NAME }}:latest")
+            TAGS+=("${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}")
+            TAGS+=("${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}-${SHORT_SHA}")
           elif [ "$BUILD_TYPE" = "weekly" ]; then
-            TAGS="${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION}-weekly,\
- ${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION}-${SHORT_SHA},\
- ${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}-weekly,\
- ${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}-${SHORT_SHA}"
+            TAGS+=("${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION}-weekly")
+            TAGS+=("${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION}-${SHORT_SHA}")
+            TAGS+=("${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}-weekly")
+            TAGS+=("${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}-${SHORT_SHA}")
           elif [ "$BUILD_TYPE" = "validated" ]; then
-            TAGS="${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION}-validated,\
- ${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION}-${SHORT_SHA},\
- ${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}-validated,\
- ${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}-${SHORT_SHA}"
+            TAGS+=("${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION}-validated")
+            TAGS+=("${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION}-${SHORT_SHA}")
+            TAGS+=("${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}-validated")
+            TAGS+=("${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}-${SHORT_SHA}")
           else
-            TAGS="${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION},\
- ${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION}-${SHORT_SHA},\
- ${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION},\
- ${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}-${SHORT_SHA}"
+            TAGS+=("${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION}")
+            TAGS+=("${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION}-${SHORT_SHA}")
+            TAGS+=("${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}")
+            TAGS+=("${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}-${SHORT_SHA}")
           fi
-          echo "tags=${TAGS}" >> "$GITHUB_OUTPUT"
+          
+          # Join tags with comma
+          TAGS_STR=$(IFS=','; echo "${TAGS[*]}")
+          echo "tags=${TAGS_STR}" >> "$GITHUB_OUTPUT"
 
       - name: 🚀 Build and Push Multi-Arch Image
         uses: docker/build-push-action@v6
