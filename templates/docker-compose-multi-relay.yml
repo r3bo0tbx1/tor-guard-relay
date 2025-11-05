@@ -24,7 +24,14 @@ services:
       com.example.relay: "relay-1"
       com.example.metrics_port: "9035"
     healthcheck:
-      test: ["CMD", "tor", "--verify-config", "-f", "/etc/tor/torrc"]
+      test:
+        [
+          "CMD",
+          "tor",
+          "--verify-config",
+          "-f",
+          "/etc/tor/torrc"
+        ]
       interval: 10m
       timeout: 15s
       start_period: 30s
@@ -49,7 +56,14 @@ services:
       com.example.relay: "relay-2"
       com.example.metrics_port: "9036"
     healthcheck:
-      test: ["CMD", "tor", "--verify-config", "-f", "/etc/tor/torrc"]
+      test:
+        [
+          "CMD",
+          "tor",
+          "--verify-config",
+          "-f",
+          "/etc/tor/torrc"
+        ]
       interval: 10m
       timeout: 15s
       start_period: 30s
@@ -74,7 +88,14 @@ services:
       com.example.relay: "relay-3"
       com.example.metrics_port: "9037"
     healthcheck:
-      test: ["CMD", "tor", "--verify-config", "-f", "/etc/tor/torrc"]
+      test:
+        [
+          "CMD",
+          "tor",
+          "--verify-config",
+          "-f",
+          "/etc/tor/torrc"
+        ]
       interval: 10m
       timeout: 15s
       start_period: 30s
@@ -104,7 +125,15 @@ services:
     labels:
       com.example.service: "prometheus"
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9090"]
+      test:
+        [
+          "CMD",
+          "wget",
+          "--quiet",
+          "--tries=1",
+          "--spider",
+          "http://localhost:9090"
+        ]
       interval: 30s
       timeout: 10s
       start_period: 5s
@@ -122,13 +151,22 @@ services:
       - GF_USERS_ALLOW_SIGN_UP=false
     volumes:
       - grafana-data:/var/lib/grafana
-      - ./grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
+      - ./grafana-datasources.yml:/etc/grafana/provisioning/datasources/
+        datasources.yml:ro
     depends_on:
       - prometheus
     labels:
       com.example.service: "grafana"
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      test:
+        [
+          "CMD",
+          "wget",
+          "--quiet",
+          "--tries=1",
+          "--spider",
+          "http://localhost:3000/api/health"
+        ]
       interval: 30s
       timeout: 10s
       start_period: 30s
@@ -149,7 +187,15 @@ services:
     labels:
       com.example.service: "alertmanager"
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9093"]
+      test:
+        [
+          "CMD",
+          "wget",
+          "--quiet",
+          "--tries=1",
+          "--spider",
+          "http://localhost:9093"
+        ]
       interval: 30s
       timeout: 10s
       start_period: 5s
@@ -165,17 +211,17 @@ volumes:
     driver: local
   tor-relay-1-logs:
     driver: local
-  
+
   tor-relay-2-data:
     driver: local
   tor-relay-2-logs:
     driver: local
-  
+
   tor-relay-3-data:
     driver: local
   tor-relay-3-logs:
     driver: local
-  
+
   # Monitoring volumes
   prometheus-data:
     driver: local
