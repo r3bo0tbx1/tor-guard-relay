@@ -102,7 +102,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: determine-version
     if: |
-      github.event_name != 'workflow_run' || 
+      github.event_name != 'workflow_run' ||
       github.event.workflow_run.conclusion == 'success'
     steps:
       - name: 📥 Checkout Repository
@@ -256,7 +256,7 @@ jobs:
           cache-to: type=gha,mode=max
           labels: |
             org.opencontainers.image.title=Tor Guard Relay
-            org.opencontainers.image.description=Hardened Tor Guard Relay with diagnostics
+            org.opencontainers.image.description=Hardened Tor Guard Relay
             org.opencontainers.image.version=${{ needs.determine-version.outputs.version }}
             org.opencontainers.image.created=${{ needs.determine-version.outputs.build_date }}
             org.opencontainers.image.revision=${{ github.sha }}
