@@ -11,6 +11,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bridge relay variant
 - Additional monitoring integrations
 
+## [1.0.3] - 2025-11-06
+
+### 🚀 CI/CD & Build System
+
+- Unified and simplified `release.yml` with dual GHCR + Docker Hub publishing  
+- Added `dos2unix` and auto `chmod +x` script normalization  
+- Improved version detection and tagging logic  
+- Enhanced build summaries and metadata consistency  
+
+### 🧱 Validation & Linting
+
+- Expanded `validate.yml` for full Dockerfile, YAML, and Shell linting  
+- Added Trivy security scan and documentation checks  
+- Fixed all lint and formatting warnings across workflows and templates  
+
+### 🧩 General Improvements
+
+- Normalized line endings and removed trailing spaces  
+- Updated Prometheus and Compose templates for compliance  
+- Cleaned repository structure for cross-platform builds
+
 ## [1.0.2] - 2025-11-05
 
 ### 🔒 Security Hardening
