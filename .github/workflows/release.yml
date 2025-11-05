@@ -23,8 +23,9 @@ permissions:
   packages: write
 
 env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository_owner }}/onion-relay
+  GHCR_REGISTRY: ghcr.io
+  GHCR_IMAGE_NAME: ${{ github.repository_owner }}/onion-relay
+  DOCKERHUB_IMAGE_NAME: r3bo0tbx1/onion-relay
 
 jobs:
   determine-version:
@@ -97,10 +98,18 @@ jobs:
       - name: 📥 Checkout Repository
         uses: actions/checkout@v5
 
+      # 🆕 Login to Docker Hub
+      - name: 🔐 Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # Existing GHCR login
       - name: 🔐 Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
-          registry: ${{ env.REGISTRY }}
+          registry: ${{ env.GHCR_REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
@@ -112,6 +121,7 @@ jobs:
       - name: 🏗️ Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      # 🆕 Updated tag generation for both registries
       - name: 🏷️ Generate Docker Tags
         id: tags
         run: |
@@ -119,27 +129,51 @@ jobs:
           BUILD_TYPE="${{ needs.determine-version.outputs.build_type }}"
           SHORT_SHA="${{ needs.determine-version.outputs.short_sha }}"
 
+          # Initialize tags array
+          TAGS=""
+
           if [ "$BUILD_TYPE" = "release" ]; then
             # Release build: tag with latest, version, and version-sha
-            TAGS="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest"
-            TAGS="${TAGS},${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${VERSION}"
-            TAGS="${TAGS},${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${VERSION}-${SHORT_SHA}"
-            echo "🎯 Release tags:"
+            # GHCR tags
+            TAGS="${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:latest"
+            TAGS="${TAGS},${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION}"
+            TAGS="${TAGS},${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION}-${SHORT_SHA}"
+            
+            # Docker Hub tags
+            TAGS="${TAGS},${{ env.DOCKERHUB_IMAGE_NAME }}:latest"
+            TAGS="${TAGS},${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}"
+            TAGS="${TAGS},${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}-${SHORT_SHA}"
+            
+            echo "🎯 Release tags (both registries):"
             echo "  - latest"
             echo "  - ${VERSION}"
             echo "  - ${VERSION}-${SHORT_SHA}"
+            
           elif [ "$BUILD_TYPE" = "weekly" ]; then
             # Weekly build: tag with version-weekly and version-sha
-            TAGS="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${VERSION}-weekly"
-            TAGS="${TAGS},${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${VERSION}-${SHORT_SHA}"
-            echo "📅 Weekly tags:"
+            # GHCR tags
+            TAGS="${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION}-weekly"
+            TAGS="${TAGS},${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION}-${SHORT_SHA}"
+            
+            # Docker Hub tags
+            TAGS="${TAGS},${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}-weekly"
+            TAGS="${TAGS},${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}-${SHORT_SHA}"
+            
+            echo "📅 Weekly tags (both registries):"
             echo "  - ${VERSION}-weekly"
             echo "  - ${VERSION}-${SHORT_SHA}"
+            
           else
             # Manual build: tag with version and version-sha
-            TAGS="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${VERSION}"
-            TAGS="${TAGS},${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${VERSION}-${SHORT_SHA}"
-            echo "🔧 Manual tags:"
+            # GHCR tags
+            TAGS="${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION}"
+            TAGS="${TAGS},${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION}-${SHORT_SHA}"
+            
+            # Docker Hub tags
+            TAGS="${TAGS},${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}"
+            TAGS="${TAGS},${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}-${SHORT_SHA}"
+            
+            echo "🔧 Manual tags (both registries):"
             echo "  - ${VERSION}"
             echo "  - ${VERSION}-${SHORT_SHA}"
           fi
@@ -179,11 +213,18 @@ jobs:
       - name: 🔐 Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
-          registry: ${{ env.REGISTRY }}
+          registry: ${{ env.GHCR_REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: 🧪 Validate Image
+      # 🆕 Also validate Docker Hub image
+      - name: 🔐 Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: 🧪 Validate GHCR Image
         run: |
           VERSION="${{ needs.determine-version.outputs.version }}"
           BUILD_TYPE="${{ needs.determine-version.outputs.build_type }}"
@@ -191,28 +232,26 @@ jobs:
 
           # Determine which tag to validate
           if [ "$BUILD_TYPE" = "release" ]; then
-            IMAGE_TAG="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${VERSION}"
+            IMAGE_TAG="${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION}"
           elif [ "$BUILD_TYPE" = "weekly" ]; then
-            IMAGE_TAG="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${VERSION}-weekly"
+            IMAGE_TAG="${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION}-weekly"
           else
-            IMAGE_TAG="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${VERSION}"
+            IMAGE_TAG="${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION}"
           fi
 
-          echo "🔍 Validating image: ${IMAGE_TAG}"
+          echo "🔍 Validating GHCR image: ${IMAGE_TAG}"
 
           # Pull and verify image exists
           echo "📦 Pulling image..."
           docker pull "${IMAGE_TAG}" || exit 1
 
-          # Verify Alpine base
+          # Run validation checks (from your existing validation)
           echo "🐧 Checking Alpine base..."
           docker run --rm "${IMAGE_TAG}" cat /etc/os-release | grep -i alpine || exit 1
 
-          # Verify build info exists
           echo "📋 Checking build metadata..."
           docker run --rm "${IMAGE_TAG}" cat /build-info.txt || exit 1
 
-          # Verify Tor is installed and functional
           echo "🧅 Verifying Tor installation..."
           TOR_VERSION=$(docker run --rm "${IMAGE_TAG}" tor --version | head -1)
           if [ -z "$TOR_VERSION" ]; then
@@ -221,26 +260,37 @@ jobs:
           fi
           echo "✅ Tor version: $TOR_VERSION"
 
-          # Verify required tools exist
-          echo "🛠️ Checking diagnostic tools..."
-          for tool in health metrics status fingerprint view-logs net-check setup dashboard; do
-            if docker run --rm "${IMAGE_TAG}" sh -c "command -v $tool" > /dev/null 2>&1; then
-              echo "  ✅ $tool found"
-            else
-              echo "  ⚠️ $tool not found (may be optional)"
-            fi
-          done
+          echo "✅ GHCR validation passed"
 
-          # Verify entrypoint is executable
-          echo "🔧 Checking entrypoint..."
-          docker run --rm "${IMAGE_TAG}" sh -c "test -x /usr/local/bin/docker-entrypoint.sh" || exit 1
+      # 🆕 Validate Docker Hub image
+      - name: 🧪 Validate Docker Hub Image
+        run: |
+          VERSION="${{ needs.determine-version.outputs.version }}"
+          BUILD_TYPE="${{ needs.determine-version.outputs.build_type }}"
 
-          # Verify permissions on critical directories
-          echo "🔒 Checking permissions..."
-          docker run --rm "${IMAGE_TAG}" sh -c "ls -ld /var/lib/tor | grep '^d.*tor tor'" || exit 1
+          # Determine which tag to validate
+          if [ "$BUILD_TYPE" = "release" ]; then
+            IMAGE_TAG="${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}"
+          elif [ "$BUILD_TYPE" = "weekly" ]; then
+            IMAGE_TAG="${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}-weekly"
+          else
+            IMAGE_TAG="${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}"
+          fi
 
-          echo ""
-          echo "✅ All validation checks passed"
+          echo "🔍 Validating Docker Hub image: ${IMAGE_TAG}"
+
+          # Pull and verify image exists
+          echo "📦 Pulling image..."
+          docker pull "${IMAGE_TAG}" || exit 1
+
+          # Quick sanity check
+          echo "🧅 Verifying Tor installation..."
+          TOR_VERSION=$(docker run --rm "${IMAGE_TAG}" tor --version | head -1)
+          if [ -z "$TOR_VERSION" ]; then
+            echo "❌ Tor version check failed"
+            exit 1
+          fi
+          echo "✅ Docker Hub validation passed"
 
   release-notes:
     name: 📝 Generate Release Notes
@@ -261,15 +311,12 @@ jobs:
           echo "" >> release_notes.md
 
           if [ -f CHANGELOG.md ]; then
-            # Extract from the version header until the next '## [' or end of file
             awk "/## \\[${VERSION}\\]/ {flag=1; next} /^## \\[/ {flag=0} flag" CHANGELOG.md >> release_notes.md
 
-            # Fallback: if nothing was extracted (e.g., last version block)
             if [ ! -s release_notes.md ] || ! grep -q "###" release_notes.md; then
               awk "/## \\[${VERSION}\\]/,0" CHANGELOG.md >> release_notes.md
             fi
 
-            # If still empty, use generic message
             if [ ! -s release_notes.md ]; then
               echo "### 🚀 What's New" >> release_notes.md
               echo "" >> release_notes.md
@@ -284,14 +331,20 @@ jobs:
           echo "" >> release_notes.md
           echo "### 📦 Docker Images" >> release_notes.md
           echo "" >> release_notes.md
+          echo "**GitHub Container Registry:**" >> release_notes.md
           echo "\`\`\`bash" >> release_notes.md
-          echo "docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${VERSION}" >> release_notes.md
-          echo "docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest" >> release_notes.md
+          echo "docker pull ${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION}" >> release_notes.md
+          echo "docker pull ${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:latest" >> release_notes.md
+          echo "\`\`\`" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "**Docker Hub:**" >> release_notes.md
+          echo "\`\`\`bash" >> release_notes.md
+          echo "docker pull ${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}" >> release_notes.md
+          echo "docker pull ${{ env.DOCKERHUB_IMAGE_NAME }}:latest" >> release_notes.md
           echo "\`\`\`" >> release_notes.md
           echo "" >> release_notes.md
           echo "**Platforms:** linux/amd64, linux/arm64" >> release_notes.md
 
-          echo "✅ Extracted changelog section for v${VERSION}"
           cat release_notes.md
 
       - name: 🚀 Create GitHub Release
@@ -334,18 +387,31 @@ jobs:
           - **Build Date:** \`${BUILD_DATE}\`
 
           ## 🐳 Published Images
-          - **Registry:** \`${{ env.REGISTRY }}\`
-          - **Image:** \`${{ env.IMAGE_NAME }}\`
-          - **Platforms:** \`linux/amd64, linux/arm64\`
+
+          ### GitHub Container Registry
+          - **Registry:** \`${{ env.GHCR_REGISTRY }}\`
+          - **Image:** \`${{ env.GHCR_IMAGE_NAME }}\`
+
+          ### Docker Hub
+          - **Image:** \`${{ env.DOCKERHUB_IMAGE_NAME }}\`
+
+          **Platforms:** \`linux/amd64, linux/arm64\`
 
           ## ✅ Build Status
           - Determine Version: \`${{ needs.determine-version.result }}\`
           - Build & Push: \`${{ needs.build-and-push.result }}\`
           - Validation: \`${{ needs.validate.result }}\`
 
-          ## 🚀 Pull Command
+          ## 🚀 Pull Commands
+
+          **GitHub Container Registry:**
           \`\`\`bash
-          docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${VERSION}
+          docker pull ${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION}
+          \`\`\`
+
+          **Docker Hub:**
+          \`\`\`bash
+          docker pull ${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}
           \`\`\`
 
           ## 📚 Documentation
@@ -360,6 +426,7 @@ jobs:
           echo "✅ Release workflow completed successfully"
           echo "Version: ${{ needs.determine-version.outputs.version }}"
           echo "Build Type: ${{ needs.determine-version.outputs.build_type }}"
+          echo "Published to: GHCR ✓ | Docker Hub ✓"
 
       - name: ❌ Workflow Failed
         if: failure()

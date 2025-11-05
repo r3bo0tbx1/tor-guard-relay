@@ -1,7 +1,6 @@
 #!/bin/sh
 # docker-entrypoint.sh - Tor Guard Relay initialization and process management
-# Handles startup sequence: preflight checks → configuration validation → health monitoring →
-# metrics exposure → main Tor process, with proper signal handling and background process management
+# 🆕 v1.1 - Smart log monitoring: triggers diagnostics after bandwidth self-test
 
 set -e
 
@@ -15,42 +14,47 @@ readonly ENABLE_METRICS="${ENABLE_METRICS:-false}"
 readonly ENABLE_HEALTH_CHECK="${ENABLE_HEALTH_CHECK:-true}"
 readonly ENABLE_NET_CHECK="${ENABLE_NET_CHECK:-false}"
 
-# 🔒 NEW: Global PID tracking for cleanup
+# Global PID tracking for cleanup
 TOR_PID=""
 METRICS_PID=""
 HEALTH_PID=""
+LOG_MONITOR_PID=""
 
-# 🔒 NEW: Improved signal handler with comprehensive cleanup
+# Signal handler with comprehensive cleanup
 trap 'cleanup_and_exit' SIGTERM SIGINT
 
 cleanup_and_exit() {
   echo ""
   echo "🛑 Shutdown signal received. Stopping all services..."
   
-  # Kill background services first (reverse order of startup)
-  if [ -n "$HEALTH_PID" ] && kill -0 "$HEALTH_PID" 2>/dev/null; then
+  # Kill background services (reverse order of startup)
+  [ -n "$LOG_MONITOR_PID" ] && kill -0 "$LOG_MONITOR_PID" 2>/dev/null && {
+    echo "   Stopping log monitor (PID: $LOG_MONITOR_PID)..."
+    kill -TERM "$LOG_MONITOR_PID" 2>/dev/null || true
+    sleep 1
+    kill -9 "$LOG_MONITOR_PID" 2>/dev/null || true
+  }
+  
+  [ -n "$HEALTH_PID" ] && kill -0 "$HEALTH_PID" 2>/dev/null && {
     echo "   Stopping health monitor (PID: $HEALTH_PID)..."
     kill -TERM "$HEALTH_PID" 2>/dev/null || true
-    # Give it a moment to exit gracefully
     sleep 1
-    # Force kill if still running
     kill -9 "$HEALTH_PID" 2>/dev/null || true
-  fi
+  }
   
-  if [ -n "$METRICS_PID" ] && kill -0 "$METRICS_PID" 2>/dev/null; then
+  [ -n "$METRICS_PID" ] && kill -0 "$METRICS_PID" 2>/dev/null && {
     echo "   Stopping metrics service (PID: $METRICS_PID)..."
     kill -TERM "$METRICS_PID" 2>/dev/null || true
     sleep 1
     kill -9 "$METRICS_PID" 2>/dev/null || true
-  fi
+  }
   
   # Finally, stop Tor relay
-  if [ -n "$TOR_PID" ] && kill -0 "$TOR_PID" 2>/dev/null; then
+  [ -n "$TOR_PID" ] && kill -0 "$TOR_PID" 2>/dev/null && {
     echo "   Stopping Tor relay (PID: $TOR_PID)..."
     kill -TERM "$TOR_PID" 2>/dev/null || true
-    # Wait for Tor to shut down gracefully (up to 30 seconds)
     wait "$TOR_PID" 2>/dev/null || true
-  fi
+  }
   
   echo "✅ All services stopped cleanly."
   exit 0
@@ -64,7 +68,7 @@ startup_phase_init() {
   
   echo "🔧 Phase 1: Directory Structure"
   mkdir -p "$TOR_DATA_DIR" "$TOR_LOG_DIR" /run/tor /tmp
-  echo "   🗂️  Created required directories and /tmp ensured"
+  echo "   🗂️  Created required directories"
   echo "   💽 Available disk space:"
   df -h "$TOR_DATA_DIR" | tail -n 1 | awk '{printf "   • %s used of %s (%s available)\n", $3, $2, $4}'
   echo ""
@@ -78,7 +82,7 @@ startup_phase_init() {
   echo "📁 Phase 3: Configuration Detection"
   if [ ! -f "$TOR_CONFIG" ]; then
     echo "   ⚠️  No configuration found at $TOR_CONFIG"
-    echo "   📝 Using minimal placeholder (configure before use)"
+    echo "   📝 Using minimal placeholder"
     echo "# Placeholder - mount your relay.conf at $TOR_CONFIG" > "$TOR_CONFIG"
   else
     echo "   ✓ Configuration found"
@@ -86,24 +90,20 @@ startup_phase_init() {
   echo ""
 }
 
-# Validation phase: Configuration and preflight checks
+# Validation phase
 validation_phase() {
   echo "🧩 Phase 4: Configuration Validation"
 
-  # Ensure Tor binary is accessible
   if ! command -v tor >/dev/null 2>&1; then
     echo "❌ ERROR: Tor binary not found in PATH."
-    echo "   Verify that Tor is installed and executable."
     exit 1
   fi
 
   TOR_VERSION=$(tor --version | head -n1 || echo "unknown")
   echo "   🧱 Tor Version: $TOR_VERSION"
 
-  # Check configuration presence and size
   if [ ! -f "$TOR_CONFIG" ]; then
     echo "⚠️  No configuration file found at $TOR_CONFIG"
-    echo "   📝 Mount your relay.conf or torrc before running."
     exit 1
   elif [ ! -s "$TOR_CONFIG" ]; then
     echo "⚠️  Configuration file exists but is empty!"
@@ -111,24 +111,20 @@ validation_phase() {
     echo "   ✓ Configuration file detected"
   fi
 
-  # Show config preview in debug mode
-  if [ "${DEBUG:-false}" = "true" ]; then
+  [ "${DEBUG:-false}" = "true" ] && {
     echo "   🧩 Config Preview (first 10 lines):"
     head -n 10 "$TOR_CONFIG" | sed 's/^/   /'
     echo ""
-  fi
+  }
 
   echo "   🔎 Validating syntax..."
   if ! tor --verify-config -f "$TOR_CONFIG" >/tmp/tor-verify.log 2>&1; then
     echo ""
     echo "❌ ERROR: Tor configuration validation failed!"
-    echo "   Review /tmp/tor-verify.log for details."
-    if [ "${DEBUG:-false}" = "true" ]; then
-      echo ""
+    [ "${DEBUG:-false}" = "true" ] && {
       echo "   🧩 Error Output:"
       sed 's/^/   /' /tmp/tor-verify.log | head -n 15
-    fi
-    echo ""
+    }
     exit 1
   fi
   echo "   ✓ Configuration is valid"
@@ -136,29 +132,21 @@ validation_phase() {
 
   echo "🔍 Phase 5: Preflight Diagnostics"
   echo "   🌐 Checking basic network connectivity..."
-  if ping -c1 -W2 ipv4.icanhazip.com >/dev/null 2>&1; then
-    echo "   ✓ IPv4 connectivity OK"
-  else
-    echo "   ⚠️ IPv4 connectivity unavailable"
-  fi
+  
+  ping -c1 -W2 ipv4.icanhazip.com >/dev/null 2>&1 && echo "   ✓ IPv4 connectivity OK" || echo "   ⚠️ IPv4 unavailable"
+  ping6 -c1 -W2 ipv6.icanhazip.com >/dev/null 2>&1 && echo "   ✓ IPv6 connectivity OK" || echo "   ⚠️ IPv6 unavailable"
 
-  if ping6 -c1 -W2 ipv6.icanhazip.com >/dev/null 2>&1; then
-    echo "   ✓ IPv6 connectivity OK"
-  else
-    echo "   ⚠️ IPv6 connectivity unavailable"
-  fi
-
-  # Extended diagnostics via net-check (with timeout)
+  # Only basic checks at startup - Tor-specific checks wait for self-test
   if [ "${ENABLE_NET_CHECK:-false}" = "true" ] && command -v net-check >/dev/null 2>&1; then
     echo ""
-    echo "   Running extended network diagnostics..."
-    if timeout 15s net-check --text 2>&1 | sed 's/^/   /'; then
-      echo "   ✓ Network diagnostics completed successfully"
-    else
-      echo "   ⚠️ Network diagnostics encountered warnings or timeouts"
-    fi
+    echo "   Running basic network diagnostics..."
+    echo "   ℹ️  (Full diagnostics after Tor bandwidth self-test)"
+    
+    NET_CHECK_OUTPUT=$(timeout 15s net-check --text 2>&1 || true)
+    echo "$NET_CHECK_OUTPUT" | grep -E "🔌 IPv4:|🔌 IPv6:|🔍 DNS:" | sed 's/^/   /' || true
+    echo "   ✓ Basic network checks complete"
   else
-    echo "   ⏭️  Skipping extended network diagnostics (ENABLE_NET_CHECK=false)"
+    echo "   ⏭️  Extended diagnostics disabled (ENABLE_NET_CHECK=false)"
   fi
 
   echo ""
@@ -171,90 +159,77 @@ buildinfo_phase() {
     echo "   🔖 Build metadata found:"
     cat /build-info.txt | sed 's/^/   /'
   else
-    echo "   ⚠️  No build-info.txt found, version unknown."
+    echo "   ⚠️  No build-info.txt found"
   fi
 
-  if [ "${DEBUG:-false}" = "true" ]; then
+  [ "${DEBUG:-false}" = "true" ] && {
     echo ""
-    echo "   🧩 Environment Snapshot:"
+    echo "   🧩 Environment:"
     echo "   • User: $(whoami)"
     echo "   • UID:GID: $(id -u):$(id -g)"
-    echo "   • Hostname: $(hostname)"
     echo "   • Date: $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
-    echo "   • Arch: $(uname -m)"
-  fi
+  }
   echo ""
 }
 
-# 🔒 IMPROVED: Metrics service with PID tracking
+# Metrics service
 start_metrics_service() {
-  if [ "$ENABLE_METRICS" != "true" ]; then
-    echo "📊 Phase 7: Metrics Service disabled (ENABLE_METRICS=false)"
+  [ "$ENABLE_METRICS" != "true" ] && {
+    echo "📊 Phase 7: Metrics Service disabled"
     echo ""
     return 0
-  fi
+  }
 
   echo "📊 Phase 7: Starting Metrics Service"
-  if ! command -v metrics-http &>/dev/null; then
-    echo "   ⚠️  metrics-http tool not found, skipping."
+  command -v metrics-http &>/dev/null || {
+    echo "   ⚠️  metrics-http not found"
     echo ""
     return 0
-  fi
+  }
 
-  # Start metrics service and capture PID
   metrics-http "$METRICS_PORT" &
   METRICS_PID=$!
   
-  # Verify process started successfully
   sleep 1
-  if kill -0 "$METRICS_PID" 2>/dev/null; then
-    echo "   ✓ Metrics service active on port $METRICS_PORT (PID: $METRICS_PID)"
-  else
-    echo "   ⚠️  Metrics service failed to start"
+  kill -0 "$METRICS_PID" 2>/dev/null && echo "   ✓ Metrics active on port $METRICS_PORT" || {
+    echo "   ⚠️  Metrics failed to start"
     METRICS_PID=""
-  fi
+  }
   echo ""
 }
 
-# 🔒 IMPROVED: Health check service with PID tracking
+# Health check service
 start_health_service() {
-  if [ "$ENABLE_HEALTH_CHECK" != "true" ]; then
-    echo "💚 Phase 8: Health Check Service disabled (ENABLE_HEALTH_CHECK=false)"
+  [ "$ENABLE_HEALTH_CHECK" != "true" ] && {
+    echo "💚 Phase 8: Health Check disabled"
     echo ""
     return 0
-  fi
+  }
 
   echo "💚 Phase 8: Starting Health Check Service"
   
-  # Start health monitor in background and capture PID
   (
     while true; do
       sleep 30
-      if command -v health &>/dev/null; then
+      command -v health &>/dev/null && {
         HEALTH_JSON=$(health 2>&1 || echo '{}')
         HEALTH_STATUS=$(echo "$HEALTH_JSON" | grep -o '"status":"[^"]*"' | cut -d'"' -f4 || echo "unknown")
-        if [ "$HEALTH_STATUS" = "error" ]; then
-          echo "⚠️  Health check failed: $HEALTH_STATUS"
-        elif [ "${DEBUG:-false}" = "true" ]; then
-          echo "   🩺 Health OK at $(date -u +"%H:%M:%S")"
-        fi
-      fi
+        [ "$HEALTH_STATUS" = "error" ] && echo "⚠️  Health check failed"
+        [ "${DEBUG:-false}" = "true" ] && echo "   🩺 Health OK at $(date -u +"%H:%M:%S")"
+      }
     done
   ) &
   HEALTH_PID=$!
   
-  # Verify process started successfully
   sleep 1
-  if kill -0 "$HEALTH_PID" 2>/dev/null; then
-    echo "   ✓ Health monitor active (PID: $HEALTH_PID)"
-  else
-    echo "   ⚠️  Health monitor failed to start"
+  kill -0 "$HEALTH_PID" 2>/dev/null && echo "   ✓ Health monitor active" || {
+    echo "   ⚠️  Health monitor failed"
     HEALTH_PID=""
-  fi
+  }
   echo ""
 }
 
-# Main startup message
+# Startup message
 startup_message() {
   echo "🚀 Phase 9: Launching Tor Relay"
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -263,40 +238,87 @@ startup_message() {
   echo "   docker exec <container> status        - Full health report"
   echo "   docker exec <container> fingerprint   - Relay fingerprint"
   echo "   docker exec <container> view-logs     - Stream Tor logs"
-  echo "   docker exec <container> health        - JSON health check"
-  if [ "$ENABLE_METRICS" = "true" ]; then
-    echo "   curl http://<host>:$METRICS_PORT/metrics   - Prometheus metrics"
-  fi
+  [ "$ENABLE_NET_CHECK" = "true" ] && echo "   docker exec <container> net-check     - Network diagnostics"
+  [ "$ENABLE_METRICS" = "true" ] && echo "   curl http://<host>:$METRICS_PORT/metrics   - Prometheus metrics"
   echo ""
   echo "🧅 Tor relay starting..."
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
   echo ""
 }
 
-# 🔒 IMPROVED: Tor process launcher with PID tracking
+# 🆕 SMART: Watch for bandwidth self-test completion, then run diagnostics
+start_log_monitor() {
+  [ "${ENABLE_NET_CHECK:-false}" != "true" ] && return 0
+  command -v net-check >/dev/null 2>&1 || return 0
+
+  (
+    # Wait for Tor to complete bandwidth self-test
+    # This is much smarter than a fixed delay!
+    
+    # Try to find Tor's log file
+    LOG_FILE=""
+    for log in "$TOR_LOG_DIR/notices.log" "/var/log/tor/notices.log" "$TOR_LOG_DIR/tor.log"; do
+      [ -f "$log" ] && { LOG_FILE="$log"; break; }
+    done
+
+    # Maximum wait time: 10 minutes
+    MAX_WAIT=600
+    ELAPSED=0
+    
+    if [ -n "$LOG_FILE" ]; then
+      # Monitor log file for the magic message
+      while [ $ELAPSED -lt $MAX_WAIT ]; do
+        if grep -q "Performing bandwidth self-test.*done" "$LOG_FILE" 2>/dev/null || \
+           grep -q "Self-testing indicates your ORPort is reachable" "$LOG_FILE" 2>/dev/null; then
+          break
+        fi
+        sleep 5
+        ELAPSED=$((ELAPSED + 5))
+      done
+    else
+      # Fallback: wait 3 minutes if we can't find log file
+      sleep 180
+    fi
+
+    # Give Tor 10 more seconds to stabilize after self-test
+    sleep 10
+
+    # Now run full diagnostics - Tor is ready!
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "🔍 Post-Bootstrap Network Diagnostics"
+    echo "   Triggered by: Bandwidth self-test completion"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    net-check --text || true
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
+  ) &
+  LOG_MONITOR_PID=$!
+}
+
+# Tor process launcher
 run_tor() {
-  # Start Tor in background so we can track its PID
+  # Start Tor in background
   "$@" &
   TOR_PID=$!
   
   echo "   ✓ Tor relay started (PID: $TOR_PID)"
   echo ""
   
-  # Wait for Tor process to complete
-  # This blocks until Tor exits or signal is received
-  wait "$TOR_PID"
+  # 🆕 Start smart log monitor
+  start_log_monitor
   
-  # If we reach here, Tor exited on its own (not from signal)
+  # Wait for Tor to exit
+  wait "$TOR_PID"
   TOR_EXIT_CODE=$?
   
   echo ""
   echo "🛑 Tor process exited with code: $TOR_EXIT_CODE"
   
-  # Cleanup background services
   cleanup_and_exit
 }
 
-# Main execution flow
+# Main execution
 main() {
   startup_phase_init
   validation_phase
