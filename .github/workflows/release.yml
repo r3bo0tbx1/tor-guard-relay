@@ -119,7 +119,8 @@ jobs:
     name: 🏗️ Multi-Arch Build and Push
     runs-on: ubuntu-latest
     needs: [determine-version, precheck]
-    if: ${{ needs.determine-version.result == 'success' }}
+    if: always()
+    continue-on-error: true
     steps:
       - name: 📥 Checkout Repository
         uses: actions/checkout@v5
@@ -260,6 +261,8 @@ jobs:
     name: ✅ Validate Build
     runs-on: ubuntu-latest
     needs: [determine-version, build-and-push]
+    if: always()
+    continue-on-error: true
     steps:
       - name: 📥 Checkout Repository
         uses: actions/checkout@v5
@@ -302,7 +305,8 @@ jobs:
     name: 📝 Generate Release Notes
     runs-on: ubuntu-latest
     needs: [determine-version, build-and-push, validate]
-    if: needs.determine-version.outputs.is_release == 'true'
+    if: always()
+    continue-on-error: true
     steps:
       - name: 📥 Checkout Repository
         uses: actions/checkout@v5
