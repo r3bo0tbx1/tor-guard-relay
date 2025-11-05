@@ -10,6 +10,8 @@ on:
     branches:
       - main
       - develop
+    tags:
+      - 'v*.*.*'      
     paths:
       - 'Dockerfile'
       - 'docker-entrypoint.sh'

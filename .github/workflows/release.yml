@@ -13,7 +13,7 @@ on:
           - minor
           - patch
   schedule:
-    - cron: '0 3 * * 1'
+    - cron: '0 3 * * 1' # Weekly build every Monday at 03:00 UTC
   push:
     tags:
       - 'v*.*.*'
@@ -86,12 +86,45 @@ jobs:
           echo "  Date: ${{ steps.version.outputs.build_date }}"
           echo "  SHA: ${{ steps.version.outputs.short_sha }}"
 
+  precheck:
+    name: 🧱 Validate Upstream Workflow
+    runs-on: ubuntu-latest
+    needs: determine-version
+    if: ${{ needs.determine-version.outputs.build_type != 'manual' }}
+    steps:
+      - name: 🔍 Verify Build & Validation Workflow Status
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "⏳ Waiting for 🧱 Build & Validation workflow to complete..."
+          WORKFLOW_NAME="🧱 Build & Validation"
+          REF=${GITHUB_REF_NAME:-main}
+
+          for i in {1..30}; do
+            STATUS=$(gh api repos/${{ github.repository }}/actions/runs \
+              --jq ".workflow_runs[] | select(.name==\"$WORKFLOW_NAME\" and .head_branch==\"$REF\") | .conclusion" \
+              | head -1)
+
+            if [[ "$STATUS" == "success" ]]; then
+              echo "✅ Validation passed successfully."
+              exit 0
+            elif [[ "$STATUS" == "failure" ]]; then
+              echo "❌ Validation failed. Aborting release."
+              exit 1
+            else
+              echo "⏱️ Waiting for validation workflow... ($i/30)"
+              sleep 20
+            fi
+          done
+
+          echo "⚠️ Timeout: Validation workflow did not complete in time."
+          exit 1
+
   build-and-push:
     name: 🐳 Multi-Arch Build & Push
     runs-on: ubuntu-latest
-    needs: determine-version
+    needs: [determine-version, precheck]
     if: ${{ needs.determine-version.result == 'success' }}
-
     steps:
       - name: 📥 Checkout Repository
         uses: actions/checkout@v5
@@ -172,30 +205,22 @@ jobs:
       - name: 📥 Checkout Repository
         uses: actions/checkout@v5
 
-      - name: 🔐 Login to GHCR
+      - name: 🔐 Login to Registries
         uses: docker/login-action@v3
         with:
           registry: ${{ env.GHCR_REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: 🔐 Login to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
       - name: 🧪 Validate Images
         run: |
           set -e
           VERSION="${{ needs.determine-version.outputs.version }}"
-          BUILD_TYPE="${{ needs.determine-version.outputs.build_type }}"
-          echo "🔍 Validating GHCR & Docker Hub images..."
+          echo "🔍 Validating published images..."
           for REG in "${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}" "${{ env.DOCKERHUB_IMAGE_NAME }}"; do
             IMAGE_TAG="${REG}:${VERSION}"
             echo "📦 Pulling $IMAGE_TAG"
             docker pull "$IMAGE_TAG"
-            echo "🧅 Checking Tor version..."
             docker run --rm "$IMAGE_TAG" tor --version | head -1
           done
 
