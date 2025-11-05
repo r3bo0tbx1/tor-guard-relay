@@ -39,16 +39,17 @@ SHELL ["/bin/ash", "-eo", "pipefail", "-c"]
 # hadolint ignore=DL3018
 # ============================================================================
 RUN apk add --no-cache \
-    tor \
-    bash \
-    tini \
-    curl \
-    jq \
-    grep \
-    coreutils \
-    bind-tools \
-    netcat-openbsd && \
-    rm -rf /var/cache/apk/*
+    tor=0.4.8.19-r0 \
+    bash=5.2.37-r0 \
+    tini=0.19.0-r3 \
+    curl=8.14.1-r2 \
+    jq=1.8.0-r0 \
+    grep=3.12-r0 \
+    coreutils=9.7-r1 \
+    bind-tools=bind-tools  \
+    netcat-openbsd=1.229.1-r0 \
+  && rm -rf /var/cache/apk/*
+
 
 # ============================================================================
 # Setup directories and permissions
