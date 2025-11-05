@@ -287,7 +287,7 @@ jobs:
           echo "📦 Image size: $(du -h /tmp/tor-relay-test.tar | cut -f1)"
 
       - name: ⬆️ Upload Image Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: docker-image
           path: /tmp/tor-relay-test.tar
