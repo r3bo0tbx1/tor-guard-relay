@@ -26,10 +26,18 @@ LABEL maintainer="rE-Bo0t.bx1 <r3bo0tbx1@brokenbotnet.com>" \
       org.opencontainers.image.base.name="docker.io/library/alpine:3.22.2" \
       org.opencontainers.image.revision="${TARGETARCH}"
 
+# ============================================================================
+# Shell configuration
+# ============================================================================
+SHELL ["/bin/ash", "-eo", "pipefail", "-c"]
+
+# ============================================================================
 # Install core dependencies
 # tor: relay daemon | bash: entrypoint | tini: init system (PID 1)
 # curl: diagnostics | jq: JSON parsing | bind-tools: DNS (dig/nslookup)
 # netcat-openbsd: port checking | coreutils/grep: utilities
+# hadolint ignore=DL3018
+# ============================================================================
 RUN apk add --no-cache \
     tor \
     bash \
@@ -42,27 +50,34 @@ RUN apk add --no-cache \
     netcat-openbsd && \
     rm -rf /var/cache/apk/*
 
-# Setup directories with proper permissions
-# /var/lib/tor: data (keys, state) - 700 for security
-# /var/log/tor: logs - 755 for diagnostics
-# /run/tor: runtime (PID, socket) - 755 for health checks
+# ============================================================================
+# Setup directories and permissions
+# ============================================================================
 RUN mkdir -p /var/lib/tor /var/log/tor /run/tor && \
     chown -R tor:tor /var/lib/tor /var/log/tor /run/tor && \
     chmod 700 /var/lib/tor && \
     chmod 755 /var/log/tor /run/tor
 
+# ============================================================================
 # Default configuration placeholder (mount your own at runtime)
+# ============================================================================
 RUN echo "# 🧅 Tor configuration is mounted at runtime" > /etc/tor/torrc
 
+# ============================================================================
 # Embed build metadata
+# ============================================================================
 RUN printf "Version: %s\nBuild Date: %s\nArchitecture: %s\n" \
     "${BUILD_VERSION:-dev}" "${BUILD_DATE:-unknown}" "${TARGETARCH:-amd64}" > /build-info.txt
 
-# Copy application files
+# ============================================================================
+# Copy scripts and utilities
+# ============================================================================
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 COPY tools/ /usr/local/bin/
 
-# Normalize scripts: remove CRLF, BOM, and set permissions
+# ============================================================================
+# Normalize and harden scripts
+# ============================================================================
 RUN set -eux; \
   for f in /usr/local/bin/*; do \
     [ -f "$f" ] || continue; \
@@ -71,9 +86,15 @@ RUN set -eux; \
     chmod +x "$f"; \
   done; \
   echo "🧩 Installed tools:"; \
-  ls -1 /usr/local/bin | grep -E 'docker-entrypoint|net-check|metrics|health|view-logs|status|fingerprint|setup|dashboard' || true
+  for f in /usr/local/bin/docker-entrypoint* /usr/local/bin/net-check* /usr/local/bin/metrics* \
+           /usr/local/bin/health* /usr/local/bin/view-logs* /usr/local/bin/status* \
+           /usr/local/bin/fingerprint* /usr/local/bin/setup* /usr/local/bin/dashboard*; do \
+      [ -f "$f" ] && echo "Registered script: $f"; \
+  done
 
+# ============================================================================
 # Environment configuration
+# ============================================================================
 ENV TOR_DATA_DIR=/var/lib/tor \
     TOR_LOG_DIR=/var/log/tor \
     TOR_CONFIG=/etc/tor/torrc \
@@ -82,28 +103,36 @@ ENV TOR_DATA_DIR=/var/lib/tor \
     ENABLE_NET_CHECK=false \
     PATH="/usr/local/bin:$PATH"
 
-# Cleanup to minimize image size
+# ============================================================================
+# Cleanup
+# ============================================================================
 RUN rm -rf /usr/share/man /tmp/* /var/tmp/* /root/.cache/*
 
-# Ensure runtime directory writable by tor user
+# ============================================================================
+# Ensure runtime directory writable by non-root
+# ============================================================================
 RUN mkdir -p /run/tor && \
     chown -R tor:tor /run/tor && \
     chmod 770 /run/tor
 
+# ============================================================================
 # Switch to non-root user
+# ============================================================================
 USER tor
 
-# Expose network ports
-# 9001: ORPort - Tor relay traffic (REQUIRED, PUBLIC)
-# 9030: DirPort - Directory service (OPTIONAL, PUBLIC)
-# 9035: Metrics - Prometheus endpoint (OPTIONAL, localhost recommended)
-# 9036: Health - Status endpoint (OPTIONAL, localhost recommended)
+# ============================================================================
+# Expose ports
+# ============================================================================
 EXPOSE 9001 9030
 
-# Health check - validates Tor config every 10 minutes
+# ============================================================================
+# Health check (verify configuration every 10 minutes)
+# ============================================================================
 HEALTHCHECK --interval=10m --timeout=15s --start-period=30s --retries=3 \
   CMD tor --verify-config -f "$TOR_CONFIG" || exit 1
 
-# Use tini for signal handling, entrypoint for initialization
+# ============================================================================
+# Entrypoint
+# ============================================================================
 ENTRYPOINT ["/sbin/tini", "--", "/usr/local/bin/docker-entrypoint.sh"]
 CMD ["tor", "-f", "/etc/tor/torrc"]
