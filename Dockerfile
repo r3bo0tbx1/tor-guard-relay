@@ -32,13 +32,11 @@ LABEL maintainer="rE-Bo0t.bx1 <r3bo0tbx1@brokenbotnet.com>" \
 SHELL ["/bin/ash", "-eo", "pipefail", "-c"]
 
 # ============================================================================
-# Install core dependencies
-# tor: relay daemon | bash: entrypoint | tini: init system (PID 1)
-# curl: diagnostics | jq: JSON parsing | bind-tools: DNS (dig/nslookup)
-# netcat-openbsd: port checking | coreutils/grep: utilities
-# hadolint ignore=DL3018
+# Install core dependencies and perform base setup
+# hadolint ignore=DL3018,DL3059
 # ============================================================================
-RUN apk add --no-cache \
+RUN set -eux \
+ && apk add --no-cache \
     tor=0.4.8.19-r0 \
     bash=5.2.37-r0 \
     tini=0.19.0-r3 \
@@ -46,29 +44,16 @@ RUN apk add --no-cache \
     jq=1.8.0-r0 \
     grep=3.12-r0 \
     coreutils=9.7-r1 \
-    bind-tools=9.20.15-r0  \
+    bind-tools=9.20.15-r0 \
     netcat-openbsd=1.229.1-r0 \
-  && rm -rf /var/cache/apk/*
-
-
-# ============================================================================
-# Setup directories and permissions
-# ============================================================================
-RUN mkdir -p /var/lib/tor /var/log/tor /run/tor && \
-    chown -R tor:tor /var/lib/tor /var/log/tor /run/tor && \
-    chmod 700 /var/lib/tor && \
-    chmod 755 /var/log/tor /run/tor
-
-# ============================================================================
-# Default configuration placeholder (mount your own at runtime)
-# ============================================================================
-RUN echo "# 🧅 Tor configuration is mounted at runtime" > /etc/tor/torrc
-
-# ============================================================================
-# Embed build metadata
-# ============================================================================
-RUN printf "Version: %s\nBuild Date: %s\nArchitecture: %s\n" \
-    "${BUILD_VERSION:-dev}" "${BUILD_DATE:-unknown}" "${TARGETARCH:-amd64}" > /build-info.txt
+ && mkdir -p /var/lib/tor /var/log/tor /run/tor \
+ && chown -R tor:tor /var/lib/tor /var/log/tor /run/tor \
+ && chmod 700 /var/lib/tor \
+ && chmod 755 /var/log/tor /run/tor \
+ && echo "# 🧅 Tor configuration is mounted at runtime" > /etc/tor/torrc \
+ && printf "Version: %s\nBuild Date: %s\nArchitecture: %s\n" \
+    "${BUILD_VERSION:-dev}" "${BUILD_DATE:-unknown}" "${TARGETARCH:-amd64}" > /build-info.txt \
+ && rm -rf /var/cache/apk/*
 
 # ============================================================================
 # Copy scripts and utilities
@@ -80,7 +65,7 @@ COPY tools/ /usr/local/bin/
 # Normalize, harden, and alias tools
 # ============================================================================
 RUN set -eux \
- && apk add --no-cache dos2unix \
+ && apk add --no-cache dos2unix=7.5.2-r0 \
  && echo "🧩 Normalizing line endings and fixing permissions..." \
  && find /usr/local/bin -type f -name "*.sh" -exec dos2unix {} \; || true \
  && dos2unix /usr/local/bin/docker-entrypoint.sh || true \
@@ -88,8 +73,10 @@ RUN set -eux \
  && echo "🔗 Creating symlinks for no-extension tool compatibility..." \
  && for f in /usr/local/bin/*.sh; do ln -sf "$f" "${f%.sh}"; done \
  && echo "✅ Tools normalized, executable, and aliased." \
- && echo "🧩 Installed tools:" \
- && ls -1 /usr/local/bin | grep -E "docker-entrypoint|net-check|metrics|health|view-logs|status|fingerprint|setup|dashboard" || true \
+ && echo "🧩 Registered tools:" \
+ && for tool in docker-entrypoint net-check metrics health view-logs status fingerprint setup dashboard; do \
+      [ -e "/usr/local/bin/$tool" ] && echo "  ↳ $tool"; \
+    done \
  && apk del dos2unix \
  && rm -rf /var/cache/apk/*
 
@@ -112,9 +99,9 @@ RUN rm -rf /usr/share/man /tmp/* /var/tmp/* /root/.cache/*
 # ============================================================================
 # Ensure runtime directory writable by non-root
 # ============================================================================
-RUN mkdir -p /run/tor && \
-    chown -R tor:tor /run/tor && \
-    chmod 770 /run/tor
+RUN mkdir -p /run/tor \
+ && chown -R tor:tor /run/tor \
+ && chmod 770 /run/tor
 
 # ============================================================================
 # Switch to non-root user
