@@ -27,7 +27,7 @@ route:
       group_wait: 10s
       group_interval: 1m
       repeat_interval: 4h
-    
+
     # High priority relay issues
     - match:
         severity: high
@@ -35,7 +35,7 @@ route:
       group_wait: 30s
       group_interval: 5m
       repeat_interval: 8h
-    
+
     # Warning level alerts
     - match:
         severity: warning
@@ -43,7 +43,7 @@ route:
       group_wait: 2m
       group_interval: 10m
       repeat_interval: 24h
-    
+
     # Bootstrap status alerts
     - match:
         alert_type: bootstrap
@@ -51,7 +51,7 @@ route:
       group_wait: 1m
       group_interval: 10m
       repeat_interval: 12h
-    
+
     # Reachability alerts
     - match:
         alert_type: reachability
@@ -59,7 +59,7 @@ route:
       group_wait: 1m
       group_interval: 5m
       repeat_interval: 6h
-    
+
     # Performance/resource alerts
     - match:
         alert_type: performance
@@ -100,7 +100,7 @@ receivers:
           - type: button
             text: 'Dashboard'
             url: 'https://metrics.torproject.org/rs.html'
-    
+
     discord_configs:
       - webhook_url: '{{ .GroupLabels.discord_webhook }}'
         title: '🚨 CRITICAL ALERT'
@@ -189,14 +189,14 @@ inhibit_rules:
     target_match:
       severity: 'warning'
     equal: ['alertname', 'relay_name', 'instance']
-  
+
   # Don't send high if critical is already firing
   - source_match:
       severity: 'critical'
     target_match:
       severity: 'high'
     equal: ['alertname', 'relay_name', 'instance']
-  
+
   # Don't send warning if high is already firing
   - source_match:
       severity: 'high'
@@ -215,108 +215,3 @@ mute_time_intervals:
         months: ['january', 'july']
         year_days: ['1', '15', '25']
 
----
-
-# Example Prometheus alert rules that integrate with this alertmanager config
-# File: prometheus-rules.yml
-
-groups:
-  - name: tor_relay_alerts
-    interval: 30s
-    rules:
-      # Bootstrap alert
-      - alert: TorBootstrapIncomplete
-        expr: 'tor_relay_bootstrap_percent < 100'
-        for: 5m
-        labels:
-          severity: warning
-          alert_type: bootstrap
-        annotations:
-          summary: 'Relay {{ $labels.relay_name }} bootstrap incomplete'
-          description: 'Bootstrap progress: {{ $value }}% - Relay may still be starting up'
-
-      # ORPort reachability
-      - alert: TorORPortUnreachable
-        expr: 'tor_relay_orport_reachable == 0'
-        for: 10m
-        labels:
-          severity: critical
-          alert_type: reachability
-        annotations:
-          summary: 'Relay {{ $labels.relay_name }} ORPort is unreachable'
-          description: 'ORPort {{ $labels.or_port }} is not reachable from the outside network'
-
-      # High CPU usage
-      - alert: TorRelayHighCPU
-        expr: 'rate(process_cpu_seconds_total[5m]) > 0.8'
-        for: 15m
-        labels:
-          severity: high
-          alert_type: performance
-        annotations:
-          summary: 'Relay {{ $labels.relay_name }} high CPU usage'
-          description: 'CPU usage is {{ $value | humanizePercentage }} - consider tuning bandwidth limits'
-
-      # High memory usage
-      - alert: TorRelayHighMemory
-        expr: 'process_resident_memory_bytes / 1024 / 1024 > 512'
-        for: 10m
-        labels:
-          severity: warning
-          alert_type: performance
-        annotations:
-          summary: 'Relay {{ $labels.relay_name }} high memory usage'
-          description: 'Memory usage is {{ $value | humanize }}MB - monitor for leaks'
-
-      # Low bandwidth
-      - alert: TorRelayLowBandwidth
-        expr: 'rate(tor_relay_bytes_read_total[5m]) < 100000'
-        for: 30m
-        labels:
-          severity: warning
-          alert_type: performance
-        annotations:
-          summary: 'Relay {{ $labels.relay_name }} low bandwidth'
-          description: 'Bandwidth is {{ $value | humanize }}/s - check network connectivity'
-
-      # Container down
-      - alert: TorContainerDown
-        expr: 'up{job="tor-relay"} == 0'
-        for: 2m
-        labels:
-          severity: critical
-          alert_type: reachability
-        annotations:
-          summary: 'Relay {{ $labels.relay_name }} is down'
-          description: 'Relay container has been down for more than 2 minutes'
-
-      # Too many connections
-      - alert: TorTooManyConnections
-        expr: 'tor_relay_connections > 1000'
-        for: 5m
-        labels:
-          severity: high
-          alert_type: performance
-        annotations:
-          summary: 'Relay {{ $labels.relay_name }} high connection count'
-          description: 'Active connections: {{ $value }} - relay may need tuning'
-
----
-
-# Example Slack Webhook Integration Setup
-# 1. Create a Slack App at https://api.slack.com/apps
-# 2. Enable Incoming Webhooks
-# 3. Add New Webhook to Workspace
-# 4. Copy webhook URL and set in alertmanager.yml:
-#    slack_api_url: 'https://hooks.slack.com/services/YOUR/WEBHOOK/URL'
-
-# Example Discord Webhook Integration Setup
-# 1. In Discord server, go to Channel Settings > Integrations > Webhooks
-# 2. Create New Webhook
-# 3. Copy webhook URL
-# 4. Set in alertmanager.yml:
-#    discord_api_url: 'https://discordapp.com/api/webhooks/YOUR/WEBHOOK/URL'
-
-# Environment variables for Docker
-# SLACK_WEBHOOK_URL=https://hooks.slack.com/services/YOUR/WEBHOOK/URL
-# DISCORD_WEBHOOK_URL=https://discordapp.com/api/webhooks/YOUR/WEBHOOK/URL
