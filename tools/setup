@@ -401,4 +401,4 @@ DirPort $DIRPORT
 
 # Bandwidth Limits
 RelayBandwidthRate $BANDWIDTH KB
-RelayBandwidthBurst $((
+RelayBandwidthBurst $((BANDWIDTH * 2)) KB
