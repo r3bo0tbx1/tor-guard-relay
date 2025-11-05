@@ -77,21 +77,21 @@ COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 COPY tools/ /usr/local/bin/
 
 # ============================================================================
-# Normalize and harden scripts
+# Normalize, harden, and alias tools
 # ============================================================================
-RUN set -eux; \
-  for f in /usr/local/bin/*; do \
-    [ -f "$f" ] || continue; \
-    tr -d '\r' < "$f" > "$f.tmp" && mv "$f.tmp" "$f"; \
-    sed -i '1s/^\xEF\xBB\xBF//' "$f" || true; \
-    chmod +x "$f"; \
-  done; \
-  echo "🧩 Installed tools:"; \
-  for f in /usr/local/bin/docker-entrypoint* /usr/local/bin/net-check* /usr/local/bin/metrics* \
-           /usr/local/bin/health* /usr/local/bin/view-logs* /usr/local/bin/status* \
-           /usr/local/bin/fingerprint* /usr/local/bin/setup* /usr/local/bin/dashboard*; do \
-      [ -f "$f" ] && echo "Registered script: $f"; \
-  done
+RUN set -eux \
+ && apk add --no-cache dos2unix \
+ && echo "🧩 Normalizing line endings and fixing permissions..." \
+ && find /usr/local/bin -type f -name "*.sh" -exec dos2unix {} \; || true \
+ && dos2unix /usr/local/bin/docker-entrypoint.sh || true \
+ && chmod +x /usr/local/bin/*.sh /usr/local/bin/docker-entrypoint.sh \
+ && echo "🔗 Creating symlinks for no-extension tool compatibility..." \
+ && for f in /usr/local/bin/*.sh; do ln -sf "$f" "${f%.sh}"; done \
+ && echo "✅ Tools normalized, executable, and aliased." \
+ && echo "🧩 Installed tools:" \
+ && ls -1 /usr/local/bin | grep -E "docker-entrypoint|net-check|metrics|health|view-logs|status|fingerprint|setup|dashboard" || true \
+ && apk del dos2unix \
+ && rm -rf /var/cache/apk/*
 
 # ============================================================================
 # Environment configuration
