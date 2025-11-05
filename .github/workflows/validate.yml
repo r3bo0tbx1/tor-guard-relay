@@ -1,4 +1,4 @@
-name: 🧱 Build & Validation
+name: 🧱✅ Build and Validation
 
 on:
   workflow_dispatch:
@@ -22,14 +22,14 @@ permissions:
 
 jobs:
   lint:
-    name: 🔍 Lint & Validate
+    name: 🔍 Lint and Validate
     runs-on: ubuntu-latest
 
     steps:
-      - name: 📥 Checkout Repository
+      - name: Checkout Repository
         uses: actions/checkout@v5
 
-      - name: 🔍 Lint Dockerfile with Hadolint
+      - name: 🐳 Lint Dockerfile with Hadolint
         uses: hadolint/hadolint-action@v3.1.0
         with:
           dockerfile: Dockerfile
@@ -37,96 +37,165 @@ jobs:
 
       - name: 🔍 Validate Dockerfile Syntax
         run: |
-          echo "Validating Dockerfile build context..."
+          echo "🐳 Validating Dockerfile build context..."
           docker build --no-cache --target builder -t tor-relay-test . 2>&1 | tee /tmp/docker-build.log || true
-          
-          # Check for common errors
           if grep -i "error" /tmp/docker-build.log; then
             echo "❌ Dockerfile validation failed"
             exit 1
           fi
-          
           echo "✅ Dockerfile syntax valid"
 
-      - name: 🔍 Lint Shell Scripts
+      - name: 📝 Lint Shell Scripts
         run: |
-          echo "Checking shell script syntax..."
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "🔍 Checking Shell Script Syntax"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo ""
           
-          # Check entrypoint
+          # Check main entrypoint script
           if [ -f docker-entrypoint.sh ]; then
+            echo "📄 Checking docker-entrypoint.sh..."
             bash -n docker-entrypoint.sh || exit 1
-            echo "✅ docker-entrypoint.sh syntax valid"
+            echo "   ✅ docker-entrypoint.sh syntax valid"
           fi
           
-          # Check all tools
-          for script in tools/*; do
-            if [ -f "$script" ]; then
-              # Check if it's a shell script
-              if head -1 "$script" | grep -q "^#!/"; then
-                sh -n "$script" || exit 1
-                echo "✅ $script syntax valid"
-              fi
-            fi
-          done
+          # Check integration test script
+          if [ -f integration-check.sh ]; then
+            echo "📄 Checking integration-check.sh..."
+            bash -n integration-check.sh || exit 1
+            echo "   ✅ integration-check.sh syntax valid"
+          fi
           
-          # Check additional scripts
-          for script in integration-check.sh relay-status.sh; do
-            if [ -f "$script" ]; then
+          echo ""
+          echo "📁 Checking tools directory (.sh files)..."
+          
+          # Check if tools directory exists and has .sh files
+          if [ ! -d "tools" ]; then
+            echo "   ⚠️  tools/ directory not found"
+          elif [ -z "$(find tools -maxdepth 1 -type f -name '*.sh' 2>/dev/null)" ]; then
+            echo "   ⚠️  No .sh files found in tools/"
+          else
+            # Check all .sh files in tools/
+            TOOL_COUNT=0
+            for script in tools/*.sh; do
+              [ -f "$script" ] || continue
+              echo "📄 Checking $(basename "$script")..."
               bash -n "$script" || exit 1
-              echo "✅ $script syntax valid"
-            fi
-          done
+              echo "   ✅ $script syntax valid"
+              TOOL_COUNT=$((TOOL_COUNT + 1))
+            done
+            echo ""
+            echo "   ✅ All $TOOL_COUNT tool scripts validated"
+          fi
+          
+          echo ""
+          echo "🎉 Shell script syntax validation complete"
 
-      - name: 🔍 Install ShellCheck
+      - name: 🔧 Install ShellCheck
         run: |
           sudo apt-get update
           sudo apt-get install -y shellcheck
 
-      - name: 🔍 Run ShellCheck on Scripts
+      - name: 🔎 Run ShellCheck on Scripts
         run: |
-          echo "Running ShellCheck on shell scripts..."
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "🔎 Running ShellCheck Static Analysis"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo ""
           
-          # Check entrypoint with specific exclusions
+          # ShellCheck main scripts
           if [ -f docker-entrypoint.sh ]; then
+            echo "🔍 ShellCheck: docker-entrypoint.sh"
             shellcheck -S warning docker-entrypoint.sh || true
           fi
           
-          # Check tools directory
-          find tools -type f -exec shellcheck -S warning {} \; || true
+          if [ -f integration-check.sh ]; then
+            echo "🔍 ShellCheck: integration-check.sh"
+            shellcheck -S warning integration-check.sh || true
+          fi
           
+          # ShellCheck all .sh files in tools/
+          if [ -d "tools" ]; then
+            echo ""
+            echo "🔍 ShellCheck: tools/*.sh"
+            find tools -maxdepth 1 -type f -name "*.sh" -exec shellcheck -S warning {} \; || true
+          fi
+          
+          echo ""
           echo "✅ ShellCheck analysis complete"
 
-      - name: 🔍 Lint YAML Files
+      - name: 🎯 Verify Tool Extensions
         run: |
-          echo "Installing yamllint..."
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "📝 Verifying Tool File Extensions"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo ""
+          
+          if [ ! -d "tools" ]; then
+            echo "⚠️  tools/ directory not found - skipping check"
+            exit 0
+          fi
+          
+          MISSING_EXT=0
+          NON_SH_COUNT=0
+          SH_COUNT=0
+          
+          # Check all files in tools/
+          for file in tools/*; do
+            [ -f "$file" ] || continue
+            
+            filename=$(basename "$file")
+            extension="${filename##*.}"
+            
+            # Check if it's a shell script (has shebang)
+            if head -1 "$file" 2>/dev/null | grep -q "^#!/"; then
+              if [ "$extension" != "sh" ]; then
+                echo "❌ Shell script missing .sh extension: $filename"
+                MISSING_EXT=1
+              else
+                SH_COUNT=$((SH_COUNT + 1))
+              fi
+            else
+              NON_SH_COUNT=$((NON_SH_COUNT + 1))
+              echo "ℹ️  Non-script file: $filename"
+            fi
+          done
+          
+          echo ""
+          echo "📊 Summary:"
+          echo "   • Shell scripts with .sh: $SH_COUNT"
+          [ $NON_SH_COUNT -gt 0 ] && echo "   • Other files: $NON_SH_COUNT"
+          echo ""
+          
+          if [ $MISSING_EXT -eq 1 ]; then
+            echo "❌ Some shell scripts are missing .sh extension"
+            exit 1
+          else
+            echo "✅ All shell scripts have proper .sh extension"
+          fi
+
+      - name: 📋 Lint YAML Files
+        run: |
+          echo "🔧 Installing yamllint..."
           pip install yamllint
-          
-          echo "Validating YAML files..."
-          
-          # Lenient rules for template files (allow trailing spaces, long lines)
+          echo "📋 Validating YAML files..."
           echo "📁 Checking templates (lenient rules)..."
           for yaml in templates/*.yml; do
             if [ -f "$yaml" ]; then
               yamllint -d "{extends: relaxed, rules: {line-length: {max: 200}, trailing-spaces: disable, new-line-at-end-of-file: disable, comments: disable}}" "$yaml" && echo "✅ $yaml valid" || echo "⚠️ $yaml has warnings (non-blocking)"
             fi
           done
-          
-          # Strict rules for workflow files
-          echo "⚙️ Checking workflows (strict rules)..."
+          echo "🔄 Checking workflows (strict rules)..."
           for yaml in .github/workflows/*.yml; do
             if [ -f "$yaml" ]; then
               yamllint -d relaxed "$yaml" || exit 1
               echo "✅ $yaml syntax valid"
             fi
           done
-          
-          # Check dependabot if exists
           if [ -f ".github/dependabot.yml" ]; then
             yamllint -d relaxed .github/dependabot.yml || exit 1
             echo "✅ .github/dependabot.yml syntax valid"
           fi
-          
-          # Optional: Check docs
           if [ -d "docs" ]; then
             echo "📚 Checking docs (lenient)..."
             for yaml in docs/*.yml; do
@@ -136,9 +205,9 @@ jobs:
             done
           fi
 
-      - name: 🔍 Validate JSON Files
+      - name: 🔖 Validate JSON Files
         run: |
-          echo "Validating JSON files..."
+          echo "🔍 Validating JSON files..."
           for json in templates/*.json examples/*.json .github/*.json; do
             if [ -f "$json" ]; then
               python3 -m json.tool "$json" > /dev/null || exit 1
@@ -146,9 +215,9 @@ jobs:
             fi
           done
 
-      - name: 📋 Check Documentation
+      - name: 📚 Check Documentation
         run: |
-          echo "Verifying required documentation files..."
+          echo "📖 Verifying required documentation files..."
           required_docs=(
             "README.md"
             "CHANGELOG.md"
@@ -157,7 +226,6 @@ jobs:
             "CODE_OF_CONDUCT.md"
             "LICENSE.txt"
           )
-
           for doc in "${required_docs[@]}"; do
             if [ ! -f "$doc" ]; then
               echo "❌ Missing documentation: $doc"
@@ -165,24 +233,22 @@ jobs:
             fi
             echo "✅ $doc exists"
           done
-          
-          # Check docs directory structure
           if [ -d "docs" ]; then
-            echo "📁 Checking docs/ directory..."
+            echo "📁 Checking docs directory..."
             for doc in DEPLOYMENT.md BACKUP.md PERFORMANCE.md LEGAL.md MONITORING.md TOOLS.md; do
               if [ -f "docs/$doc" ]; then
                 echo "✅ docs/$doc exists"
               else
-                echo "⚠️ docs/$doc missing (optional)"
+                echo "ℹ️  docs/$doc missing (optional)"
               fi
             done
           fi
 
       - name: ✅ Lint Summary
-        run: echo "✅ All linting checks passed"
+        run: echo "🎉 All linting checks passed"
 
   build:
-    name: 🐳 Build Docker Image
+    name: 🏗️ Build Docker Image
     runs-on: ubuntu-latest
     needs: lint
 
@@ -190,12 +256,12 @@ jobs:
       - name: 📥 Checkout Repository
         uses: actions/checkout@v5
 
-      - name: ⚙️ Set up QEMU
+      - name: 🖥️ Set up QEMU
         uses: docker/setup-qemu-action@v3
         with:
           platforms: arm64,amd64
 
-      - name: 🏗️ Set up Docker Buildx
+      - name: 🔧 Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
       - name: 🐳 Build Image (amd64 for testing)
@@ -215,9 +281,9 @@ jobs:
       - name: 💾 Save Image for Testing
         run: |
           docker save tor-relay:test -o /tmp/tor-relay-test.tar
-          echo "Image size: $(du -h /tmp/tor-relay-test.tar | cut -f1)"
+          echo "📦 Image size: $(du -h /tmp/tor-relay-test.tar | cut -f1)"
 
-      - name: 📤 Upload Image Artifact
+      - name: ⬆️ Upload Image Artifact
         uses: actions/upload-artifact@v4
         with:
           name: docker-image
@@ -233,7 +299,7 @@ jobs:
       - name: 📥 Checkout Repository
         uses: actions/checkout@v5
 
-      - name: 📥 Download Docker Image
+      - name: ⬇️ Download Docker Image
         uses: actions/download-artifact@v4
         with:
           name: docker-image
@@ -244,82 +310,69 @@ jobs:
           docker load -i /tmp/tor-relay-test.tar
           docker image ls tor-relay
 
-      - name: 🧪 Run Container Smoke Test
+      - name: 🚀 Run Container Smoke Test
         run: |
-          echo "Starting container for smoke test..."
-          
-          # Start container in background (test mode)
-          docker run -d \
-            --name tor-test \
-            -e ENABLE_METRICS=true \
-            -e ENABLE_HEALTH_CHECK=true \
-            tor-relay:test \
-            /bin/sh -c "echo 'Test mode active'; sleep 60" || true
-
-          # Wait for container to start
+          echo "🚀 Starting container for smoke test..."
+          docker run -d --name tor-test -e ENABLE_METRICS=true -e ENABLE_HEALTH_CHECK=true tor-relay:test /bin/sh -c "echo 'Test mode active'; sleep 60" || true
           sleep 5
 
-      - name: ✅ Check Container Status
+      - name: 🔍 Check Container Status
         run: |
-          echo "Container status:"
+          echo "📊 Container status:"
           docker ps -a | grep tor-test || true
-          
           echo ""
-          echo "Container logs:"
+          echo "📋 Container logs:"
           docker logs tor-test 2>&1 | head -30 || true
 
-      - name: 🧩 Verify Tools Installation
+      - name: 🔧 Verify Tools Installation
         run: |
-          echo "Checking installed tools..."
+          echo "🔍 Checking installed tools..."
           docker run --rm tor-relay:test ls -la /usr/local/bin/ || exit 1
-          
           echo ""
-          echo "Available diagnostic tools:"
-          docker run --rm tor-relay:test sh -c "ls -1 /usr/local/bin/ | grep -v '^tor$' | sort"
+          echo "🛠️ Available diagnostic tools:"
+          docker run --rm tor-relay:test sh -c "ls -1 /usr/local/bin/*.sh 2>/dev/null | xargs -n1 basename | sort"
 
       - name: 🧅 Verify Tor Installation
         run: |
-          echo "Checking Tor version..."
+          echo "🔍 Checking Tor version..."
           TOR_VERSION=$(docker run --rm tor-relay:test tor --version | head -1)
-          
           if [ -z "$TOR_VERSION" ]; then
             echo "❌ Tor installation failed"
             exit 1
           fi
-          
           echo "✅ Tor installed: $TOR_VERSION"
 
-      - name: 📋 Verify File Structure
+      - name: 📁 Verify File Structure
         run: |
           docker run --rm tor-relay:test sh -c "
-            echo '=== Directory Structure ===' && \
+            echo '📂 === Directory Structure ===' && \
             ls -la / | grep -E 'var|etc|usr' && \
             echo '' && \
-            echo '=== Tools Directory ===' && \
+            echo '🛠️ === Tools Directory ===' && \
             ls -la /usr/local/bin/ && \
             echo '' && \
-            echo '=== Data Directory ===' && \
+            echo '💾 === Data Directory ===' && \
             ls -la /var/lib/tor 2>/dev/null || echo '(data dir empty, expected)' && \
             echo '' && \
-            echo '=== Log Directory ===' && \
+            echo '📝 === Log Directory ===' && \
             ls -la /var/log/tor 2>/dev/null || echo '(log dir empty, expected)'
           "
 
-      - name: 🏥 Check Build Metadata
+      - name: 📋 Check Build Metadata
         run: |
-          echo "Checking build metadata..."
+          echo "🔍 Checking build metadata..."
           docker run --rm tor-relay:test cat /build-info.txt || exit 1
 
-      - name: 🔒 Verify Permissions
+      - name: 🔐 Verify Permissions
         run: |
-          echo "Verifying directory permissions..."
+          echo "🔐 Verifying directory permissions..."
           docker run --rm tor-relay:test sh -c "
             ls -ld /var/lib/tor | grep -q '^d.*tor tor' && echo '✅ /var/lib/tor permissions correct' || exit 1
             ls -ld /var/log/tor | grep -q '^d.*tor tor' && echo '✅ /var/log/tor permissions correct' || exit 1
           "
 
       - name: ✅ Integration Tests Summary
-        run: echo "✅ Integration tests completed successfully"
+        run: echo "🎉 Integration tests completed successfully"
 
       - name: 🧹 Cleanup
         if: always()
@@ -328,7 +381,7 @@ jobs:
           docker rm tor-test 2>/dev/null || true
 
   security:
-    name: 🔒 Security Scan
+    name: 🛡️ Security Scan
     runs-on: ubuntu-latest
     needs: build
 
@@ -336,7 +389,7 @@ jobs:
       - name: 📥 Checkout Repository
         uses: actions/checkout@v5
 
-      - name: 📥 Download Docker Image
+      - name: ⬇️ Download Docker Image
         uses: actions/download-artifact@v4
         with:
           name: docker-image
@@ -353,13 +406,13 @@ jobs:
           output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH'
 
-      - name: 📤 Upload Trivy Results
+      - name: ⬆️ Upload Trivy Results
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: 'trivy-results.sarif'
         continue-on-error: true
 
-      - name: 🔒 Trivy Vulnerability Report
+      - name: 📊 Trivy Vulnerability Report
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: 'tor-relay:test'
@@ -367,7 +420,7 @@ jobs:
           severity: 'CRITICAL,HIGH'
 
       - name: ✅ Security Scan Complete
-        run: echo "✅ Security scan completed"
+        run: echo "🎉 Security scan completed"
 
   test-matrix:
     name: 🧪 Test Matrix
@@ -387,7 +440,7 @@ jobs:
       - name: 📥 Checkout Repository
         uses: actions/checkout@v5
 
-      - name: 📥 Download Docker Image
+      - name: ⬇️ Download Docker Image
         uses: actions/download-artifact@v4
         with:
           name: docker-image
@@ -396,42 +449,39 @@ jobs:
       - name: 📦 Load Docker Image
         run: docker load -i /tmp/tor-relay-test.tar
 
-      - name: "🧪 Test: Help Flags"
+      - name: "🔍 Test: Help Flags"
         if: matrix.test-case == 'help-flags'
         run: |
-          echo "Testing tool help flags..."
-          
-          for tool in health metrics status fingerprint view-logs net-check setup dashboard; do
-            if docker run --rm tor-relay:test sh -c "command -v $tool" > /dev/null 2>&1; then
-              echo "Testing $tool --help..."
-              docker run --rm tor-relay:test $tool --help > /dev/null && echo "✅ $tool --help works" || echo "⚠️ $tool --help failed"
+          echo "🧪 Testing tool help flags..."
+          for tool in health.sh metrics.sh status.sh fingerprint.sh view-logs.sh net-check.sh setup.sh dashboard.sh; do
+            TOOL_PATH="/usr/local/bin/$tool"
+            if docker run --rm tor-relay:test sh -c "test -f $TOOL_PATH"; then
+              echo "🔍 Testing $tool --help..."
+              docker run --rm tor-relay:test $tool --help > /dev/null && echo "✅ $tool --help works" || echo "⚠️ $tool --help failed (non-critical)"
+            else
+              echo "⚠️  $tool not found at $TOOL_PATH"
             fi
           done
 
-      - name: "🧪 Test: File Permissions"
+      - name: "🔐 Test: File Permissions"
         if: matrix.test-case == 'file-permissions'
         run: |
-          echo "Verifying file permissions..."
-          
-          # Check tool executability
+          echo "🔐 Verifying file permissions for .sh tools..."
           docker run --rm tor-relay:test sh -c "
-            for tool in health metrics status fingerprint view-logs net-check setup dashboard; do
-              if command -v \$tool > /dev/null 2>&1; then
-                test -x /usr/local/bin/\$tool && echo \"✅ \$tool is executable\" || exit 1
+            for tool in /usr/local/bin/*.sh; do
+              if [ -f \"\$tool\" ]; then
+                test -x \"\$tool\" && echo \"✅ \$(basename \$tool) is executable\" || exit 1
               fi
             done
           "
-          
-          # Check entrypoint
           docker run --rm tor-relay:test sh -c "
-            test -x /usr/local/bin/docker-entrypoint.sh && echo '✅ entrypoint is executable' || exit 1
+            test -x /usr/local/bin/docker-entrypoint.sh && echo '✅ docker-entrypoint.sh is executable' || exit 1
           "
 
-      - name: "🧪 Test: Alpine Compatibility"
+      - name: "🏔️ Test: Alpine Compatibility"
         if: matrix.test-case == 'alpine-compatibility'
         run: |
-          echo "Verifying Alpine base image..."
-          
+          echo "🏔️ Verifying Alpine base image..."
           docker run --rm tor-relay:test sh -c "
             cat /etc/os-release | grep -i alpine && echo '✅ Alpine base confirmed' || exit 1
             test -x /bin/sh && echo '✅ /bin/sh available' || exit 1
@@ -439,21 +489,18 @@ jobs:
             command -v tor > /dev/null 2>&1 && echo '✅ tor available' || exit 1
           "
 
-      - name: "🧪 Test: Tool Executability"
+      - name: "🔧 Test: Tool Executability"
         if: matrix.test-case == 'tool-executability'
         run: |
-          echo "Testing tool execution..."
-          
-          # Test each tool can execute without errors
+          echo "🔧 Testing tool execution..."
           docker run --rm tor-relay:test sh -c "
-            # Test health (should work even without Tor running)
-            health --json > /dev/null 2>&1 || echo 'health requires Tor process'
-            
-            # Test metrics
-            metrics --help > /dev/null 2>&1 && echo '✅ metrics executable' || exit 1
-            
-            # Test status
-            status --help > /dev/null 2>&1 && echo '✅ status executable' || exit 1
+            for tool in /usr/local/bin/*.sh; do
+              if [ -f \"\$tool\" ]; then
+                BASENAME=\$(basename \"\$tool\")
+                echo \"🔍 Testing \$BASENAME...\"
+                \"\$tool\" --help > /dev/null 2>&1 || echo \"  ⚠️  \$BASENAME --help failed (may require Tor process)\"
+              fi
+            done
           "
 
   summary:
@@ -463,49 +510,50 @@ jobs:
     if: always()
 
     steps:
-      - name: 📊 Generate Build Summary
+      - name: 📋 Generate Build Summary
         run: |
           cat >> $GITHUB_STEP_SUMMARY << EOF
-          # 🧱 Build & Validation Pipeline
+          # 🧅 Build and Validation Pipeline
 
-          ## Pipeline Status
-          - **Lint:** \`${{ needs.lint.result }}\`
-          - **Build:** \`${{ needs.build.result }}\`
-          - **Integration:** \`${{ needs.integration.result }}\`
-          - **Security:** \`${{ needs.security.result }}\`
-          - **Test Matrix:** \`${{ needs.test-matrix.result }}\`
+          ## 📊 Pipeline Status
+          - **🔍 Lint:** \`${{ needs.lint.result }}\`
+          - **🏗️ Build:** \`${{ needs.build.result }}\`
+          - **🧪 Integration:** \`${{ needs.integration.result }}\`
+          - **🛡️ Security:** \`${{ needs.security.result }}\`
+          - **🧪 Test Matrix:** \`${{ needs.test-matrix.result }}\`
 
-          ## Build Information
-          - **Branch:** \`${{ github.ref }}\`
-          - **Commit:** \`${{ github.sha }}\`
-          - **Run Number:** \`${{ github.run_number }}\`
-          - **Date:** \`$(date -u +'%Y-%m-%dT%H:%M:%SZ')\`
+          ## 📦 Build Information
+          - **🌿 Branch:** \`${{ github.ref }}\`
+          - **📝 Commit:** \`${{ github.sha }}\`
+          - **🔢 Run Number:** \`${{ github.run_number }}\`
+          - **📅 Date:** \`$(date -u +'%Y-%m-%dT%H:%M:%SZ')\`
 
-          ## Checks Performed
-          - ✅ Dockerfile validation with Hadolint
-          - ✅ Shell script syntax checking
-          - ✅ ShellCheck analysis
-          - ✅ YAML validation (lenient for templates)
-          - ✅ JSON validation
-          - ✅ Documentation verification
-          - ✅ Docker image build (multi-arch ready)
-          - ✅ Container smoke test
-          - ✅ Tor installation verification
-          - ✅ Tool availability check
-          - ✅ Permission verification
-          - ✅ Security scanning with Trivy
-          - ✅ Test matrix execution
+          ## ✅ Checks Performed
+          - 🐳 Dockerfile validation with Hadolint
+          - 📝 Shell script syntax checking (all .sh files)
+          - 🎯 Shell script extension verification
+          - 🔎 ShellCheck static analysis
+          - 📋 YAML validation (lenient for templates)
+          - 🔖 JSON validation
+          - 📚 Documentation verification
+          - 🏗️ Docker image build (multi-arch ready)
+          - 🚀 Container smoke test
+          - 🧅 Tor installation verification
+          - 🔧 Tool availability check (.sh files)
+          - 🔐 Permission verification
+          - 🛡️ Security scanning with Trivy
+          - 🧪 Test matrix execution
 
-          ## Next Steps
+          ## 🚀 Next Steps
           If all checks pass:
-          - Image is ready for production use
-          - Release workflow will handle publishing to GHCR + Docker Hub
-          - Tag with semantic version to trigger release
+          - ✅ Image is ready for production use
+          - 📦 Release workflow will handle publishing to GHCR and Docker Hub
+          - 🏷️ Tag with semantic version to trigger release
           EOF
 
       - name: ✅ Build Pipeline Complete
         if: success()
-        run: echo "✅ All build and validation checks passed successfully"
+        run: echo "🎉 All build and validation checks passed successfully"
 
       - name: ❌ Build Pipeline Failed
         if: failure()

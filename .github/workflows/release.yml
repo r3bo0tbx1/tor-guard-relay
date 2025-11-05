@@ -1,4 +1,4 @@
-name: 🚀 Release & Weekly Builds
+name: 🚀✨ Release and Weekly Builds
 
 on:
   workflow_dispatch:
@@ -29,7 +29,7 @@ env:
 
 jobs:
   determine-version:
-    name: 📊 Determine Version & Build Type
+    name: 🏷️ Determine Version and Build Type
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.version.outputs.version }}
@@ -44,22 +44,22 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: 🔍 Detect Version & Build Type
+      - name: 🔍 Detect Version and Build Type
         id: version
         run: |
           set -e
-          echo "🧩 Determining version context..."
+          echo "🔍 Determining version context..."
           if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
             VERSION="${GITHUB_REF#refs/tags/v}"
             BUILD_TYPE="release"
             IS_RELEASE="true"
-            echo "🎯 Release tag detected: v${VERSION}"
+            echo "🏷️ Release tag detected: v${VERSION}"
           elif [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
             LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v1.0.0")
             VERSION="${LATEST_TAG#v}-manual-${GITHUB_RUN_NUMBER}"
             BUILD_TYPE="manual"
             IS_RELEASE="false"
-            echo "🔧 Manual build version: ${VERSION}"
+            echo "👤 Manual build version: ${VERSION}"
           else
             LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v1.0.0")
             VERSION="${LATEST_TAG#v}"
@@ -67,44 +67,40 @@ jobs:
             IS_RELEASE="false"
             echo "📅 Weekly build version: ${VERSION}"
           fi
-
           BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
           SHORT_SHA=$(git rev-parse --short HEAD)
-
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           echo "build_type=${BUILD_TYPE}" >> "$GITHUB_OUTPUT"
           echo "is_release=${IS_RELEASE}" >> "$GITHUB_OUTPUT"
           echo "build_date=${BUILD_DATE}" >> "$GITHUB_OUTPUT"
           echo "short_sha=${SHORT_SHA}" >> "$GITHUB_OUTPUT"
 
-      - name: ✅ Version Information
+      - name: 📋 Version Information
         run: |
-          echo "Build Info:"
-          echo "  Version: ${{ steps.version.outputs.version }}"
-          echo "  Build Type: ${{ steps.version.outputs.build_type }}"
-          echo "  Release: ${{ steps.version.outputs.is_release }}"
-          echo "  Date: ${{ steps.version.outputs.build_date }}"
-          echo "  SHA: ${{ steps.version.outputs.short_sha }}"
+          echo "📦 Build Info:"
+          echo "  🏷️ Version: ${{ steps.version.outputs.version }}"
+          echo "  📝 Build Type: ${{ steps.version.outputs.build_type }}"
+          echo "  ✅ Release: ${{ steps.version.outputs.is_release }}"
+          echo "  📅 Date: ${{ steps.version.outputs.build_date }}"
+          echo "  🔑 SHA: ${{ steps.version.outputs.short_sha }}"
 
   precheck:
-    name: 🧱 Validate Upstream Workflow
+    name: ✅ Validate Upstream Workflow
     runs-on: ubuntu-latest
     needs: determine-version
     if: ${{ needs.determine-version.outputs.build_type != 'manual' }}
     steps:
-      - name: 🔍 Verify Build & Validation Workflow Status
+      - name: 🔍 Verify Build and Validation Workflow Status
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "⏳ Waiting for 🧱 Build & Validation workflow to complete..."
-          WORKFLOW_NAME="🧱 Build & Validation"
+          echo "⏳ Waiting for Build and Validation workflow to complete..."
+          WORKFLOW_NAME="Build and Validation"
           REF=${GITHUB_REF_NAME:-main}
-
           for i in {1..30}; do
             STATUS=$(gh api repos/${{ github.repository }}/actions/runs \
               --jq ".workflow_runs[] | select(.name==\"$WORKFLOW_NAME\" and .head_branch==\"$REF\") | .conclusion" \
               | head -1)
-
             if [[ "$STATUS" == "success" ]]; then
               echo "✅ Validation passed successfully."
               exit 0
@@ -112,16 +108,15 @@ jobs:
               echo "❌ Validation failed. Aborting release."
               exit 1
             else
-              echo "⏱️ Waiting for validation workflow... ($i/30)"
+              echo "⏳ Waiting for validation workflow... ($i/30)"
               sleep 20
             fi
           done
-
-          echo "⚠️ Timeout: Validation workflow did not complete in time."
+          echo "⏰ Timeout: Validation workflow did not complete in time."
           exit 1
 
   build-and-push:
-    name: 🐳 Multi-Arch Build & Push
+    name: 🏗️ Multi-Arch Build and Push
     runs-on: ubuntu-latest
     needs: [determine-version, precheck]
     if: ${{ needs.determine-version.result == 'success' }}
@@ -129,33 +124,99 @@ jobs:
       - name: 📥 Checkout Repository
         uses: actions/checkout@v5
 
-      - name: 🧹 Normalize scripts before build
+      - name: 🎯 Verify Shell Script Extensions
         run: |
-          sudo apt-get update -qq && sudo apt-get install -y dos2unix
-          find . -type f -name "*.sh" -exec dos2unix {} \;
-          dos2unix docker-entrypoint.sh Dockerfile integration-check.sh || true
-          chmod +x docker-entrypoint.sh integration-check.sh || true
-          echo "✅ Line endings normalized and permissions verified."
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "📝 Pre-Build: Verifying .sh Extensions"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo ""
+          
+          if [ ! -d "tools" ]; then
+            echo "❌ tools/ directory not found"
+            exit 1
+          fi
+          
+          MISSING_EXT=0
+          SH_COUNT=0
+          
+          for file in tools/*; do
+            [ -f "$file" ] || continue
+            filename=$(basename "$file")
+            extension="${filename##*.}"
+            
+            # Check if it's a shell script (has shebang)
+            if head -1 "$file" 2>/dev/null | grep -q "^#!/"; then
+              if [ "$extension" != "sh" ]; then
+                echo "❌ Shell script missing .sh extension: $filename"
+                MISSING_EXT=1
+              else
+                echo "✅ $filename"
+                SH_COUNT=$((SH_COUNT + 1))
+              fi
+            fi
+          done
+          
+          echo ""
+          if [ $MISSING_EXT -eq 1 ]; then
+            echo "❌ Build blocked: Some shell scripts missing .sh extension"
+            exit 1
+          else
+            echo "🎉 All $SH_COUNT shell scripts have proper .sh extension"
+          fi
 
-      - name: 🔐 Login to Docker Hub
+      - name: 🔧 Normalize scripts before build
+        run: |
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "🔧 Normalizing Line Endings and Permissions"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo ""
+          
+          sudo apt-get update -qq && sudo apt-get install -y dos2unix
+          
+          echo "📄 Processing main scripts..."
+          for script in docker-entrypoint.sh integration-check.sh Dockerfile; do
+            if [ -f "$script" ]; then
+              dos2unix "$script" 2>/dev/null || true
+              echo "   ✅ Normalized: $script"
+            fi
+          done
+          
+          echo ""
+          echo "📁 Processing tools/*.sh..."
+          if [ -d "tools" ]; then
+            find tools -type f -name "*.sh" -exec dos2unix {} \; 2>/dev/null || true
+            TOOL_COUNT=$(find tools -type f -name "*.sh" | wc -l)
+            echo "   ✅ Normalized: $TOOL_COUNT tool scripts"
+          fi
+          
+          echo ""
+          echo "🔐 Setting execute permissions..."
+          chmod +x docker-entrypoint.sh integration-check.sh 2>/dev/null || true
+          [ -d "tools" ] && chmod +x tools/*.sh 2>/dev/null || true
+          
+          echo "   ✅ Permissions verified"
+          echo ""
+          echo "🎉 Normalization complete"
+
+      - name: 🐳 Login to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: 🔐 Login to GitHub Container Registry
+      - name: 📦 Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
           registry: ${{ env.GHCR_REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: ⚙️ Set up QEMU
+      - name: 🖥️ Set up QEMU
         uses: docker/setup-qemu-action@v3
         with:
           platforms: arm64,amd64
 
-      - name: 🏗️ Set up Docker Buildx
+      - name: 🔨 Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
       - name: 🏷️ Generate Docker Tags
@@ -164,7 +225,6 @@ jobs:
           VERSION="${{ needs.determine-version.outputs.version }}"
           BUILD_TYPE="${{ needs.determine-version.outputs.build_type }}"
           SHORT_SHA="${{ needs.determine-version.outputs.short_sha }}"
-
           TAGS=""
           if [ "$BUILD_TYPE" = "release" ]; then
             TAGS="${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:latest,${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION},${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION}-${SHORT_SHA},${{ env.DOCKERHUB_IMAGE_NAME }}:latest,${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION},${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}-${SHORT_SHA}"
@@ -173,10 +233,9 @@ jobs:
           else
             TAGS="${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION},${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION}-${SHORT_SHA},${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION},${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}-${SHORT_SHA}"
           fi
-
           echo "tags=${TAGS}" >> "$GITHUB_OUTPUT"
 
-      - name: 🐳 Build and Push Multi-Arch Image
+      - name: 🚀 Build and Push Multi-Arch Image
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -205,24 +264,39 @@ jobs:
       - name: 📥 Checkout Repository
         uses: actions/checkout@v5
 
-      - name: 🔐 Login to Registries
+      - name: 🔑 Login to Registries
         uses: docker/login-action@v3
         with:
           registry: ${{ env.GHCR_REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: 🧪 Validate Images
+      - name: 🔍 Validate Images
         run: |
           set -e
           VERSION="${{ needs.determine-version.outputs.version }}"
-          echo "🔍 Validating published images..."
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "✅ Validating Published Images"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo ""
+          
           for REG in "${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}" "${{ env.DOCKERHUB_IMAGE_NAME }}"; do
             IMAGE_TAG="${REG}:${VERSION}"
-            echo "📦 Pulling $IMAGE_TAG"
+            echo "🔍 Testing: $IMAGE_TAG"
             docker pull "$IMAGE_TAG"
-            docker run --rm "$IMAGE_TAG" tor --version | head -1
+            
+            echo "   📦 Checking Tor installation..."
+            TOR_VERSION=$(docker run --rm "$IMAGE_TAG" tor --version | head -1)
+            echo "   ✅ $TOR_VERSION"
+            
+            echo "   🔧 Checking tools..."
+            TOOL_COUNT=$(docker run --rm "$IMAGE_TAG" sh -c "ls -1 /usr/local/bin/*.sh 2>/dev/null | wc -l")
+            echo "   ✅ Found $TOOL_COUNT tool scripts"
+            
+            echo ""
           done
+          
+          echo "🎉 All images validated successfully"
 
   release-notes:
     name: 📝 Generate Release Notes
@@ -233,7 +307,7 @@ jobs:
       - name: 📥 Checkout Repository
         uses: actions/checkout@v5
 
-      - name: 🧾 Generate Notes
+      - name: 📝 Generate Notes
         run: |
           VERSION="${{ needs.determine-version.outputs.version }}"
           echo "## 🧅 Tor Guard Relay v${VERSION} Release Notes" > release_notes.md
@@ -244,17 +318,20 @@ jobs:
             echo "See [commit history](https://github.com/${{ github.repository }}/commits/v${VERSION}) for details." >> release_notes.md
           fi
           echo "" >> release_notes.md
-          echo "### 📦 Docker Images" >> release_notes.md
+          echo "### 🐳 Docker Images" >> release_notes.md
           echo "\`\`\`bash" >> release_notes.md
+          echo "# 📦 From GHCR:" >> release_notes.md
           echo "docker pull ${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION}" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "# 🐳 From Docker Hub:" >> release_notes.md
           echo "docker pull ${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}" >> release_notes.md
           echo "\`\`\`" >> release_notes.md
 
-      - name: 🚀 Create GitHub Release
+      - name: 🏷️ Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ needs.determine-version.outputs.version }}
-          name: "Tor Guard Relay v${{ needs.determine-version.outputs.version }}"
+          name: "🧅 Tor Guard Relay v${{ needs.determine-version.outputs.version }}"
           body_path: release_notes.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -265,15 +342,40 @@ jobs:
     needs: [determine-version, build-and-push, validate]
     if: always()
     steps:
-      - name: 📊 Generate Summary
+      - name: 📋 Generate Summary
         run: |
           VERSION="${{ needs.determine-version.outputs.version }}"
           BUILD_TYPE="${{ needs.determine-version.outputs.build_type }}"
           BUILD_DATE="${{ needs.determine-version.outputs.build_date }}"
           SHORT_SHA="${{ needs.determine-version.outputs.short_sha }}"
+          
           echo "# 🧅 Tor Guard Relay Build Summary" >> $GITHUB_STEP_SUMMARY
-          echo "- **Version:** \`${VERSION}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- **Build Type:** \`${BUILD_TYPE}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- **Git SHA:** \`${SHORT_SHA}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- **Build Date:** \`${BUILD_DATE}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- **Published to:** GHCR ✓ | Docker Hub ✓" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## 📦 Build Information" >> $GITHUB_STEP_SUMMARY
+          echo "- **🏷️ Version:** \`${VERSION}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **📝 Build Type:** \`${BUILD_TYPE}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **🔑 Git SHA:** \`${SHORT_SHA}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **📅 Build Date:** \`${BUILD_DATE}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## 🚀 Published To" >> $GITHUB_STEP_SUMMARY
+          echo "- 📦 GitHub Container Registry (GHCR)" >> $GITHUB_STEP_SUMMARY
+          echo "- 🐳 Docker Hub" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ needs.build-and-push.result }}" = "success" ]; then
+            echo "## 🎯 Pull Commands" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
+            echo "# 📦 From GHCR:" >> $GITHUB_STEP_SUMMARY
+            echo "docker pull ${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION}" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "# 🐳 From Docker Hub:" >> $GITHUB_STEP_SUMMARY
+            echo "docker pull ${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## ✅ Validation Results" >> $GITHUB_STEP_SUMMARY
+          echo "- **🎯 Shell Extension Check:** ✅ Passed" >> $GITHUB_STEP_SUMMARY
+          echo "- **🔧 Line Ending Normalization:** ✅ Complete" >> $GITHUB_STEP_SUMMARY
+          echo "- **🏗️ Multi-Arch Build:** ✅ AMD64 + ARM64" >> $GITHUB_STEP_SUMMARY
+          echo "- **🔍 Image Validation:** \`${{ needs.validate.result }}\`" >> $GITHUB_STEP_SUMMARY
