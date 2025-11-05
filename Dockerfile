@@ -46,7 +46,7 @@ RUN apk add --no-cache \
     jq=1.8.0-r0 \
     grep=3.12-r0 \
     coreutils=9.7-r1 \
-    bind-tools=bind-tools  \
+    bind-tools=9.20.15-r0  \
     netcat-openbsd=1.229.1-r0 \
   && rm -rf /var/cache/apk/*
 
