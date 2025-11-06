@@ -31,14 +31,16 @@ on:
       # 🔒 Security or metadata configs
       - '.github/dependabot.yml'
       - '.github/renovate.json'
-    paths-ignore:
-      # 📝 Documentation-only changes shouldn't trigger builds
-      - '**/*.md'
-      - '**/*.txt'
-      - 'docs/**'
-      - 'LICENSE*'
-      - 'CONTRIBUTING*'
-      - 'CHANGELOG.md'
+
+      # 🧹 Excluded documentation or text files
+      - '!**/*.md'
+      - '!**/*.txt'
+      - '!docs/**'
+      - '!LICENSE*'
+      - '!CONTRIBUTING*'
+      - '!CHANGELOG.md'
+      - '!SECURITY.md'
+      - '!CODE_OF_CONDUCT.md'
 
 permissions:
   contents: read
