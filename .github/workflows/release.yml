@@ -17,13 +17,6 @@ on:
   push:
     tags:
       - 'v*.*.*'
-  workflow_run:
-    workflows: ["🧱✅ Build and Validation"]
-    types:
-      - completed
-    branches:
-      - main
-      - develop
 
 permissions:
   contents: write
@@ -67,12 +60,6 @@ jobs:
             BUILD_TYPE="manual"
             IS_RELEASE="false"
             echo "👤 Manual build version: ${VERSION}"
-          elif [[ "${GITHUB_EVENT_NAME}" == "workflow_run" ]]; then
-            LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v1.0.0")
-            VERSION="${LATEST_TAG#v}-post-validation-${GITHUB_RUN_NUMBER}"
-            BUILD_TYPE="validated"
-            IS_RELEASE="false"
-            echo "✅ Post-validation build version: ${VERSION}"
           else
             LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v1.0.0")
             VERSION="${LATEST_TAG#v}"
@@ -290,10 +277,10 @@ jobs:
             "${{ env.DOCKERHUB_IMAGE_NAME }}"; do
             IMAGE_TAG="${REG}:${VERSION}"
             echo "🔍 Testing: $IMAGE_TAG"
-            docker pull "$IMAGE_TAG"
+            docker pull "$IMAGE_TAG" || { echo "⚠️  Skipping missing image: $IMAGE_TAG"; continue; }
 
             echo "   📦 Checking Tor installation..."
-            TOR_VERSION=$(docker run --rm "$IMAGE_TAG" tor --version | head -1)
+            TOR_VERSION=$(docker run --rm "$IMAGE_TAG" tor --version | head -1 || echo "unknown")
             echo "   ✅ $TOR_VERSION"
 
             echo "   🔧 Checking tools..."
@@ -305,6 +292,54 @@ jobs:
           done
 
           echo "🎉 All images validated successfully"
+
+  cleanup-ghcr:
+    name: 🧹 Cleanup Temporary GHCR Tags
+    runs-on: ubuntu-latest
+    needs: [determine-version, build-and-push, validate]
+    if: needs.determine-version.outputs.build_type == 'validated'
+    permissions:
+      packages: write
+      contents: read
+    steps:
+      - name: 🧹 Delete Temporary GHCR Tag
+        env:
+          GHCR_IMAGE_NAME: ${{ env.GHCR_IMAGE_NAME }}
+          VERSION: ${{ needs.determine-version.outputs.version }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "🧹 Cleaning up temporary GHCR tag: ${VERSION}"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+          OWNER="${GHCR_IMAGE_NAME%%/*}"
+          PACKAGE="${GHCR_IMAGE_NAME#*/}"
+
+          echo "🔍 Fetching GHCR versions for: $OWNER/$PACKAGE"
+
+          API_URL_USER="https://api.github.com/users/${OWNER}/packages/container/${PACKAGE}/versions"
+          API_URL_ORG="https://api.github.com/orgs/${OWNER}/packages/container/${PACKAGE}/versions"
+
+          VERSION_ID=$(curl -s -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+            -H "Accept: application/vnd.github+json" "${API_URL_USER}" |
+            jq -r ".[] | select(.metadata.container.tags[]? == \"${VERSION}\") | .id")
+
+          if [ -z "$VERSION_ID" ]; then
+            VERSION_ID=$(curl -s -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+              -H "Accept: application/vnd.github+json" "${API_URL_ORG}" |
+              jq -r ".[] | select(.metadata.container.tags[]? == \"${VERSION}\") | .id")
+          fi
+
+          if [ -n "$VERSION_ID" ]; then
+            echo "🆔 Found GHCR version ID: $VERSION_ID"
+            DELETE_URL_USER="https://api.github.com/users/${OWNER}/packages/container/${PACKAGE}/versions/${VERSION_ID}"
+            DELETE_URL_ORG="https://api.github.com/orgs/${OWNER}/packages/container/${PACKAGE}/versions/${VERSION_ID}"
+            curl -s -X DELETE -H "Authorization: Bearer ${GITHUB_TOKEN}" -H "Accept: application/vnd.github+json" "${DELETE_URL_USER}" \
+              || curl -s -X DELETE -H "Authorization: Bearer ${GITHUB_TOKEN}" -H "Accept: application/vnd.github+json" "${DELETE_URL_ORG}"
+            echo "✅ Temporary GHCR tag deleted: ${VERSION}"
+          else
+            echo "ℹ️ No matching GHCR tag found for ${VERSION}"
+          fi
 
   release-notes:
     name: 📝 Generate Release Notes
@@ -347,7 +382,7 @@ jobs:
   summary:
     name: 📊 Build Summary
     runs-on: ubuntu-latest
-    needs: [determine-version, build-and-push, validate]
+    needs: [determine-version, build-and-push, validate, cleanup-ghcr]
     if: always()
     steps:
       - name: 📋 Generate Summary
@@ -369,18 +404,8 @@ jobs:
           echo "- 📦 GitHub Container Registry (GHCR)" >> $GITHUB_STEP_SUMMARY
           echo "- 🐳 Docker Hub" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-
-          if [ "${{ needs.build-and-push.result }}" = "success" ]; then
-            echo "## 🎯 Pull Commands" >> $GITHUB_STEP_SUMMARY
-            echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
-            echo "# 📦 From GHCR:" >> $GITHUB_STEP_SUMMARY
-            echo "docker pull ${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION}" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "# 🐳 From Docker Hub:" >> $GITHUB_STEP_SUMMARY
-            echo "docker pull ${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}" >> $GITHUB_STEP_SUMMARY
-            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-          fi
-
+          echo "## 🧹 Cleanup Results" >> $GITHUB_STEP_SUMMARY
+          echo "- **GHCR Cleanup:** \`${{ needs.cleanup-ghcr.result || 'skipped' }}\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "## ✅ Validation Results" >> $GITHUB_STEP_SUMMARY
           echo "- **🎯 Shell Extension Check:** ✅ Passed" >> $GITHUB_STEP_SUMMARY

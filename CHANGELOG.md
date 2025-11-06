@@ -15,7 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 🔄 Automatic relay configuration updates
 - 🧪 Enhanced integration testing suite
 
----
+## [1.0.5] - 2025-11-06
+
+🐳 Downgrade base image from Alpine 3.22.2 to 3.21.5
 
 ## [1.0.4] - 2025-11-06
 
