@@ -5,7 +5,7 @@
 set -e
 
 # Configuration
-VERSION="1.1.1"
+VERSION="1.0.4"
 CONFIG_FILE="${CONFIG_FILE:-/etc/tor/torrc}"
 RELAY_TYPE="${RELAY_TYPE:-guard}"
 AUTO_MODE="${AUTO_MODE:-false}"

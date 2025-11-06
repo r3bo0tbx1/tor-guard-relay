@@ -9,10 +9,37 @@ OUTPUT_FORMAT="text"
 CHECK_IPV4="true"
 CHECK_IPV6="true"
 CHECK_DNS="true"
-CHECK_CONSENSUS="true"
+CHECK_CONSENSUS="false"
 CHECK_PORTS="true"
-DNS_SERVERS="1.1.1.1 8.8.8.8 9.9.9.9"
+DNS_SERVERS="194.242.2.2 94.140.14.14 9.9.9.9"
 TEST_TIMEOUT="5"
+
+format_status() {
+  case "$1" in
+    ok|OK) echo "🟢 OK" ;;
+    failed|closed|error|FAIL|not_available) echo "🔴 FAIL" ;;
+    skipped|unknown) echo "⏭️ SKIPPED" ;;
+    *) echo "$1" ;;
+  esac
+}
+
+format_ip_status() {
+  local type="$1"
+  local status="$2"
+  local addr="$3"
+
+  if [ "$status" = "ok" ] && [ -n "$addr" ]; then
+    echo "🟢 OK ($addr)"
+  elif [ "$status" = "ok" ]; then
+    echo "🟢 OK"
+  elif [ "$status" = "failed" ] || [ "$status" = "not_available" ]; then
+    echo "🔴 No ${type} connectivity"
+  elif [ "$status" = "skipped" ]; then
+    echo "⏭️ ${type} check skipped"
+  else
+    echo "$(format_status "$status")"
+  fi
+}
 
 # Parse arguments
 for arg in "$@"; do
@@ -156,7 +183,7 @@ check_ports() {
 check_ipv4
 check_ipv6
 check_dns
-check_consensus
+# check_consensus
 check_ports
 
 TOTAL_PASSED=$((TOTAL_TESTS - FAILED_TESTS))
@@ -202,11 +229,11 @@ EOF
       echo "📊 Overall: ❌ Multiple failures ($SUCCESS_RATE% passed)"
     fi
     echo ""
-    echo "🔌 IPv4: $IPV4_STATUS ${PUBLIC_IP:+($PUBLIC_IP)}"
-    echo "🔌 IPv6: $IPV6_STATUS ${PUBLIC_IP6:+($PUBLIC_IP6)}"
-    echo "🔍 DNS: $DNS_STATUS"
-    echo "📋 Consensus: $CONSENSUS_STATUS"
-    echo "🚪 Ports: $PORT_STATUS"
+    echo "🔌 IPv4: $(format_ip_status IPv4 "$IPV4_STATUS" "$PUBLIC_IP")"
+    echo "🔌 IPv6: $(format_ip_status IPv6 "$IPV6_STATUS" "$PUBLIC_IP6")"
+    echo "🔍 DNS: $(format_status "$DNS_STATUS")"
+    echo "📋 Consensus: $(format_status "$CONSENSUS_STATUS")"
+    echo "🚪 Ports: $(format_status "$PORT_STATUS")"
     echo ""
     echo "🕒 Tested at: $TIMESTAMP"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

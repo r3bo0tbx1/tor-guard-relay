@@ -1,6 +1,6 @@
 #!/bin/sh
 # docker-entrypoint.sh - Tor Guard Relay initialization and process management
-# 🆕 v1.1 - Smart log monitoring: triggers diagnostics after bandwidth self-test
+# 🆕 v1.0.4 - Smart log monitoring: triggers diagnostics after bandwidth self-test
 
 set -e
 

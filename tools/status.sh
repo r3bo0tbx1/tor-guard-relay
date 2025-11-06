@@ -5,10 +5,29 @@
 set -e
 
 # Configuration
-VERSION="1.1.0"
+VERSION="1.0.4"
 OUTPUT_FORMAT="${OUTPUT_FORMAT:-text}"
 SHOW_ALL="${SHOW_ALL:-true}"
 CHECK_NETWORK="${CHECK_NETWORK:-true}"
+
+format_status() {
+  case "$1" in
+    ok|OK) echo "🟢 OK" ;;
+    failed|closed|error|FAIL|not_available) echo "🔴 FAIL" ;;
+    skipped|unknown) echo "⏭️ SKIPPED" ;;
+    *) echo "$1" ;;
+  esac
+}
+
+format_ip_status() {
+  local type="$1"
+  local value="$2"
+  if [ -n "$value" ]; then
+    echo "🟢 OK ($value)"
+  else
+    echo "🔴 No ${type} connectivity"
+  fi
+}
 
 # Parse arguments
 for arg in "$@"; do
@@ -33,22 +52,6 @@ ENVIRONMENT VARIABLES:
     SHOW_ALL         Show all sections (true/false)
     CHECK_NETWORK    Include network checks (true/false)
 
-SECTIONS:
-    • Build Information
-    • Bootstrap Progress
-    • Reachability Status
-    • Relay Identity
-    • Network Configuration
-    • Performance Metrics
-    • Recent Activity
-    • Error Summary
-
-EXAMPLES:
-    status              # Full status report
-    status --json       # JSON output for monitoring
-    status --quick      # Quick status without network
-    status --plain      # Machine-readable format
-
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 EOF
       exit 0
@@ -56,11 +59,11 @@ EOF
     --json) OUTPUT_FORMAT="json" ;;
     --plain) OUTPUT_FORMAT="plain" ;;
     --quick) CHECK_NETWORK="false" ;;
-    --full) 
+    --full)
       SHOW_ALL="true"
       CHECK_NETWORK="true"
       ;;
-    -*) 
+    -*)
       echo "❌ Unknown option: $arg"
       echo "💡 Use --help for usage information"
       exit 2
@@ -70,7 +73,6 @@ done
 
 # Gather all status information
 gather_status() {
-  # Process status
   IS_RUNNING="false"
   if pgrep -x tor > /dev/null 2>&1; then
     IS_RUNNING="true"
@@ -78,7 +80,6 @@ gather_status() {
     UPTIME=$(ps -o etime= -p "$PID" 2>/dev/null | tr -d ' ' || echo "0")
   fi
   
-  # Bootstrap status
   BOOTSTRAP_PERCENT=0
   BOOTSTRAP_MESSAGE=""
   if [ -f /var/log/tor/notices.log ]; then
@@ -89,7 +90,6 @@ gather_status() {
     fi
   fi
   
-  # Reachability
   IS_REACHABLE="false"
   REACHABILITY_MESSAGE=""
   if [ -f /var/log/tor/notices.log ]; then
@@ -102,7 +102,6 @@ gather_status() {
     fi
   fi
   
-  # Relay identity
   NICKNAME=""
   FINGERPRINT=""
   if [ -f /var/lib/tor/fingerprint ]; then
@@ -110,7 +109,6 @@ gather_status() {
     FINGERPRINT=$(awk '{print $2}' /var/lib/tor/fingerprint 2>/dev/null)
   fi
   
-  # Configuration
   ORPORT=""
   DIRPORT=""
   EXIT_RELAY="false"
@@ -124,7 +122,6 @@ gather_status() {
     BANDWIDTH_RATE=$(grep -E "^RelayBandwidthRate" /etc/tor/torrc 2>/dev/null | awk '{print $2,$3}')
   fi
   
-  # Errors and warnings
   ERROR_COUNT=0
   WARNING_COUNT=0
   RECENT_ERRORS=""
@@ -134,7 +131,6 @@ gather_status() {
     RECENT_ERRORS=$(grep -E "\[err\]|\[error\]" /var/log/tor/notices.log 2>/dev/null | tail -3)
   fi
   
-  # Version info
   VERSION_INFO=""
   BUILD_TIME=""
   if [ -f /build-info.txt ]; then
@@ -142,20 +138,17 @@ gather_status() {
     BUILD_TIME=$(grep "Built:" /build-info.txt 2>/dev/null | cut -d: -f2- | tr -d ' ')
   fi
   
-  # Network info (if enabled)
   PUBLIC_IP=""
+  PUBLIC_IP6=""
   if [ "$CHECK_NETWORK" = "true" ] && command -v curl > /dev/null 2>&1; then
-    PUBLIC_IP=$(curl -s --max-time 5 https://api.ipify.org 2>/dev/null || echo "")
+    PUBLIC_IP=$(curl -4 -s --max-time 5 https://ipv4.icanhazip.com 2>/dev/null | tr -d '\r')
+    PUBLIC_IP6=$(curl -6 -s --max-time 5 https://ipv6.icanhazip.com 2>/dev/null | tr -d '\r')
   fi
 }
 
-# Gather all information
 gather_status
-
-# Generate timestamp
 TIMESTAMP=$(date -u '+%Y-%m-%dT%H:%M:%SZ' 2>/dev/null || date '+%Y-%m-%d %H:%M:%S')
 
-# Determine overall status
 if [ "$IS_RUNNING" = "false" ]; then
   OVERALL_STATUS="down"
 elif [ "$BOOTSTRAP_PERCENT" -eq 100 ] && [ "$IS_REACHABLE" = "true" ]; then
@@ -168,29 +161,17 @@ else
   OVERALL_STATUS="unknown"
 fi
 
-# Output based on format
 case "$OUTPUT_FORMAT" in
   json)
+
     cat << EOF
 {
   "timestamp": "$TIMESTAMP",
   "status": "$OVERALL_STATUS",
-  "process": {
-    "running": $IS_RUNNING,
-    "uptime": "$UPTIME"
-  },
-  "bootstrap": {
-    "percent": $BOOTSTRAP_PERCENT,
-    "message": "$BOOTSTRAP_MESSAGE"
-  },
-  "reachability": {
-    "reachable": $IS_REACHABLE,
-    "message": "$REACHABILITY_MESSAGE"
-  },
-  "identity": {
-    "nickname": "$NICKNAME",
-    "fingerprint": "$FINGERPRINT"
-  },
+  "process": { "running": $IS_RUNNING, "uptime": "$UPTIME" },
+  "bootstrap": { "percent": $BOOTSTRAP_PERCENT, "message": "$BOOTSTRAP_MESSAGE" },
+  "reachability": { "reachable": $IS_REACHABLE, "message": "$REACHABILITY_MESSAGE" },
+  "identity": { "nickname": "$NICKNAME", "fingerprint": "$FINGERPRINT" },
   "configuration": {
     "orport": "$ORPORT",
     "dirport": "$DIRPORT",
@@ -198,22 +179,15 @@ case "$OUTPUT_FORMAT" in
     "bridge_relay": $BRIDGE_RELAY,
     "bandwidth": "$BANDWIDTH_RATE"
   },
-  "network": {
-    "public_ip": "$PUBLIC_IP"
-  },
-  "issues": {
-    "errors": $ERROR_COUNT,
-    "warnings": $WARNING_COUNT
-  },
-  "version": {
-    "software": "$VERSION_INFO",
-    "build_time": "$BUILD_TIME"
-  }
+  "network": { "ipv4": "$PUBLIC_IP", "ipv6": "$PUBLIC_IP6" },
+  "issues": { "errors": $ERROR_COUNT, "warnings": $WARNING_COUNT },
+  "version": { "software": "$VERSION_INFO", "build_time": "$BUILD_TIME" }
 }
 EOF
     ;;
     
   plain)
+
     echo "STATUS=$OVERALL_STATUS"
     echo "RUNNING=$IS_RUNNING"
     echo "UPTIME=$UPTIME"
@@ -226,46 +200,33 @@ EOF
     echo "ERRORS=$ERROR_COUNT"
     echo "WARNINGS=$WARNING_COUNT"
     echo "PUBLIC_IP=$PUBLIC_IP"
+    echo "PUBLIC_IP6=$PUBLIC_IP6"
     ;;
     
   *)
-    # Default text format with emojis
     echo "🧅 Tor Relay Status Report"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo ""
-    
-    # Overall status
+
     case "$OVERALL_STATUS" in
-      healthy)
-        echo "⭐ Overall Status: ✅ HEALTHY - Relay is fully operational"
-        ;;
-      running)
-        echo "⭐ Overall Status: 🟡 RUNNING - Awaiting reachability confirmation"
-        ;;
-      starting)
-        echo "⭐ Overall Status: 🔄 STARTING - Bootstrap in progress ($BOOTSTRAP_PERCENT%)"
-        ;;
-      down)
-        echo "⭐ Overall Status: ❌ DOWN - Tor process not running"
-        ;;
-      *)
-        echo "⭐ Overall Status: ❓ UNKNOWN"
-        ;;
+      healthy) echo "⭐ Overall Status: 🟢 OK - Relay is fully operational" ;;
+      running) echo "⭐ Overall Status: 🟡 RUNNING - Awaiting reachability confirmation" ;;
+      starting) echo "⭐ Overall Status: 🔄 STARTING - Bootstrap in progress ($BOOTSTRAP_PERCENT%)" ;;
+      down) echo "⭐ Overall Status: 🔴 FAIL - Tor process not running" ;;
+      *) echo "⭐ Overall Status: ❓ UNKNOWN" ;;
     esac
     echo ""
-    
-    # Build info
+
     if [ -n "$VERSION_INFO" ] || [ -n "$BUILD_TIME" ]; then
       echo "📦 Build Information:"
       [ -n "$VERSION_INFO" ] && echo "   Version: $VERSION_INFO"
       [ -n "$BUILD_TIME" ] && echo "   Built: $BUILD_TIME"
       echo ""
     fi
-    
-    # Bootstrap progress
+
     echo "🚀 Bootstrap Progress:"
     if [ "$BOOTSTRAP_PERCENT" -eq 100 ]; then
-      echo "   ✅ Fully bootstrapped (100%)"
+      echo "   🟢 OK - Fully bootstrapped (100%)"
       [ -n "$BOOTSTRAP_MESSAGE" ] && echo "   Status: $BOOTSTRAP_MESSAGE"
     elif [ "$BOOTSTRAP_PERCENT" -gt 0 ]; then
       echo "   🔄 Bootstrapping: $BOOTSTRAP_PERCENT%"
@@ -274,33 +235,30 @@ EOF
       echo "   ⏳ Not started yet"
     fi
     echo ""
-    
-    # Reachability status
-    echo "🌍 Reachability Status:"
+
+    echo "🌍 Reachability:"
     if [ "$IS_REACHABLE" = "true" ]; then
-      echo "   ✅ Relay is reachable from the outside"
+      echo "   🌐 Reachability: 🟢 OK"
     elif [ -n "$REACHABILITY_MESSAGE" ]; then
-      echo "   🔄 $REACHABILITY_MESSAGE"
+      echo "   🌐 Reachability: 🔴 $REACHABILITY_MESSAGE"
     else
-      echo "   ⏳ No reachability test results yet"
+      echo "   🌐 Reachability: ⏳ Pending"
     fi
     echo ""
-    
-    # Relay identity
+
     if [ -n "$NICKNAME" ] || [ -n "$FINGERPRINT" ]; then
       echo "🔑 Relay Identity:"
       [ -n "$NICKNAME" ] && echo "   📝 Nickname: $NICKNAME"
       [ -n "$FINGERPRINT" ] && echo "   🆔 Fingerprint: $FINGERPRINT"
       echo ""
     fi
-    
-    # Network configuration
+
     echo "🔌 Network Configuration:"
-    [ -n "$ORPORT" ] && echo "   ORPort: $ORPORT"
-    [ -n "$DIRPORT" ] && echo "   DirPort: $DIRPORT"
-    [ -n "$PUBLIC_IP" ] && echo "   Public IP: $PUBLIC_IP"
+    [ -n "$PUBLIC_IP" ] && echo "   IPv4: $(format_ip_status IPv4 "$PUBLIC_IP")" || echo "   IPv4: 🔴 No IPv4 connectivity"
+    [ -n "$PUBLIC_IP6" ] && echo "   IPv6: $(format_ip_status IPv6 "$PUBLIC_IP6")" || echo "   IPv6: 🔴 No IPv6 connectivity"
+    [ -n "$ORPORT" ] && echo "   ORPort: $ORPORT" || echo "   ORPort: 🔴 Not configured"
+    [ -n "$DIRPORT" ] && echo "   DirPort: $DIRPORT" || echo "   DirPort: 🔴 Not configured"
     [ -n "$BANDWIDTH_RATE" ] && echo "   Bandwidth: $BANDWIDTH_RATE"
-    
     if [ "$EXIT_RELAY" = "true" ]; then
       echo "   Type: 🚪 Exit Relay"
     elif [ "$BRIDGE_RELAY" = "true" ]; then
@@ -309,13 +267,11 @@ EOF
       echo "   Type: 🔒 Guard/Middle Relay"
     fi
     echo ""
-    
-    # Issues summary
+
     if [ "$ERROR_COUNT" -gt 0 ] || [ "$WARNING_COUNT" -gt 0 ]; then
       echo "⚠️  Issues Summary:"
       [ "$ERROR_COUNT" -gt 0 ] && echo "   ❌ Errors: $ERROR_COUNT"
       [ "$WARNING_COUNT" -gt 0 ] && echo "   ⚠️  Warnings: $WARNING_COUNT"
-      
       if [ -n "$RECENT_ERRORS" ] && [ "$ERROR_COUNT" -gt 0 ]; then
         echo ""
         echo "   Recent errors:"
@@ -323,7 +279,7 @@ EOF
       fi
       echo ""
     fi
-    
+
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo "💡 For live monitoring: docker logs -f <container-name>"
     echo "🔗 Search your relay: https://metrics.torproject.org/rs.html"

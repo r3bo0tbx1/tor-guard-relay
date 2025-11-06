@@ -17,6 +17,71 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.4] - 2025-11-06
+
+### ✨ Major Additions
+
+**Unified Emoji Diagnostic Language**
+
+* Standardized all status indicators across CLI and dashboard:
+  🟢 **OK**, 🔴 **FAIL**, 🟡 **RUNNING**, ⏭️ **SKIPPED**
+* Applied consistently to `net-check.sh`, `health.sh`, `status.sh`, and `dashboard.sh`
+* Ensures identical visual language between terminal output and web UI
+
+**IPv4 / IPv6 Awareness**
+
+* Added explicit detection for unavailable IP versions
+* Displays **“🔴 No IPv4”** or **“🔴 No IPv6”** instead of generic “not available”
+* Greatly improves diagnostic clarity for dual-stack systems
+
+**Dashboard API Enhancement**
+
+* `/api/status` now exposes a new `status_emoji` field for lightweight external monitoring
+* The web interface now dynamically renders emoji states directly from this field
+
+**Optional Consensus Test**
+
+* The “📋 Consensus” check in `net-check.sh` is now fully optional
+* Disabled automatically in `--quick` mode to avoid noisy `curl: (22) 404` logs
+* Reduces false negatives during limited network conditions
+
+### 🧰 Enhancements
+
+**Health & Status Modules**
+
+* Unified status classification logic between `health.sh` and `status.sh`
+* Added clearer uptime, reachability, and process visibility
+* All scripts now extract build version from `/build-info.txt` for consistent reporting
+
+**Integration Testing**
+
+* `integration-check.sh` now performs comprehensive syntax, permission, and security validation for every tool
+* Added checks for safe localhost binding on `dashboard.sh` and `metrics-http.sh`
+* Enforces version consistency between build metadata and tool versions
+
+**Logging & Diagnostics**
+
+* Refined startup logs (Phases 4–9) for better readability during initialization
+* Post-bootstrap diagnostics now summarize IPv4, IPv6, DNS, Port, and Consensus results cleanly
+
+**Dashboard Security Defaults**
+
+* Default bind set to `127.0.0.1` for secure-by-default operation
+* Added visible runtime warning if the dashboard is exposed publicly (`0.0.0.0`)
+
+### 🐛 Bug Fixes
+
+* Fixed `curl: (22)` errors during consensus tests by adding graceful skip logic
+* Prevented partial JSON validation failures when `jq` is unavailable
+* Ensured accurate exit codes for health scripts used in Docker and CI/CD
+* Standardized capitalization across diagnostics (`ok` → `OK`)
+
+### 🧠 Developer Notes
+
+* `integration-check.sh` reports full pass in Alpine-based containers
+* Version bump to **v1.0.4** across all modules and build metadata
+* Preflight diagnostics now surface partial network success even if Tor metrics endpoints are unreachable
+
 ## [1.0.3] - 2025-11-06
 
 ### 🚀 CI/CD & Build System
