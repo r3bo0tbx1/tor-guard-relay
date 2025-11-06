@@ -17,7 +17,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [1.0.8] - 2025-11-08
+## [1.0.9] - 2025-11-07
+
+🧠 **Maintenance and polish release** improving shell reliability, output consistency, and readability across status and log utilities.
+🎨 Streamlined log viewer formatting, sanitized numeric parsing, and removed noisy shell error messages for cleaner execution.
+
+### ✨ Added
+
+* 🧩 Input sanitization helpers to ensure safe numeric evaluation in all status checks
+* 🧱 Integrated integer guard function (`is_integer`) to prevent bad-number shell errors
+* 🕒 Unified UTC timestamp formatting for consistent output across commands
+
+### 🧰 Improvements
+
+* 📜 `view-logs`: Compact single-line statistics (`📊 Stats: total | errors | warnings`) for cleaner display
+* 🧅 `status`: Sanitized bootstrap parsing and error-free numeric comparison
+* ⚙️ Hardened `set -e` handling with fallback defaults for missing values
+* 🧩 Refined whitespace and CRLF handling in log parsing for improved compatibility
+* 🧰 General shell cleanup and quoting improvements for portability across BusyBox, Alpine, and Debian-based images
+
+### 🐛 Fixed
+
+* 🧹 Removed recurring `sh: 0: bad number` warnings in `status` output
+* 🧩 Fixed multi-line log stats formatting issue in `view-logs`
+* 🔧 Corrected potential false negatives in `BOOTSTRAP_PERCENT` extraction
+* 🧠 Resolved misinterpretation of empty variables during numeric comparisons
+
+### 🔒 Security
+
+* 🧩 Verified `set -e` safety to prevent unintended script exits on minor grep/curl failures
+* 🛡️ Strengthened input filtering to prevent malformed log content injection into shell context
+
+---
+
+### 🧠 Developer Notes
+
+* ✅ Both `status` and `view-logs` scripts tested under Alpine BusyBox and Debian Dash shells
+* 🧩 Scripts now fully pass shellcheck (`shfmt` + POSIX mode) validation
+* 💡 Compatible with Docker health checks and CI/CD validation hooks
+
+---
+
+**🧱 Summary:**
+
+> *Tor Guard Relay v1.0.9 delivers a clean, error-free shell experience, better numeric safety, and a polished command-line output for monitoring and log viewing.*
+
+---
+
+## [1.0.8] - 2025-11-07
 
 🧠 **Polish and refinement release** focused on versioning automation, tag safety, and improved metadata accuracy.
 ⚙️ Streamlined validation logic, consistent changelog generation, and safer build workflows.
@@ -135,15 +182,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Version   | Status                | Support Level                               |
 | --------- | --------------------- | ------------------------------------------- |
-| **1.0.8** | 🟢 🛡️ **Active**     | Full support (current stable)               |
-| **1.0.7** | 🟡 🔧 **Maintenance** | Security + critical fixes only              |
-| **1.0.6** | 🟠 ⚠️ **Legacy**      | Security patches only – upgrade recommended |
-| **1.0.5** | 🔴 ❌ **EOL**          | No support – upgrade immediately            |
+| **1.0.9** | 🟢 🛡️ **Active**     | Full support (current stable)               |
+| **1.0.8** | 🟡 🔧 **Maintenance** | Security + critical fixes only              |
+| **1.0.7** | 🟠 ⚠️ **Legacy**      | Security patches only – upgrade recommended |
+| **1.0.6** | 🔴 ❌ **EOL**          | No support – upgrade immediately            |
 
 ---
 
 ## 🔗 Release Links
 
+[1.0.9]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.0.9
 [1.0.8]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.0.8
 [1.0.7]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.0.7
 [1.0.6]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.0.6
@@ -152,7 +200,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [1.0.3]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.0.3
 [1.0.2]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.0.2
 [1.0.1]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.0.1
-[1.0.0]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.0
 [Unreleased]: https://github.com/r3bo0tbx1/tor-guard-relay/compare/v1.0.8...HEAD
 
 ---

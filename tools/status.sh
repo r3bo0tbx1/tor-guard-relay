@@ -5,7 +5,7 @@
 set -e
 
 # Configuration
-VERSION="1.0.4"
+VERSION="1.0.9"
 OUTPUT_FORMAT="${OUTPUT_FORMAT:-text}"
 SHOW_ALL="${SHOW_ALL:-true}"
 CHECK_NETWORK="${CHECK_NETWORK:-true}"
@@ -27,6 +27,14 @@ format_ip_status() {
   else
     echo "🔴 No ${type} connectivity"
   fi
+}
+
+# Safe integer check
+is_integer() {
+  case "$1" in
+    ''|*[!0-9]*) return 1 ;;
+    *) return 0 ;;
+  esac
 }
 
 # Parse arguments
@@ -74,41 +82,43 @@ done
 # Gather all status information
 gather_status() {
   IS_RUNNING="false"
-  if pgrep -x tor > /dev/null 2>&1; then
+  if pgrep -x tor >/dev/null 2>&1; then
     IS_RUNNING="true"
     PID=$(pgrep -x tor | head -1)
     UPTIME=$(ps -o etime= -p "$PID" 2>/dev/null | tr -d ' ' || echo "0")
   fi
-  
+
   BOOTSTRAP_PERCENT=0
   BOOTSTRAP_MESSAGE=""
   if [ -f /var/log/tor/notices.log ]; then
-    BOOTSTRAP_LINE=$(grep "Bootstrapped" /var/log/tor/notices.log 2>/dev/null | tail -1)
+    BOOTSTRAP_LINE=$(grep "Bootstrapped" /var/log/tor/notices.log 2>/dev/null | tail -1 || true)
     if [ -n "$BOOTSTRAP_LINE" ]; then
-      BOOTSTRAP_PERCENT=$(echo "$BOOTSTRAP_LINE" | grep -oE '[0-9]+%' | tr -d '%' | tail -1)
+      # Extract clean integer only
+      BOOTSTRAP_PERCENT=$(echo "$BOOTSTRAP_LINE" | grep -oE '[0-9]+' | tail -1 | tr -d '\r' || echo 0)
+      BOOTSTRAP_PERCENT=${BOOTSTRAP_PERCENT:-0}
       BOOTSTRAP_MESSAGE=$(echo "$BOOTSTRAP_LINE" | sed 's/.*Bootstrapped [0-9]*%[: ]*//')
     fi
   fi
-  
+
   IS_REACHABLE="false"
   REACHABILITY_MESSAGE=""
   if [ -f /var/log/tor/notices.log ]; then
-    REACHABLE_LINE=$(grep -E "reachable|self-testing" /var/log/tor/notices.log 2>/dev/null | tail -1)
-    if echo "$REACHABLE_LINE" | grep -q "reachable from the outside"; then
+    REACHABLE_LINE=$(grep -E "reachable|self-testing" /var/log/tor/notices.log 2>/dev/null | tail -1 || true)
+    if echo "$REACHABLE_LINE" | grep -q "reachable from the outside" 2>/dev/null; then
       IS_REACHABLE="true"
       REACHABILITY_MESSAGE="ORPort is reachable from the outside"
     elif [ -n "$REACHABLE_LINE" ]; then
       REACHABILITY_MESSAGE=$(echo "$REACHABLE_LINE" | sed 's/.*] //')
     fi
   fi
-  
+
   NICKNAME=""
   FINGERPRINT=""
   if [ -f /var/lib/tor/fingerprint ]; then
     NICKNAME=$(awk '{print $1}' /var/lib/tor/fingerprint 2>/dev/null)
     FINGERPRINT=$(awk '{print $2}' /var/lib/tor/fingerprint 2>/dev/null)
   fi
-  
+
   ORPORT=""
   DIRPORT=""
   EXIT_RELAY="false"
@@ -121,7 +131,7 @@ gather_status() {
     grep -qE "^BridgeRelay\s+1" /etc/tor/torrc 2>/dev/null && BRIDGE_RELAY="true"
     BANDWIDTH_RATE=$(grep -E "^RelayBandwidthRate" /etc/tor/torrc 2>/dev/null | awk '{print $2,$3}')
   fi
-  
+
   ERROR_COUNT=0
   WARNING_COUNT=0
   RECENT_ERRORS=""
@@ -130,32 +140,37 @@ gather_status() {
     WARNING_COUNT=$(grep -cE "\[warn\]|\[warning\]" /var/log/tor/notices.log 2>/dev/null || echo 0)
     RECENT_ERRORS=$(grep -E "\[err\]|\[error\]" /var/log/tor/notices.log 2>/dev/null | tail -3)
   fi
-  
+
   VERSION_INFO=""
   BUILD_TIME=""
   if [ -f /build-info.txt ]; then
     VERSION_INFO=$(grep "Version:" /build-info.txt 2>/dev/null | cut -d: -f2- | tr -d ' ')
     BUILD_TIME=$(grep "Built:" /build-info.txt 2>/dev/null | cut -d: -f2- | tr -d ' ')
   fi
-  
+
   PUBLIC_IP=""
   PUBLIC_IP6=""
-  if [ "$CHECK_NETWORK" = "true" ] && command -v curl > /dev/null 2>&1; then
+  if [ "$CHECK_NETWORK" = "true" ] && command -v curl >/dev/null 2>&1; then
     PUBLIC_IP=$(curl -4 -s --max-time 5 https://ipv4.icanhazip.com 2>/dev/null | tr -d '\r')
     PUBLIC_IP6=$(curl -6 -s --max-time 5 https://ipv6.icanhazip.com 2>/dev/null | tr -d '\r')
   fi
 }
 
 gather_status
+
+# Sanitize percent and timestamp
+BOOTSTRAP_PERCENT=$(echo "$BOOTSTRAP_PERCENT" | tr -cd '0-9')
+BOOTSTRAP_PERCENT=${BOOTSTRAP_PERCENT:-0}
 TIMESTAMP=$(date -u '+%Y-%m-%dT%H:%M:%SZ' 2>/dev/null || date '+%Y-%m-%d %H:%M:%S')
 
+# Determine overall status safely
 if [ "$IS_RUNNING" = "false" ]; then
   OVERALL_STATUS="down"
-elif [ "$BOOTSTRAP_PERCENT" -eq 100 ] && [ "$IS_REACHABLE" = "true" ]; then
+elif is_integer "$BOOTSTRAP_PERCENT" && [ "$BOOTSTRAP_PERCENT" -eq 100 ] && [ "$IS_REACHABLE" = "true" ]; then
   OVERALL_STATUS="healthy"
-elif [ "$BOOTSTRAP_PERCENT" -eq 100 ]; then
+elif is_integer "$BOOTSTRAP_PERCENT" && [ "$BOOTSTRAP_PERCENT" -eq 100 ]; then
   OVERALL_STATUS="running"
-elif [ "$BOOTSTRAP_PERCENT" -gt 0 ]; then
+elif is_integer "$BOOTSTRAP_PERCENT" && [ "$BOOTSTRAP_PERCENT" -gt 0 ]; then
   OVERALL_STATUS="starting"
 else
   OVERALL_STATUS="unknown"
@@ -163,7 +178,6 @@ fi
 
 case "$OUTPUT_FORMAT" in
   json)
-
     cat << EOF
 {
   "timestamp": "$TIMESTAMP",
@@ -185,9 +199,7 @@ case "$OUTPUT_FORMAT" in
 }
 EOF
     ;;
-    
   plain)
-
     echo "STATUS=$OVERALL_STATUS"
     echo "RUNNING=$IS_RUNNING"
     echo "UPTIME=$UPTIME"
@@ -202,7 +214,6 @@ EOF
     echo "PUBLIC_IP=$PUBLIC_IP"
     echo "PUBLIC_IP6=$PUBLIC_IP6"
     ;;
-    
   *)
     echo "🧅 Tor Relay Status Report"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -225,10 +236,10 @@ EOF
     fi
 
     echo "🚀 Bootstrap Progress:"
-    if [ "$BOOTSTRAP_PERCENT" -eq 100 ]; then
+    if is_integer "$BOOTSTRAP_PERCENT" && [ "$BOOTSTRAP_PERCENT" -eq 100 ]; then
       echo "   🟢 OK - Fully bootstrapped (100%)"
       [ -n "$BOOTSTRAP_MESSAGE" ] && echo "   Status: $BOOTSTRAP_MESSAGE"
-    elif [ "$BOOTSTRAP_PERCENT" -gt 0 ]; then
+    elif is_integer "$BOOTSTRAP_PERCENT" && [ "$BOOTSTRAP_PERCENT" -gt 0 ]; then
       echo "   🔄 Bootstrapping: $BOOTSTRAP_PERCENT%"
       [ -n "$BOOTSTRAP_MESSAGE" ] && echo "   Status: $BOOTSTRAP_MESSAGE"
     else

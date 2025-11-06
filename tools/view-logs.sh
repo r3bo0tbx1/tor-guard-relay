@@ -5,7 +5,7 @@
 set -e
 
 # Configuration
-VERSION="1.1.0"
+VERSION="1.0.9"
 LOG_FILE="${LOG_FILE:-/var/log/tor/notices.log}"
 LOG_LINES="${LOG_LINES:-50}"
 FOLLOW_MODE="${FOLLOW_MODE:-false}"
@@ -184,6 +184,7 @@ if [ "$FILTER_MODE" = "all" ]; then
   
   echo "📊 Stats: $TOTAL_LINES total | $ERROR_COUNT errors | $WARNING_COUNT warnings"
 fi
+
 
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
