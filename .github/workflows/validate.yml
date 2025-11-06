@@ -1,4 +1,4 @@
-name: 🧱✅ Build and Validation
+name: ✅⌛ Validate
 
 on:
   workflow_dispatch:
@@ -11,11 +11,34 @@ on:
       - main
       - develop
     paths:
+      # 🐳 Core build and runtime logic
       - 'Dockerfile'
       - 'docker-entrypoint.sh'
-      - 'tools/**'
+      - 'integration-check.sh'
+
+      # 🧩 Tools and validation scripts
+      - 'tools/*.sh'
+
+      # ⚙️ CI/CD workflows
       - '.github/workflows/release.yml'
       - '.github/workflows/validate.yml'
+
+      # 🧱 Template and config files
+      - 'templates/**'
+      - 'compose*.yml'
+      - 'docker-compose*.yml'
+
+      # 🔒 Security or metadata configs
+      - '.github/dependabot.yml'
+      - '.github/renovate.json'
+    paths-ignore:
+      # 📝 Documentation-only changes shouldn't trigger builds
+      - '**/*.md'
+      - '**/*.txt'
+      - 'docs/**'
+      - 'LICENSE*'
+      - 'CONTRIBUTING*'
+      - 'CHANGELOG.md'
 
 permissions:
   contents: read
@@ -579,3 +602,4 @@ jobs:
         run: |
           echo "❌ Build pipeline failed - check logs above for details"
           exit 1
+

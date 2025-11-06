@@ -163,7 +163,7 @@ See [Deployment Guide](docs/DEPLOYMENT.md) for complete instructions.
 
 ## 🔧 Diagnostic Tools
 
-**v1.0.7 includes 9 production-ready diagnostic tools** - no external scripts needed!
+**v1.0.8 includes 9 production-ready diagnostic tools** - no external scripts needed!
 
 ### Quick Reference
 
@@ -190,7 +190,7 @@ docker exec tor-relay status
 🧅 Tor Relay Status Report
 ═══════════════════════════════════
 
-📦 Build: v1.0.7 (2025-11-06, amd64)
+📦 Build: v1.0.8 (2025-11-06, amd64)
 🚀 Bootstrap: ✅ 100% Complete
 🔗 ORPort: ✅ Reachable (9001)
 📊 Uptime: 2d 14h 30m
@@ -278,7 +278,7 @@ docker-compose -f docker-compose-multi-relay.yml up -d
 
 ## 📚 Documentation
 
-**v1.0.7 includes comprehensive documentation** organized by topic:
+**v1.0.8 includes comprehensive documentation** organized by topic:
 
 ### Getting Started
 - **[Deployment Guide](docs/DEPLOYMENT.md)** - Complete installation for Docker CLI, Compose, Cosmos Cloud, and Portainer
@@ -554,7 +554,7 @@ Images are automatically rebuilt weekly to include security patches:
 ![GitHub Stars](https://img.shields.io/github/stars/r3bo0tbx1/tor-guard-relay?style=for-the-badge)
 ![GitHub Issues](https://img.shields.io/github/issues/r3bo0tbx1/tor-guard-relay?style=for-the-badge)
 
-**Current Version:** v1.0.7  
+**Current Version:** v1.0.8  
 **Status:** Production Ready  
 **Last Build:** Weekly (Mondays 03:00 JST)  
 **Registries:** Docker Hub • GHCR
