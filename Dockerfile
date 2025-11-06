@@ -1,10 +1,10 @@
 # syntax=docker/dockerfile:1.7
 # ============================================================================
 # Tor Guard Relay - Hardened relay with diagnostics and auto-healing
-# Base: Alpine 3.22.2 | Multi-arch: amd64, arm64
+# Base: Alpine 3.21.5 | Multi-arch: amd64, arm64
 # ============================================================================
 
-FROM alpine:3.22.2 AS builder
+FROM alpine:3.21.5 AS builder
 
 # Build arguments
 ARG BUILD_DATE
@@ -23,7 +23,7 @@ LABEL maintainer="rE-Bo0t.bx1 <r3bo0tbx1@brokenbotnet.com>" \
       org.opencontainers.image.vendor="r3bo0tbx1" \
       org.opencontainers.image.authors="rE-Bo0t.bx1 <r3bo0tbx1@brokenbotnet.com>" \
       org.opencontainers.image.url="https://github.com/r3bo0tbx1/tor-guard-relay" \
-      org.opencontainers.image.base.name="docker.io/library/alpine:3.22.2" \
+      org.opencontainers.image.base.name="docker.io/library/alpine:3.21.5" \
       org.opencontainers.image.revision="${TARGETARCH}"
 
 # ============================================================================
