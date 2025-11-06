@@ -3,7 +3,7 @@
 
 # 🧅 Tor Guard Relay
 
-[![🚀 Release](https://github.com/r3bo0tbx1/tor-guard-relay/actions/workflows/release.yml/badge.svg)](https://github.com/r3bo0tbx1/tor-guard-relay/actions/workflows/release.yml)
+[![🚀✨ Build](https://github.com/r3bo0tbx1/tor-guard-relay/actions/workflows/release.yml/badge.svg)](https://github.com/r3bo0tbx1/tor-guard-relay/actions/workflows/release.yml)
 [![Release](https://img.shields.io/github/v/release/r3bo0tbx1/tor-guard-relay?color=blue&label=version)](https://github.com/r3bo0tbx1/tor-guard-relay/releases/latest)
 ![Platforms](https://img.shields.io/badge/platforms-amd64%20%7C%20arm64-2ea44f?logo=docker)
 [![Docker Hub](https://img.shields.io/docker/pulls/r3bo0tbx1/onion-relay?logo=docker&label=Docker%20Hub)](https://hub.docker.com/r/r3bo0tbx1/onion-relay)
@@ -163,7 +163,7 @@ See [Deployment Guide](docs/DEPLOYMENT.md) for complete instructions.
 
 ## 🔧 Diagnostic Tools
 
-**v1.0.5 includes 9 production-ready diagnostic tools** - no external scripts needed!
+**v1.0.7 includes 9 production-ready diagnostic tools** - no external scripts needed!
 
 ### Quick Reference
 
@@ -190,7 +190,7 @@ docker exec tor-relay status
 🧅 Tor Relay Status Report
 ═══════════════════════════════════
 
-📦 Build: v1.0.5 (2025-11-06, amd64)
+📦 Build: v1.0.7 (2025-11-06, amd64)
 🚀 Bootstrap: ✅ 100% Complete
 🔗 ORPort: ✅ Reachable (9001)
 📊 Uptime: 2d 14h 30m
@@ -278,7 +278,7 @@ docker-compose -f docker-compose-multi-relay.yml up -d
 
 ## 📚 Documentation
 
-**v1.0.5 includes comprehensive documentation** organized by topic:
+**v1.0.7 includes comprehensive documentation** organized by topic:
 
 ### Getting Started
 - **[Deployment Guide](docs/DEPLOYMENT.md)** - Complete installation for Docker CLI, Compose, Cosmos Cloud, and Portainer
@@ -554,9 +554,9 @@ Images are automatically rebuilt weekly to include security patches:
 ![GitHub Stars](https://img.shields.io/github/stars/r3bo0tbx1/tor-guard-relay?style=for-the-badge)
 ![GitHub Issues](https://img.shields.io/github/issues/r3bo0tbx1/tor-guard-relay?style=for-the-badge)
 
-**Current Version:** v1.0.5  
+**Current Version:** v1.0.7  
 **Status:** Production Ready  
-**Last Build:** Weekly (Mondays 03:00 UTC)  
+**Last Build:** Weekly (Mondays 03:00 JST)  
 **Registries:** Docker Hub • GHCR
 
 </div>

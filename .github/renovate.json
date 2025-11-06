@@ -1,0 +1,57 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":preserveSemverRanges",
+    ":disableDependencyDashboard",
+    ":prHourlyLimit2"
+  ],
+
+  "labels": ["dependencies", "alpine", "docker"],
+  "commitMessagePrefix": "build",
+  "rebaseWhen": "behind-base-branch",
+  "assignees": ["r3bo0tbx1"],
+  "reviewers": ["r3bo0tbx1"],
+
+  "enabledManagers": ["dockerfile", "regex"],
+
+  "regexManagers": [
+    {
+      "fileMatch": ["Dockerfile"],
+      "matchStrings": [
+        "tor=(?<currentValue>[0-9a-zA-Z\\.-]+)",
+        "bash=(?<currentValue>[0-9a-zA-Z\\.-]+)",
+        "tini=(?<currentValue>[0-9a-zA-Z\\.-]+)",
+        "curl=(?<currentValue>[0-9a-zA-Z\\.-]+)",
+        "jq=(?<currentValue>[0-9a-zA-Z\\.-]+)",
+        "grep=(?<currentValue>[0-9a-zA-Z\\.-]+)",
+        "coreutils=(?<currentValue>[0-9a-zA-Z\\.-]+)",
+        "bind-tools=(?<currentValue>[0-9a-zA-Z\\.-]+)",
+        "netcat-openbsd=(?<currentValue>[0-9a-zA-Z\\.-]+)",
+        "dos2unix=(?<currentValue>[0-9a-zA-Z\\.-]+)"
+      ],
+      "datasourceTemplate": "alpine",
+      "depNameTemplate": "{{{matchString}}}"
+    }
+  ],
+
+  "packageRules": [
+    {
+      "matchDatasources": ["alpine"],
+      "groupName": "🧅 Alpine Packages",
+      "schedule": ["before 3am on monday"],
+      "prPriority": 1,
+      "allowedVersions": "<3.23.0"
+    },
+    {
+      "matchManagers": ["dockerfile"],
+      "groupName": "🐳 Base Images",
+      "schedule": ["before 3am on monday"],
+      "prPriority": 2
+    }
+  ],
+
+  "timezone": "UTC",
+  "automerge": false,
+  "prConcurrentLimit": 5
+}

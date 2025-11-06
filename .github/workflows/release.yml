@@ -1,4 +1,4 @@
-name: 🚀✨ Release and Weekly Builds
+name: 🚀✨ Build
 
 on:
   workflow_dispatch:
@@ -13,7 +13,7 @@ on:
           - minor
           - patch
   schedule:
-    - cron: '0 3 * * 1'
+    - cron: '30 18 * * 0'
   push:
     tags:
       - 'v*.*.*'
@@ -91,6 +91,7 @@ jobs:
     if: |
       github.event_name != 'workflow_run' ||
       github.event.workflow_run.conclusion == 'success'
+
     steps:
       - name: 📥 Checkout Repository
         uses: actions/checkout@v5
@@ -115,7 +116,6 @@ jobs:
             filename=$(basename "$file")
             extension="${filename##*.}"
 
-            # Check if it's a shell script (has shebang)
             if head -1 "$file" 2>/dev/null | grep -q "^#!/"; then
               if [ "$extension" != "sh" ]; then
                 echo "❌ Shell script missing .sh extension: $filename"
@@ -196,35 +196,25 @@ jobs:
           VERSION="${{ needs.determine-version.outputs.version }}"
           BUILD_TYPE="${{ needs.determine-version.outputs.build_type }}"
           SHORT_SHA="${{ needs.determine-version.outputs.short_sha }}"
-          
-          # Build tags array
+
           TAGS=()
-          
+
           if [ "$BUILD_TYPE" = "release" ]; then
             TAGS+=("${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:latest")
             TAGS+=("${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION}")
-            TAGS+=("${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION}-${SHORT_SHA}")
             TAGS+=("${{ env.DOCKERHUB_IMAGE_NAME }}:latest")
             TAGS+=("${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}")
-            TAGS+=("${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}-${SHORT_SHA}")
           elif [ "$BUILD_TYPE" = "weekly" ]; then
             TAGS+=("${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION}-weekly")
-            TAGS+=("${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION}-${SHORT_SHA}")
             TAGS+=("${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}-weekly")
-            TAGS+=("${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}-${SHORT_SHA}")
           elif [ "$BUILD_TYPE" = "validated" ]; then
             TAGS+=("${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION}-validated")
-            TAGS+=("${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION}-${SHORT_SHA}")
             TAGS+=("${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}-validated")
-            TAGS+=("${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}-${SHORT_SHA}")
           else
             TAGS+=("${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION}")
-            TAGS+=("${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION}-${SHORT_SHA}")
             TAGS+=("${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}")
-            TAGS+=("${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}-${SHORT_SHA}")
           fi
-          
-          # Join tags with comma
+
           TAGS_STR=$(IFS=','; echo "${TAGS[*]}")
           echo "tags=${TAGS_STR}" >> "$GITHUB_OUTPUT"
 
@@ -249,102 +239,10 @@ jobs:
             org.opencontainers.image.revision=${{ github.sha }}
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
 
-  validate:
-    name: ✅ Validate Build
-    runs-on: ubuntu-latest
-    needs: [determine-version, build-and-push]
-    steps:
-      - name: 📥 Checkout Repository
-        uses: actions/checkout@v5
-
-      - name: 🔑 Login to Registries
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.GHCR_REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: 🔍 Validate Images
-        run: |
-          set -e
-          VERSION="${{ needs.determine-version.outputs.version }}"
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "✅ Validating Published Images"
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo ""
-
-          for REG in "${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}" \
-            "${{ env.DOCKERHUB_IMAGE_NAME }}"; do
-            IMAGE_TAG="${REG}:${VERSION}"
-            echo "🔍 Testing: $IMAGE_TAG"
-            docker pull "$IMAGE_TAG" || { echo "⚠️  Skipping missing image: $IMAGE_TAG"; continue; }
-
-            echo "   📦 Checking Tor installation..."
-            TOR_VERSION=$(docker run --rm "$IMAGE_TAG" tor --version | head -1 || echo "unknown")
-            echo "   ✅ $TOR_VERSION"
-
-            echo "   🔧 Checking tools..."
-            TOOL_COUNT=$(docker run --rm "$IMAGE_TAG" \
-              sh -c "ls -1 /usr/local/bin/*.sh 2>/dev/null | wc -l")
-            echo "   ✅ Found $TOOL_COUNT tool scripts"
-
-            echo ""
-          done
-
-          echo "🎉 All images validated successfully"
-
-  cleanup-ghcr:
-    name: 🧹 Cleanup Temporary GHCR Tags
-    runs-on: ubuntu-latest
-    needs: [determine-version, build-and-push, validate]
-    if: needs.determine-version.outputs.build_type == 'validated'
-    permissions:
-      packages: write
-      contents: read
-    steps:
-      - name: 🧹 Delete Temporary GHCR Tag
-        env:
-          GHCR_IMAGE_NAME: ${{ env.GHCR_IMAGE_NAME }}
-          VERSION: ${{ needs.determine-version.outputs.version }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "🧹 Cleaning up temporary GHCR tag: ${VERSION}"
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-
-          OWNER="${GHCR_IMAGE_NAME%%/*}"
-          PACKAGE="${GHCR_IMAGE_NAME#*/}"
-
-          echo "🔍 Fetching GHCR versions for: $OWNER/$PACKAGE"
-
-          API_URL_USER="https://api.github.com/users/${OWNER}/packages/container/${PACKAGE}/versions"
-          API_URL_ORG="https://api.github.com/orgs/${OWNER}/packages/container/${PACKAGE}/versions"
-
-          VERSION_ID=$(curl -s -H "Authorization: Bearer ${GITHUB_TOKEN}" \
-            -H "Accept: application/vnd.github+json" "${API_URL_USER}" |
-            jq -r ".[] | select(.metadata.container.tags[]? == \"${VERSION}\") | .id")
-
-          if [ -z "$VERSION_ID" ]; then
-            VERSION_ID=$(curl -s -H "Authorization: Bearer ${GITHUB_TOKEN}" \
-              -H "Accept: application/vnd.github+json" "${API_URL_ORG}" |
-              jq -r ".[] | select(.metadata.container.tags[]? == \"${VERSION}\") | .id")
-          fi
-
-          if [ -n "$VERSION_ID" ]; then
-            echo "🆔 Found GHCR version ID: $VERSION_ID"
-            DELETE_URL_USER="https://api.github.com/users/${OWNER}/packages/container/${PACKAGE}/versions/${VERSION_ID}"
-            DELETE_URL_ORG="https://api.github.com/orgs/${OWNER}/packages/container/${PACKAGE}/versions/${VERSION_ID}"
-            curl -s -X DELETE -H "Authorization: Bearer ${GITHUB_TOKEN}" -H "Accept: application/vnd.github+json" "${DELETE_URL_USER}" \
-              || curl -s -X DELETE -H "Authorization: Bearer ${GITHUB_TOKEN}" -H "Accept: application/vnd.github+json" "${DELETE_URL_ORG}"
-            echo "✅ Temporary GHCR tag deleted: ${VERSION}"
-          else
-            echo "ℹ️ No matching GHCR tag found for ${VERSION}"
-          fi
-
   release-notes:
     name: 📝 Generate Release Notes
     runs-on: ubuntu-latest
-    needs: [determine-version, build-and-push, validate]
+    needs: [determine-version, build-and-push]
     if: needs.determine-version.outputs.is_release == 'true'
 
     steps:
@@ -363,22 +261,20 @@ jobs:
           if [ -f CHANGELOG.md ]; then
             echo "🔍 Extracting changelog section for v${VERSION}..."
 
-            # Extract changelog content between the current version header and the next one
-            awk -v ver="## [${VERSION}]" '
-              $0 ~ ver {p=1; next}
-              p && /^## \[/ {p=0}
+            awk -v version="${VERSION}" '
+              $0 ~ "^##[[:space:]]*(\\[v?" version "\\]|v" version ")([[:space:]]*-.*)?$" {p=1; print; next}
+              p && /^##[[:space:]]*\[/ && !($0 ~ version) {p=0}
               p
             ' CHANGELOG.md > tmp_notes.txt
 
-            # Clean up extra blank lines
             sed -i '/^$/N;/^\n$/D' tmp_notes.txt 2>/dev/null || true
 
             if [ -s tmp_notes.txt ]; then
+              echo "✅ Extracted changelog for v${VERSION}"
               cat tmp_notes.txt >> release_notes.md
-              echo "✅ Extracted changelog section for v${VERSION}"
             else
               echo "⚠️ No changelog section found for v${VERSION}" >> release_notes.md
-              echo "See [commit history](https://github.com/${{ github.repository }}/commits/v${VERSION}) for details." >> release_notes.md
+              echo "ℹ️ Header may use '[${VERSION}] - YYYY-MM-DD' or 'v${VERSION}'" >> release_notes.md
             fi
           else
             echo "⚠️ CHANGELOG.md not found. Using commit history instead." >> release_notes.md
@@ -390,14 +286,15 @@ jobs:
           echo "" >> release_notes.md
           echo "### 🐳 Docker Images" >> release_notes.md
           echo "\`\`\`bash" >> release_notes.md
-          echo "# 📦 From GitHub Container Registry (GHCR)" >> release_notes.md
+          echo "# From GitHub Container Registry (GHCR)" >> release_notes.md
           echo "docker pull ${GHCR_IMAGE}:${VERSION}" >> release_notes.md
           echo "" >> release_notes.md
-          echo "# 🐳 From Docker Hub" >> release_notes.md
+          echo "# From Docker Hub" >> release_notes.md
           echo "docker pull ${DOCKERHUB_IMAGE}:${VERSION}" >> release_notes.md
           echo "\`\`\`" >> release_notes.md
           echo "" >> release_notes.md
-          echo "🔗 [View on GitHub Releases](https://github.com/${{ github.repository }}/releases/tag/v${VERSION})" >> release_notes.md
+          echo "🔗 [View full changelog](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md)" >> release_notes.md
+          echo "🔗 [View this release on GitHub](https://github.com/${{ github.repository }}/releases/tag/v${VERSION})" >> release_notes.md
 
       - name: 🏷️ Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -407,37 +304,3 @@ jobs:
           body_path: release_notes.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  summary:
-    name: 📊 Build Summary
-    runs-on: ubuntu-latest
-    needs: [determine-version, build-and-push, validate, cleanup-ghcr]
-    if: always()
-    steps:
-      - name: 📋 Generate Summary
-        run: |
-          VERSION="${{ needs.determine-version.outputs.version }}"
-          BUILD_TYPE="${{ needs.determine-version.outputs.build_type }}"
-          BUILD_DATE="${{ needs.determine-version.outputs.build_date }}"
-          SHORT_SHA="${{ needs.determine-version.outputs.short_sha }}"
-
-          echo "# 🧅 Tor Guard Relay Build Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "## 📦 Build Information" >> $GITHUB_STEP_SUMMARY
-          echo "- **🏷️ Version:** \`${VERSION}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- **📝 Build Type:** \`${BUILD_TYPE}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- **🔑 Git SHA:** \`${SHORT_SHA}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- **📅 Build Date:** \`${BUILD_DATE}\`" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "## 🚀 Published To" >> $GITHUB_STEP_SUMMARY
-          echo "- 📦 GitHub Container Registry (GHCR)" >> $GITHUB_STEP_SUMMARY
-          echo "- 🐳 Docker Hub" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "## 🧹 Cleanup Results" >> $GITHUB_STEP_SUMMARY
-          echo "- **GHCR Cleanup:** \`${{ needs.cleanup-ghcr.result || 'skipped' }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "## ✅ Validation Results" >> $GITHUB_STEP_SUMMARY
-          echo "- **🎯 Shell Extension Check:** ✅ Passed" >> $GITHUB_STEP_SUMMARY
-          echo "- **🔧 Line Ending Normalization:** ✅ Complete" >> $GITHUB_STEP_SUMMARY
-          echo "- **🏗️ Multi-Arch Build:** ✅ AMD64 + ARM64" >> $GITHUB_STEP_SUMMARY
-          echo "- **🔍 Image Validation:** \`${{ needs.validate.result }}\`" >> $GITHUB_STEP_SUMMARY

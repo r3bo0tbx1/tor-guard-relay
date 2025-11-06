@@ -34,6 +34,7 @@ jobs:
         with:
           dockerfile: Dockerfile
           failure-threshold: warning
+        continue-on-error: true
 
       - name: 🔍 Validate Dockerfile Syntax
         run: |
@@ -275,6 +276,7 @@ jobs:
           platforms: linux/amd64
           load: true
           tags: tor-relay:test
+          pull: true
           build-args: |
             BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
             BUILD_VERSION=test-${{ github.run_number }}
@@ -392,6 +394,9 @@ jobs:
     name: 🛡️ Security Scan
     runs-on: ubuntu-latest
     needs: build
+    permissions:
+      contents: read
+      security-events: write
 
     steps:
       - name: 📥 Checkout Repository

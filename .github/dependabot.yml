@@ -1,15 +1,20 @@
 # Dependabot configuration for Tor Guard Relay
-# Automatically creates PRs for dependency updates
+# Automated dependency management for secure and stable builds
 
 version: 2
 updates:
+  # ────────────────────────────────
+  # 🔧 GitHub Actions (CI/CD)
+  # ────────────────────────────────
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
       day: "monday"
       time: "03:00"
+      timezone: "Asia/Tokyo"
     open-pull-requests-limit: 5
+    rebase-strategy: "auto"
     labels:
       - "dependencies"
       - "github-actions"
@@ -21,13 +26,17 @@ updates:
     assignees:
       - "r3bo0tbx1"
 
+  # ────────────────────────────────
+  # 🐳 Docker (Base Image Updates)
+  # ────────────────────────────────
   - package-ecosystem: "docker"
     directory: "/"
     schedule:
-      interval: "weekly"
-      day: "monday"
+      interval: "daily"
       time: "03:00"
+      timezone: "Asia/Tokyo"
     open-pull-requests-limit: 3
+    rebase-strategy: "auto"
     labels:
       - "dependencies"
       - "docker"
@@ -39,15 +48,19 @@ updates:
     assignees:
       - "r3bo0tbx1"
 
-# Update strategy:
-# - Weekly checks on Mondays at 03:00 UTC
-# - Automatic PR creation for security updates
-# - Manual review required before merge
-# - Limit concurrent PRs to avoid noise
+# ────────────────────────────────
+# Strategy Notes
+# ────────────────────────────────
+# ✅ Weekly GitHub Actions updates to avoid CI noise
+# ✅ Daily Docker checks for timely base image security patches
+# ✅ Automatic PR rebasing to prevent stale dependency branches
+# ✅ Manual merge approval required (no auto-merge)
 #
 # Monitored ecosystems:
 # 1. GitHub Actions (workflow dependencies)
 # 2. Docker (Alpine base image)
 #
-# Note: Shell scripts and Tor itself are updated manually
-# as they require specific testing and validation.
+# Manual updates:
+# - Shell scripts and Tor binary (require validation)
+# - Alpine system packages pinned for consistency
+# - Other dependencies managed outside Dependabot
