@@ -163,7 +163,7 @@ See [Deployment Guide](docs/DEPLOYMENT.md) for complete instructions.
 
 ## 🔧 Diagnostic Tools
 
-**v1.1 includes 9 production-ready diagnostic tools** - no external scripts needed!
+**v1.0.5 includes 9 production-ready diagnostic tools** - no external scripts needed!
 
 ### Quick Reference
 
@@ -190,7 +190,7 @@ docker exec tor-relay status
 🧅 Tor Relay Status Report
 ═══════════════════════════════════
 
-📦 Build: v1.1 (2025-11-04, amd64)
+📦 Build: v1.0.5 (2025-11-06, amd64)
 🚀 Bootstrap: ✅ 100% Complete
 🔗 ORPort: ✅ Reachable (9001)
 📊 Uptime: 2d 14h 30m
@@ -278,7 +278,7 @@ docker-compose -f docker-compose-multi-relay.yml up -d
 
 ## 📚 Documentation
 
-**v1.1 includes comprehensive documentation** organized by topic:
+**v1.0.5 includes comprehensive documentation** organized by topic:
 
 ### Getting Started
 - **[Deployment Guide](docs/DEPLOYMENT.md)** - Complete installation for Docker CLI, Compose, Cosmos Cloud, and Portainer
