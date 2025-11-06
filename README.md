@@ -3,10 +3,11 @@
 
 # 🧅 Tor Guard Relay
 
-[![🚀 Release & Weekly Builds](https://github.com/r3bo0tbx1/tor-guard-relay/actions/workflows/release.yml/badge.svg)](https://github.com/r3bo0tbx1/tor-guard-relay/actions/workflows/release.yml)
+[![🚀 Release](https://github.com/r3bo0tbx1/tor-guard-relay/actions/workflows/release.yml/badge.svg)](https://github.com/r3bo0tbx1/tor-guard-relay/actions/workflows/release.yml)
 [![Release](https://img.shields.io/github/v/release/r3bo0tbx1/tor-guard-relay?color=blue&label=version)](https://github.com/r3bo0tbx1/tor-guard-relay/releases/latest)
 ![Platforms](https://img.shields.io/badge/platforms-amd64%20%7C%20arm64-2ea44f?logo=docker)
-![GHCR](https://img.shields.io/badge/GHCR-ghcr.io%2Fr3bo0tbx1%2Fonion--relay-blue?logo=github)
+[![Docker Hub](https://img.shields.io/docker/pulls/r3bo0tbx1/onion-relay?logo=docker&label=Docker%20Hub)](https://hub.docker.com/r/r3bo0tbx1/onion-relay)
+[![GHCR](https://img.shields.io/badge/GHCR-ghcr.io%2Fr3bo0tbx1%2Fonion--relay-blue?logo=github)](https://github.com/r3bo0tbx1/tor-guard-relay/pkgs/container/onion-relay)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE.txt)
 
 <img src="src/onion.png" alt="Onion diagram" width="400"/>
@@ -93,6 +94,20 @@ nano relay.conf
 ```
 
 **Step 2:** Run the relay:
+
+**Option A - Docker Hub:**
+```bash
+docker run -d \
+  --name tor-relay \
+  --restart unless-stopped \
+  --network host \
+  -v $(pwd)/relay.conf:/etc/tor/torrc:ro \
+  -v tor-guard-data:/var/lib/tor \
+  -v tor-guard-logs:/var/log/tor \
+  r3bo0tbx1/onion-relay:latest
+```
+
+**Option B - GitHub Container Registry:**
 ```bash
 docker run -d \
   --name tor-relay \
@@ -513,6 +528,10 @@ Images are automatically rebuilt weekly to include security patches:
 
 ## 🌐 Resources
 
+### Container Registries
+- 🐳 [Docker Hub Repository](https://hub.docker.com/r/r3bo0tbx1/onion-relay)
+- 📦 [GitHub Container Registry](https://github.com/r3bo0tbx1/tor-guard-relay/pkgs/container/onion-relay)
+
 ### Official Tor Project
 - 📚 [Relay Setup Guide](https://community.torproject.org/relay/setup/)
 - 💬 [Relay Operators Forum](https://forum.torproject.org/c/relay-operators)
@@ -531,13 +550,14 @@ Images are automatically rebuilt weekly to include security patches:
 
 <div align="center">
 
-![Docker Pulls](https://img.shields.io/docker/pulls/r3bo0tbx1/onion-relay?style=for-the-badge)
+![Docker Hub Pulls](https://img.shields.io/docker/pulls/r3bo0tbx1/onion-relay?style=for-the-badge&logo=docker)
 ![GitHub Stars](https://img.shields.io/github/stars/r3bo0tbx1/tor-guard-relay?style=for-the-badge)
 ![GitHub Issues](https://img.shields.io/github/issues/r3bo0tbx1/tor-guard-relay?style=for-the-badge)
 
-**Current Version:** v1.0.2  
+**Current Version:** v1.0.5  
 **Status:** Production Ready  
-**Last Build:** Weekly (Mondays 03:00 UTC)
+**Last Build:** Weekly (Mondays 03:00 UTC)  
+**Registries:** Docker Hub • GHCR
 
 </div>
 
