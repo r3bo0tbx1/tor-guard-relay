@@ -15,9 +15,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 🔄 Automatic relay configuration updates
 - 🧪 Enhanced integration testing suite
 
+---
+
+## [1.0.6] - 2025-11-06
+
+🧠 Stability improvements, enhanced IPv6 diagnostics, and dashboard optimizations.  
+🐳 Migrated base image **back to Alpine 3.22.2** for improved compatibility and reproducible builds.
+
+### ✨ Added
+- 🧩 IPv6 fallback logic for network diagnostics  
+- 🧱 Automatic validation of local interfaces in health checks  
+
+### 🧰 Improvements
+- 🪶 Reduced container image size by optimizing dependencies  
+- 🧹 Cleaned redundant startup logs and debug lines  
+- ⚙️ Improved build consistency across architectures  
+
+### 🐛 Fixed
+- 🔧 Resolved IPv6 “no address” false negatives  
+- 🧱 Addressed rare validation timeout under heavy load  
+
+---
+
 ## [1.0.5] - 2025-11-06
 
 🐳 Downgrade base image from Alpine 3.22.2 to 3.21.5
+
+---
 
 ## [1.0.4] - 2025-11-06
 
@@ -83,6 +107,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * `integration-check.sh` reports full pass in Alpine-based containers
 * Version bump to **v1.0.4** across all modules and build metadata
 * Preflight diagnostics now surface partial network success even if Tor metrics endpoints are unreachable
+
+---
 
 ## [1.0.3] - 2025-11-06
 
@@ -385,11 +411,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## 🔖 Version Support
 
 | Version | Status | Support Level |
-|---------|--------|---------------|
-| **1.0.3** | 🟢 🛡️ **Active** | Full support (current stable) |
-| **1.0.2** | 🟢 🛡️ **Active** | Full support until v1.1.0 |
-| **1.0.1** | 🟡 🔧 **Maintenance** | Security + critical fixes only |
-| **1.0.0** | 🟠 ⚠️ **Legacy** | Security patches only - upgrade recommended |
+|----------|---------|----------------|
+| **1.0.6** | 🟢 🛡️ **Active** | Full support (current stable) |
+| **1.0.5** | 🟢 🛡️ **Active** | Full support until v1.1.0 |
+| **1.0.4** | 🟡 🔧 **Maintenance** | Security + critical fixes only |
+| **1.0.3** | 🟠 ⚠️ **Legacy** | Security patches only – upgrade recommended |
 
 ### 📋 Support Legend
 
@@ -402,11 +428,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## 🔗 Release Links
 
-[1.0.3]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.0.3
-[1.0.2]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.0.2
-[1.0.1]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.0.1
-[1.0.0]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.0.0
-[Unreleased]: https://github.com/r3bo0tbx1/tor-guard-relay/compare/v1.0.3...HEAD
+[1.0.6]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.0.6  
+[1.0.5]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.0.5  
+[1.0.4]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.0.4  
+[1.0.3]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.0.3  
+[1.0.2]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.0.2  
+[1.0.1]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.0.1  
+[1.0.0]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.0  
+
+[Unreleased]: https://github.com/r3bo0tbx1/tor-guard-relay/compare/v1.0.6...HEAD
 
 ---
 

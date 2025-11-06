@@ -1,10 +1,10 @@
 # syntax=docker/dockerfile:1.7
 # ============================================================================
 # Tor Guard Relay - Hardened relay with diagnostics and auto-healing
-# Base: Alpine 3.21.5 | Multi-arch: amd64, arm64
+# Base: Alpine 3.22.2 | Multi-arch: amd64, arm64
 # ============================================================================
 
-FROM alpine:3.21.5 AS builder
+FROM alpine:3.22.2 AS builder
 
 # Build arguments
 ARG BUILD_DATE
@@ -23,7 +23,7 @@ LABEL maintainer="rE-Bo0t.bx1 <r3bo0tbx1@brokenbotnet.com>" \
       org.opencontainers.image.vendor="r3bo0tbx1" \
       org.opencontainers.image.authors="rE-Bo0t.bx1 <r3bo0tbx1@brokenbotnet.com>" \
       org.opencontainers.image.url="https://github.com/r3bo0tbx1/tor-guard-relay" \
-      org.opencontainers.image.base.name="docker.io/library/alpine:3.21.5" \
+      org.opencontainers.image.base.name="docker.io/library/alpine:3.22.2" \
       org.opencontainers.image.revision="${TARGETARCH}"
 
 # ============================================================================
@@ -41,11 +41,11 @@ RUN set -eux \
     bash=5.2.37-r0 \
     tini=0.19.0-r3 \
     curl=8.14.1-r2 \
-    jq=1.7.1-r0 \
-    grep=3.11-r0 \
-    coreutils=9.5-r2 \
-    bind-tools=9.18.41-r0 \
-    netcat-openbsd=1.226.1.1-r0 \
+    jq=1.8.0-r0 \
+    grep=3.12-r0 \
+    coreutils=9.7-r1 \
+    bind-tools=9.20.15-r0 \
+    netcat-openbsd=1.229.1-r0 \
  && mkdir -p /var/lib/tor /var/log/tor /run/tor \
  && chown -R tor:tor /var/lib/tor /var/log/tor /run/tor \
  && chmod 700 /var/lib/tor \

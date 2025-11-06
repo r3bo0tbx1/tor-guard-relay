@@ -346,6 +346,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [determine-version, build-and-push, validate]
     if: needs.determine-version.outputs.is_release == 'true'
+
     steps:
       - name: 📥 Checkout Repository
         uses: actions/checkout@v5
@@ -353,22 +354,50 @@ jobs:
       - name: 📝 Generate Notes
         run: |
           VERSION="${{ needs.determine-version.outputs.version }}"
+          GHCR_IMAGE="${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}"
+          DOCKERHUB_IMAGE="${{ env.DOCKERHUB_IMAGE_NAME }}"
+
           echo "## 🧅 Tor Guard Relay v${VERSION} Release Notes" > release_notes.md
           echo "" >> release_notes.md
+
           if [ -f CHANGELOG.md ]; then
-            awk "/## \\[${VERSION}\\]/,/## \\[[0-9]+\\.[0-9]+\\.[0-9]+\\]/ {if (!/## \\[[0-9]+\\.[0-9]+\\.[0-9]+\\]/ || NR==1) print}" CHANGELOG.md >> release_notes.md || true
+            echo "🔍 Extracting changelog section for v${VERSION}..."
+
+            # Extract changelog content between the current version header and the next one
+            awk -v ver="## [${VERSION}]" '
+              $0 ~ ver {p=1; next}
+              p && /^## \[/ {p=0}
+              p
+            ' CHANGELOG.md > tmp_notes.txt
+
+            # Clean up extra blank lines
+            sed -i '/^$/N;/^\n$/D' tmp_notes.txt 2>/dev/null || true
+
+            if [ -s tmp_notes.txt ]; then
+              cat tmp_notes.txt >> release_notes.md
+              echo "✅ Extracted changelog section for v${VERSION}"
+            else
+              echo "⚠️ No changelog section found for v${VERSION}" >> release_notes.md
+              echo "See [commit history](https://github.com/${{ github.repository }}/commits/v${VERSION}) for details." >> release_notes.md
+            fi
           else
+            echo "⚠️ CHANGELOG.md not found. Using commit history instead." >> release_notes.md
             echo "See [commit history](https://github.com/${{ github.repository }}/commits/v${VERSION}) for details." >> release_notes.md
           fi
+
+          echo "" >> release_notes.md
+          echo "---" >> release_notes.md
           echo "" >> release_notes.md
           echo "### 🐳 Docker Images" >> release_notes.md
           echo "\`\`\`bash" >> release_notes.md
-          echo "# 📦 From GHCR:" >> release_notes.md
-          echo "docker pull ${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION}" >> release_notes.md
+          echo "# 📦 From GitHub Container Registry (GHCR)" >> release_notes.md
+          echo "docker pull ${GHCR_IMAGE}:${VERSION}" >> release_notes.md
           echo "" >> release_notes.md
-          echo "# 🐳 From Docker Hub:" >> release_notes.md
-          echo "docker pull ${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}" >> release_notes.md
+          echo "# 🐳 From Docker Hub" >> release_notes.md
+          echo "docker pull ${DOCKERHUB_IMAGE}:${VERSION}" >> release_notes.md
           echo "\`\`\`" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "🔗 [View on GitHub Releases](https://github.com/${{ github.repository }}/releases/tag/v${VERSION})" >> release_notes.md
 
       - name: 🏷️ Create GitHub Release
         uses: softprops/action-gh-release@v2
