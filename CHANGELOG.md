@@ -17,6 +17,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.0] - 2025-11-08
+
+### ✨ Added
+
+* 🧩 Input sanitization helpers to ensure safe numeric evaluation in all status checks
+* 🧱 Integrated integer guard function (`is_integer`) to prevent bad-number shell errors
+* 🕒 Unified UTC timestamp formatting for consistent output across commands
+
+### 🧰 Improvements
+
+* 📜 `view-logs`: Compact single-line statistics (`📊 Stats: total | errors | warnings`) for cleaner display
+* 📊 The dashboard script now requires API token authentication for secure access and features a new notification UI for better visibility.
+* 🔑 The fingerprint script has been overhauled for cleaner output, better input validation, and a more helpful guide.
+* 🧰 General shell cleanup and quoting improvements for portability across BusyBox, Alpine, and Debian-based images
+
+### 🐛 Fixed
+
+* 🧹 Removed recurring `sh: 0: bad number` warnings in `status` output
+* 🧩 Fixed multi-line log stats formatting issue in `view-logs`
+* 🔧 Corrected potential false negatives in `BOOTSTRAP_PERCENT` extraction
+* 🧠 Resolved misinterpretation of empty variables during numeric comparisons
+* 🥬 Configuration, health checks, and monitoring have been refined for better reliability and integration.
+
+### 🔒 Security
+
+* 🧩 Verified `set -e` safety to prevent unintended script exits on minor grep/curl failures
+* 🐳 Docker Compose now includes enhanced security configurations and persistent volume support to prevent data loss.
+* 📋 Cosmos templates have been updated with more secure and sensible default environment variables.
+
+---
+
 ## [1.0.9] - 2025-11-07
 
 🧠 **Maintenance and polish release** improving shell reliability, output consistency, and readability across status and log utilities.
@@ -169,7 +200,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## 📊 Release Information
 
 * **🎉 First Release:** v1.0.0 (November 1, 2025)
-* **📦 Current Stable:** v1.0.8 (November 8, 2025)
+* **📦 Current Stable:** v1.1.0 (November 8, 2025)
 * **🔗 Latest Release:** [GitHub Releases](https://github.com/r3bo0tbx1/tor-guard-relay/releases/latest)
 * **🐳 Docker Images:**
 
@@ -182,15 +213,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Version   | Status                | Support Level                               |
 | --------- | --------------------- | ------------------------------------------- |
-| **1.0.9** | 🟢 🛡️ **Active**     | Full support (current stable)               |
-| **1.0.8** | 🟡 🔧 **Maintenance** | Security + critical fixes only              |
-| **1.0.7** | 🟠 ⚠️ **Legacy**      | Security patches only – upgrade recommended |
-| **1.0.6** | 🔴 ❌ **EOL**          | No support – upgrade immediately            |
+| **1.1.0** | 🟢 🛡️ **Active**     | Full support (current stable)               |
+| **1.0.9** | 🟡 🔧 **Maintenance** | Security + critical fixes only              |
+| **1.0.8** | 🟠 ⚠️ **Legacy**      | Security patches only – upgrade recommended |
+| **1.0.7** | 🔴 ❌ **EOL**          | No support – upgrade immediately            |
 
 ---
 
 ## 🔗 Release Links
 
+[1.1.0]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.1.0
 [1.0.9]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.0.9
 [1.0.8]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.0.8
 [1.0.7]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.0.7
@@ -200,7 +232,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [1.0.3]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.0.3
 [1.0.2]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.0.2
 [1.0.1]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.0.1
-[Unreleased]: https://github.com/r3bo0tbx1/tor-guard-relay/compare/v1.0.8...HEAD
+[Unreleased]: https://github.com/r3bo0tbx1/tor-guard-relay/compare/v1.1.0...HEAD
 
 ---
 

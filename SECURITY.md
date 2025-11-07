@@ -12,12 +12,12 @@ Issues related to the Tor network itself should be reported directly to [The Tor
 
 We actively support the following versions with security updates:
 
-| Version | Supported | Status |
-|----------|------------|--------|
-| 1.0.2    | ✅ | Current stable release |
-| 1.0.1    | ✅ | Maintenance support |
-| 1.0.0    | ⚠️ | Security patches only |
-| < 1.0    | ❌ | Pre-release versions |
+| Version   | Status                | Support Level                               |
+| --------- | --------------------- | ------------------------------------------- |
+| **1.1.0** | 🟢 🛡️ **Active**     | Full support (current stable)               |
+| **1.0.9** | 🟡 🔧 **Maintenance** | Security + critical fixes only              |
+| **1.0.8** | 🟠 ⚠️ **Legacy**      | Security patches only – upgrade recommended |
+| **1.0.7** | 🔴 ❌ **EOL**          | No support – upgrade immediately            |
 
 ---
 
@@ -640,4 +640,4 @@ Security researchers who responsibly disclose vulnerabilities will be listed her
 
 ---
 
-*Last Updated: 2025-11-05 | Version: 1.0.2*
+*Last Updated: 2025-11-05 | Version: 1.1.0*
