@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1.7
+# syntax=docker/dockerfile:1.19
 # ============================================================================
 # Tor Guard Relay - Hardened relay with diagnostics and auto-healing
 # Base: Alpine 3.22.2 | Multi-arch: amd64, arm64
