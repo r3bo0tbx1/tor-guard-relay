@@ -163,7 +163,7 @@ See [Deployment Guide](docs/DEPLOYMENT.md) for complete instructions.
 
 ## 🔧 Diagnostic Tools
 
-**v1.0.9 includes 9 production-ready diagnostic tools** - no external scripts needed!
+**v1.1.0 includes 9 production-ready diagnostic tools** - no external scripts needed!
 
 ### Quick Reference
 
@@ -182,21 +182,22 @@ See [Deployment Guide](docs/DEPLOYMENT.md) for complete instructions.
 ### Example: Quick Health Check
 
 ```bash
-docker exec tor-relay status
+docker exec tor-relay status --short
 ```
 
 **Output:**
 ```
-🧅 Tor Relay Status Report
+🧅 Tor Relay Status Summary
 ═══════════════════════════════════
-
-📦 Build: v1.0.9 (2025-11-06, amd64)
+📦 Build: v1.1.0 (2025-11-08, x86_64)
 🚀 Bootstrap: ✅ 100% Complete
-🔗 ORPort: ✅ Reachable (9001)
-📊 Uptime: 2d 14h 30m
-🔑 Fingerprint: MyRelay 1234...ABCD
-
-⚠️  Issues: ✅ No errors or warnings
+🌐 Reachable: ❌ Not reachable
+📊 Uptime: 0m (Container)
+🔑 MyRelay (1234...ABCD)
+🔌 ORPort: 9001 | DirPort: 9030
+⚙️  Type: 🔒 Guard/Middle Relay
+⚠️  Errors: 00 | Warnings: 00
+🕒 2025-11-07T10:21:41Z
 ```
 
 > 📖 **Complete reference:** See [Tools Documentation](docs/TOOLS.md) for all 9 tools with examples, environment variables, and troubleshooting.
@@ -278,7 +279,7 @@ docker-compose -f docker-compose-multi-relay.yml up -d
 
 ## 📚 Documentation
 
-**v1.0.9 includes comprehensive documentation** organized by topic:
+**v1.1.0 includes comprehensive documentation** organized by topic:
 
 ### Getting Started
 - **[Deployment Guide](docs/DEPLOYMENT.md)** - Complete installation for Docker CLI, Compose, Cosmos Cloud, and Portainer
@@ -554,7 +555,7 @@ Images are automatically rebuilt weekly to include security patches:
 ![GitHub Stars](https://img.shields.io/github/stars/r3bo0tbx1/tor-guard-relay?style=for-the-badge)
 ![GitHub Issues](https://img.shields.io/github/issues/r3bo0tbx1/tor-guard-relay?style=for-the-badge)
 
-**Current Version:** v1.0.9  
+**Current Version:** v1.1.0  
 **Status:** Production Ready  
 **Last Build:** Weekly (Mondays 03:00 JST)  
 **Registries:** Docker Hub • GHCR

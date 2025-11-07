@@ -10,7 +10,7 @@ readonly CONTAINER="${CONTAINER:-guard-relay}"
 readonly TOOLS_DIR="/usr/local/bin"
 readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly TIMESTAMP=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
-readonly VERSION="1.0.2"
+readonly VERSION="1.1.0"
 
 # State tracking
 PASS_COUNT=0
@@ -502,7 +502,7 @@ main() {
   log_header "🧅 Tor Guard Relay Integration Check v$VERSION"
   log_info "Timestamp: $TIMESTAMP"
   log_info "Container: $CONTAINER"
-  log_info "Target Release: v1.0.2"
+  log_info "Target Release: v1.1.0"
   
   echo ""
   

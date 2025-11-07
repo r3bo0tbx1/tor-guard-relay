@@ -64,4 +64,3 @@ updates:
 # - Shell scripts and Tor binary (require validation)
 # - Alpine system packages pinned for consistency
 # - Other dependencies managed outside Dependabot
-

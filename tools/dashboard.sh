@@ -5,13 +5,15 @@
 set -e
 
 # Configuration
-VERSION="1.1.1"
+VERSION="1.1.0"
 DASHBOARD_PORT="${DASHBOARD_PORT:-8080}"
 DASHBOARD_BIND="${DASHBOARD_BIND:-127.0.0.1}"  # ⚠️ CHANGED: Secure default
 ENABLE_DASHBOARD="${ENABLE_DASHBOARD:-true}"
 REFRESH_INTERVAL="${REFRESH_INTERVAL:-10}"
 MULTI_RELAY="${MULTI_RELAY:-false}"
 MAX_CONNECTIONS="${MAX_CONNECTIONS:-5}"  # 🔒 NEW: Rate limiting
+API_TOKEN="${API_TOKEN:-}"  # 🔒 NEW: API authentication token
+LOG_RETENTION="${LOG_RETENTION:-100}"  # 📝 NEW: Number of log lines to keep
 
 # Trap for clean exit
 trap 'cleanup' INT TERM
@@ -19,7 +21,17 @@ trap 'cleanup' INT TERM
 cleanup() {
   echo ""
   echo "🛑 Dashboard shutting down..."
+  # Clean up any temporary files
+  [ -f "/tmp/dashboard.html" ] && rm -f "/tmp/dashboard.html"
+  [ -f "/tmp/dashboard.pid" ] && rm -f "/tmp/dashboard.pid"
   exit 0
+}
+
+# Enhanced error handling
+handle_error() {
+  echo "❌ Error: $1" >&2
+  logger -t "dashboard" "Error: $1"
+  exit 1
 }
 
 # Parse arguments
@@ -38,6 +50,7 @@ OPTIONS:
     --bind ADDR     Bind address (default: 127.0.0.1)
     --refresh SEC   Auto-refresh interval (default: 10)
     --multi         Enable multi-relay support
+    --token TOKEN   API authentication token
     --help, -h      Show this help message
 
 ENVIRONMENT VARIABLES:
@@ -47,6 +60,8 @@ ENVIRONMENT VARIABLES:
     REFRESH_INTERVAL     Auto-refresh in seconds
     MULTI_RELAY         Multi-relay mode (true/false)
     MAX_CONNECTIONS     Max concurrent connections (default: 5)
+    API_TOKEN           API authentication token
+    LOG_RETENTION       Number of log lines to keep (default: 100)
 
 ⚠️  SECURITY NOTICE:
     Default binding is 127.0.0.1 (localhost only).
@@ -55,6 +70,9 @@ ENVIRONMENT VARIABLES:
     
     ⚠️  WARNING: External exposure without authentication is NOT recommended!
     Use a reverse proxy (nginx/caddy) with authentication for production.
+    
+    🔒 SECURITY: Set API_TOKEN to protect API endpoints:
+      API_TOKEN=your-secure-token
 
 FEATURES:
     • Real-time relay status monitoring
@@ -64,6 +82,7 @@ FEATURES:
     • Error/warning alerts
     • Multi-relay management (optional)
     • Mobile-responsive design
+    • API authentication (with token)
 
 ENDPOINTS:
     http://localhost:8080/          Main dashboard
@@ -79,6 +98,7 @@ DOCKER INTEGRATION:
     # For external access (use with caution):
     environment:
       - DASHBOARD_BIND=0.0.0.0
+      - API_TOKEN=your-secure-token
     ports:
       - "8080:8080"
 
@@ -99,6 +119,11 @@ EOF
     --refresh)
       shift
       REFRESH_INTERVAL="$1"
+      shift
+      ;;
+    --token)
+      shift
+      API_TOKEN="$1"
       shift
       ;;
     --multi)
@@ -122,20 +147,42 @@ fi
 # Security warning for external binding
 if [ "$DASHBOARD_BIND" = "0.0.0.0" ]; then
   echo "⚠️  WARNING: Dashboard is bound to 0.0.0.0 (all interfaces)"
-  echo "⚠️  This exposes the dashboard without authentication!"
+  echo "⚠️  This exposes dashboard without authentication!"
+  if [ -z "$API_TOKEN" ]; then
+    echo "⚠️  Consider setting API_TOKEN for API protection."
+  else
+    echo "✅ API endpoints are protected with token authentication."
+  fi
   echo "⚠️  Consider using a reverse proxy with authentication."
   echo ""
 fi
 
 # Check for netcat
 if ! command -v nc > /dev/null 2>&1; then
-  echo "❌ Error: netcat (nc) is required"
-  echo "💡 Install with: apk add netcat-openbsd"
-  exit 1
+  handle_error "netcat (nc) is required. Install with: apk add netcat-openbsd"
 fi
 
 # Connection counter (simple rate limiting)
 CONNECTION_COUNT=0
+echo $$ > /tmp/dashboard.pid
+
+# Enhanced authentication check
+check_api_auth() {
+  AUTH_HEADER="$1"
+  if [ -n "$API_TOKEN" ]; then
+    # Extract token from Authorization header
+    TOKEN=$(echo "$AUTH_HEADER" | sed -n 's/.*Bearer *\([^ ]*\).*/\1p')
+    if [ "$TOKEN" != "$API_TOKEN" ]; then
+      echo "HTTP/1.1 401 Unauthorized"
+      echo "Content-Type: application/json"
+      echo "Connection: close"
+      echo ""
+      echo '{"error":"Unauthorized"}'
+      return 1
+    fi
+  fi
+  return 0
+}
 
 # Function to generate dashboard HTML
 generate_dashboard() {
@@ -143,7 +190,14 @@ generate_dashboard() {
   STATUS_JSON=$(/usr/local/bin/status --json 2>/dev/null || echo '{}')
   HEALTH_JSON=$(/usr/local/bin/health --json 2>/dev/null || echo '{}')
   
-  cat << 'EOF'
+  # Cache the HTML to avoid regenerating on every request
+  if [ -f "/tmp/dashboard.html" ] && [ $(find /tmp/dashboard.html -mmin -1 2>/dev/null) ]; then
+    cat /tmp/dashboard.html
+    return
+  fi
+  
+  # Generate new HTML and cache it
+  cat << 'EOF' > /tmp/dashboard.html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -341,6 +395,31 @@ generate_dashboard() {
             font-size: 14px;
             color: #4b5563;
         }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            max-width: 300px;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+        }
+        
+        .notification.show {
+            transform: translateX(0);
+        }
+        
+        .notification.error {
+            border-left: 4px solid #ef4444;
+        }
+        
+        .notification.success {
+            border-left: 4px solid #10b981;
+        }
     </style>
 </head>
 <body>
@@ -458,11 +537,32 @@ generate_dashboard() {
         🔄 Auto-refresh: <span id="countdown">${REFRESH_INTERVAL}</span>s
     </div>
     
+    <div class="notification" id="notification"></div>
+    
     <script>
         let refreshInterval = ${REFRESH_INTERVAL};
         let countdown = refreshInterval;
+        let lastStatus = null;
+        
+        function showNotification(message, type = 'success') {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = 'notification ' + type;
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
         
         function updateStatus(data) {
+            // Check for status changes
+            if (lastStatus && lastStatus.status !== data.status) {
+                showNotification('Status changed to: ' + data.status, 
+                    data.status === 'healthy' ? 'success' : 'error');
+            }
+            lastStatus = data;
+            
             // Update overall status
             const statusEl = document.getElementById('overall-status');
             statusEl.className = 'status-badge status-' + (data.status || 'unknown');
@@ -517,9 +617,15 @@ generate_dashboard() {
         
         function refreshData() {
             fetch('/api/status')
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) throw new Error('Network response was not ok');
+                    return response.json();
+                })
                 .then(data => updateStatus(data))
-                .catch(error => console.error('Error fetching status:', error));
+                .catch(error => {
+                    console.error('Error fetching status:', error);
+                    showNotification('Failed to fetch status data', 'error');
+                });
         }
         
         function copyFingerprint() {
@@ -530,6 +636,10 @@ generate_dashboard() {
                     const original = el.textContent;
                     el.textContent = '✅ Copied!';
                     setTimeout(() => el.textContent = original, 2000);
+                    showNotification('Fingerprint copied to clipboard', 'success');
+                }).catch(err => {
+                    console.error('Failed to copy: ', err);
+                    showNotification('Failed to copy fingerprint', 'error');
                 });
             }
         }
@@ -550,11 +660,20 @@ generate_dashboard() {
 </body>
 </html>
 EOF
+  
+  # Return the cached HTML
+  cat /tmp/dashboard.html
 }
 
 # Function to handle API requests
 handle_api() {
   REQUEST_PATH="$1"
+  AUTH_HEADER="$2"
+  
+  # Check authentication for API endpoints
+  if [ "$REQUEST_PATH" != "/" ] && ! check_api_auth "$AUTH_HEADER"; then
+    return
+  fi
   
   case "$REQUEST_PATH" in
     "/api/status")
@@ -619,30 +738,39 @@ echo "🎨 Starting Tor Relay Dashboard v${VERSION}"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "🌐 Listening on: http://$DASHBOARD_BIND:$DASHBOARD_PORT"
 echo "🔒 Max connections: $MAX_CONNECTIONS"
+if [ -n "$API_TOKEN" ]; then
+  echo "🔐 API authentication: Enabled"
+else
+  echo "⚠️  API authentication: Disabled"
+fi
 echo "💡 Press Ctrl+C to stop"
 echo ""
 
-# Main server loop with basic connection limiting
+# Main server loop
 while true; do
-  # Simple connection limiting
-  if [ "$CONNECTION_COUNT" -ge "$MAX_CONNECTIONS" ]; then
-    sleep 1
-    CONNECTION_COUNT=0
-  fi
-  
-  # Wait for connection and parse request
-  REQUEST=$(echo "" | nc -l -p "$DASHBOARD_PORT" -s "$DASHBOARD_BIND" -w 5 2>/dev/null | head -1)
-  
-  if [ -n "$REQUEST" ]; then
-    CONNECTION_COUNT=$((CONNECTION_COUNT + 1))
+  CONNECTION_COUNT=$(( (CONNECTION_COUNT + 1) % MAX_CONNECTIONS ))
+
+  # Reset counter if needed
+  [ "$CONNECTION_COUNT" -eq 0 ] && sleep 1
+
+  # Accept connection using a single listener
+  nc -lk -p "$DASHBOARD_PORT" -s "$DASHBOARD_BIND" -w 5 | while read -r REQUEST; do
+    # Only process first line
+    PATH_REQ=$(echo "$REQUEST" | awk '{print $2}')
     
-    # Extract path from request
-    REQUEST_PATH=$(echo "$REQUEST" | awk '{print $2}')
+    # Extract Authorization header if present
+    AUTH_HEADER=""
+    while read -r header; do
+      [ -z "$header" ] && break
+      case "$header" in
+        Authorization:*) AUTH_HEADER="$header" ;;
+      esac
+    done
     
-    # Log request
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $REQUEST"
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Request: $PATH_REQ"
     
-    # Generate and send response in background to avoid blocking
-    (handle_api "$REQUEST_PATH" | nc -l -p "$DASHBOARD_PORT" -s "$DASHBOARD_BIND" -w 1 > /dev/null 2>&1) &
-  fi
+    # Generate and send response directly
+    handle_api "$PATH_REQ" "$AUTH_HEADER"
+    break
+  done
 done

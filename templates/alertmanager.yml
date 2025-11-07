@@ -214,4 +214,3 @@ mute_time_intervals:
         weekdays: ['sunday']
         months: ['january', 'july']
         year_days: ['1', '15', '25']
-

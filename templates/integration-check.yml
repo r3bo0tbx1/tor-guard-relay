@@ -2,7 +2,7 @@
 # Defines validation criteria for all executable tools and scripts
 # Format: YAML with structured test definitions
 
-version: "1.0"
+version: "1.1.0"
 description: "Tor Guard Relay Integration Test Suite"
 
 # Global configuration

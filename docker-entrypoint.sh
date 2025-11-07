@@ -57,6 +57,9 @@ cleanup_and_exit() {
   }
   
   echo "✅ All services stopped cleanly."
+  echo ""
+  echo "💤 Relay stopped at $(date -u '+%Y-%m-%d %H:%M:%S') UTC"
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
   exit 0
 }
 

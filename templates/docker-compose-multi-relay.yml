@@ -1,282 +1,136 @@
 version: '3.8'
 
-services:
-  # ============================================================================
-  # RELAY INSTANCES (3 relay nodes with unique names and ports)
-  # ============================================================================
+# Tor Guard Relay - Multi-Instance Deployment
+# Clean YAML syntax, validated with yamllint
 
+services:
   tor-relay-1:
-    image: ghcr.io/r3bo0tbx1/onion-relay:latest
-    container_name: tor-relay-1
-    hostname: relay-1
+    image: r3bo0tbx1/onion-relay:latest
+    container_name: guard-relay-1
     restart: unless-stopped
     network_mode: host
-    environment:
-      - TOR_DATA_DIR=/var/lib/tor/relay-1
-      - TOR_LOG_DIR=/var/log/tor/relay-1
-      - ENABLE_METRICS=true
-      - METRICS_PORT=9035
     volumes:
-      - ./relay-1.conf:/etc/tor/torrc:ro
-      - tor-relay-1-data:/var/lib/tor/relay-1
-      - tor-relay-1-logs:/var/log/tor/relay-1
-    labels:
-      com.example.relay: "relay-1"
-      com.example.metrics_port: "9035"
+      - ./relays/relay1.conf:/etc/tor/torrc:ro
+      - tor-guard-data-1:/var/lib/tor
+      - tor-guard-logs-1:/var/log/tor
+    environment:
+      ENABLE_METRICS: "false"
+      ENABLE_HEALTH_CHECK: "true"
+      ENABLE_NET_CHECK: "true"
+      METRICS_PORT: "9035"
     healthcheck:
-      test:
-        [
-          "CMD",
-          "tor",
-          "--verify-config",
-          "-f",
-          "/etc/tor/torrc"
-        ]
+      test: ["CMD", "tor", "--verify-config", "-f", "/etc/tor/torrc"]
       interval: 10m
       timeout: 15s
       start_period: 30s
       retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 768M
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   tor-relay-2:
-    image: ghcr.io/r3bo0tbx1/onion-relay:latest
-    container_name: tor-relay-2
-    hostname: relay-2
+    image: r3bo0tbx1/onion-relay:latest
+    container_name: guard-relay-2
     restart: unless-stopped
     network_mode: host
-    environment:
-      - TOR_DATA_DIR=/var/lib/tor/relay-2
-      - TOR_LOG_DIR=/var/log/tor/relay-2
-      - ENABLE_METRICS=true
-      - METRICS_PORT=9036
     volumes:
-      - ./relay-2.conf:/etc/tor/torrc:ro
-      - tor-relay-2-data:/var/lib/tor/relay-2
-      - tor-relay-2-logs:/var/log/tor/relay-2
-    labels:
-      com.example.relay: "relay-2"
-      com.example.metrics_port: "9036"
+      - ./relays/relay2.conf:/etc/tor/torrc:ro
+      - tor-guard-data-2:/var/lib/tor
+      - tor-guard-logs-2:/var/log/tor
+    environment:
+      ENABLE_METRICS: "false"
+      ENABLE_HEALTH_CHECK: "true"
+      ENABLE_NET_CHECK: "true"
+      METRICS_PORT: "9036"
     healthcheck:
-      test:
-        [
-          "CMD",
-          "tor",
-          "--verify-config",
-          "-f",
-          "/etc/tor/torrc"
-        ]
+      test: ["CMD", "tor", "--verify-config", "-f", "/etc/tor/torrc"]
       interval: 10m
       timeout: 15s
       start_period: 30s
       retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 768M
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   tor-relay-3:
-    image: ghcr.io/r3bo0tbx1/onion-relay:latest
-    container_name: tor-relay-3
-    hostname: relay-3
+    image: r3bo0tbx1/onion-relay:latest
+    container_name: guard-relay-3
     restart: unless-stopped
     network_mode: host
-    environment:
-      - TOR_DATA_DIR=/var/lib/tor/relay-3
-      - TOR_LOG_DIR=/var/log/tor/relay-3
-      - ENABLE_METRICS=true
-      - METRICS_PORT=9037
     volumes:
-      - ./relay-3.conf:/etc/tor/torrc:ro
-      - tor-relay-3-data:/var/lib/tor/relay-3
-      - tor-relay-3-logs:/var/log/tor/relay-3
-    labels:
-      com.example.relay: "relay-3"
-      com.example.metrics_port: "9037"
+      - ./relays/relay3.conf:/etc/tor/torrc:ro
+      - tor-guard-data-3:/var/lib/tor
+      - tor-guard-logs-3:/var/log/tor
+    environment:
+      ENABLE_METRICS: "false"
+      ENABLE_HEALTH_CHECK: "true"
+      ENABLE_NET_CHECK: "true"
+      METRICS_PORT: "9037"
     healthcheck:
-      test:
-        [
-          "CMD",
-          "tor",
-          "--verify-config",
-          "-f",
-          "/etc/tor/torrc"
-        ]
+      test: ["CMD", "tor", "--verify-config", "-f", "/etc/tor/torrc"]
       interval: 10m
       timeout: 15s
       start_period: 30s
       retries: 3
-
-  # ============================================================================
-  # MONITORING STACK
-  # ============================================================================
-
-  prometheus:
-    image: prom/prometheus:latest
-    container_name: prometheus
-    restart: unless-stopped
-    ports:
-      - "9090:9090"
-    volumes:
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - prometheus-data:/prometheus
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--storage.tsdb.retention.time=30d'
-    depends_on:
-      - tor-relay-1
-      - tor-relay-2
-      - tor-relay-3
-    labels:
-      com.example.service: "prometheus"
-    healthcheck:
-      test:
-        [
-          "CMD",
-          "wget",
-          "--quiet",
-          "--tries=1",
-          "--spider",
-          "http://localhost:9090"
-        ]
-      interval: 30s
-      timeout: 10s
-      start_period: 5s
-      retries: 3
-
-  grafana:
-    image: grafana/grafana:latest
-    container_name: grafana
-    restart: unless-stopped
-    ports:
-      - "3000:3000"
-    environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
-      - GF_INSTALL_PLUGINS=grafana-clock-panel
-      - GF_USERS_ALLOW_SIGN_UP=false
-    volumes:
-      - grafana-data:/var/lib/grafana
-      - ./grafana-datasources.yml:/etc/grafana/provisioning/datasources/
-        datasources.yml:ro
-    depends_on:
-      - prometheus
-    labels:
-      com.example.service: "grafana"
-    healthcheck:
-      test:
-        [
-          "CMD",
-          "wget",
-          "--quiet",
-          "--tries=1",
-          "--spider",
-          "http://localhost:3000/api/health"
-        ]
-      interval: 30s
-      timeout: 10s
-      start_period: 30s
-      retries: 3
-
-  alertmanager:
-    image: prom/alertmanager:latest
-    container_name: alertmanager
-    restart: unless-stopped
-    ports:
-      - "9093:9093"
-    volumes:
-      - ./alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
-      - alertmanager-data:/alertmanager
-    command:
-      - '--config.file=/etc/alertmanager/alertmanager.yml'
-      - '--storage.path=/alertmanager'
-    labels:
-      com.example.service: "alertmanager"
-    healthcheck:
-      test:
-        [
-          "CMD",
-          "wget",
-          "--quiet",
-          "--tries=1",
-          "--spider",
-          "http://localhost:9093"
-        ]
-      interval: 30s
-      timeout: 10s
-      start_period: 5s
-      retries: 3
-
-# ============================================================================
-# NETWORKS & VOLUMES
-# ============================================================================
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 768M
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 volumes:
-  # Relay data volumes
-  tor-relay-1-data:
+  tor-guard-data-1:
+    name: tor-guard-data-1
     driver: local
-  tor-relay-1-logs:
+  
+  tor-guard-logs-1:
+    name: tor-guard-logs-1
+    driver: local
+  
+  tor-guard-data-2:
+    name: tor-guard-data-2
+    driver: local
+  
+  tor-guard-logs-2:
+    name: tor-guard-logs-2
+    driver: local
+  
+  tor-guard-data-3:
+    name: tor-guard-data-3
+    driver: local
+  
+  tor-guard-logs-3:
+    name: tor-guard-logs-3
     driver: local
 
-  tor-relay-2-data:
-    driver: local
-  tor-relay-2-logs:
-    driver: local
-
-  tor-relay-3-data:
-    driver: local
-  tor-relay-3-logs:
-    driver: local
-
-  # Monitoring volumes
-  prometheus-data:
-    driver: local
-  grafana-data:
-    driver: local
-  alertmanager-data:
-    driver: local
-
-# ============================================================================
-# USAGE NOTES
-# ============================================================================
-
-# 1. Create individual relay configurations:
-#    cp examples/relay.conf relay-1.conf
-#    cp examples/relay.conf relay-2.conf
-#    cp examples/relay.conf relay-3.conf
-#
-#    Then edit each file to change Nickname and ORPort
-#
-# 2. Copy monitoring configs:
-#    cp templates/prometheus.yml .
-#    cp templates/alertmanager.yml .
-#    cp templates/grafana-datasources.yml .
-#
-# 3. Start the stack:
-#    docker-compose up -d
-#
-# 4. Access services:
-#    - Prometheus: http://localhost:9090
-#    - Grafana: http://localhost:3000 (admin/admin)
-#    - Alertmanager: http://localhost:9093
-#    - Relay 1 metrics: http://localhost:9035/metrics
-#    - Relay 2 metrics: http://localhost:9036/metrics
-#    - Relay 3 metrics: http://localhost:9037/metrics
-#
-# 5. Monitor relay status:
-#    docker exec tor-relay-1 status
-#    docker exec tor-relay-2 status
-#    docker exec tor-relay-3 status
-#
-# 6. View logs:
-#    docker-compose logs -f tor-relay-1
-#    docker-compose logs -f tor-relay-2
-#    docker-compose logs -f tor-relay-3
-#
-# 7. Scale to more relays by duplicating a relay service and updating:
-#    - container_name (unique)
-#    - hostname (unique)
-#    - ports in healthcheck (if not using host network)
-#    - volumes (unique paths)
-#    - METRICS_PORT environment variable
-#    - Configuration file path (relay-N.conf)
-#    - Volume definitions
-#
-# See also:
-#   - docs/DEPLOYMENT.md
-#   - docs/MONITORING.md
-#   - templates/prometheus.yml
+# Example configuration files (relay1.conf, relay2.conf, relay3.conf):
+# Place them in ./relays with unique ORPort, Nickname, and ContactInfo
+# See: https://github.com/r3bo0tbx1/tor-guard-relay/blob/main/docs/DEPLOYMENT.md# for detailed instructions on configuring your relays.

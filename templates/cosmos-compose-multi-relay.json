@@ -5,14 +5,14 @@
       "image": "ghcr.io/r3bo0tbx1/onion-relay:latest",
       "container_name": "TorRelay1",
       "restart": "unless-stopped",
+      "network_mode": "host",
       "environment": [
-        "TZ=UTC",
-        "TOR_DATA_DIR=/var/lib/tor/relay-1",
-        "TOR_LOG_DIR=/var/log/tor/relay-1",
+        "TZ=Asia/Tokyo",
         "ENABLE_METRICS=true",
+        "ENABLE_HEALTH_CHECK=true",
+        "ENABLE_NET_CHECK=true",
         "METRICS_PORT=9035"
       ],
-      "network_mode": "host",
       "volumes": [
         {
           "type": "bind",
@@ -23,31 +23,50 @@
         {
           "type": "volume",
           "source": "tor-relay-1-data",
-          "target": "/var/lib/tor/relay-1"
+          "target": "/var/lib/tor"
         },
         {
           "type": "volume",
           "source": "tor-relay-1-logs",
-          "target": "/var/log/tor/relay-1"
+          "target": "/var/log/tor"
         }
+      ],
+      "security_opt": [
+        "no-new-privileges:true"
+      ],
+      "cap_add": [
+        "NET_BIND_SERVICE",
+        "CHOWN",
+        "SETUID",
+        "SETGID",
+        "DAC_OVERRIDE"
       ],
       "labels": {
         "cosmos-stack": "TorMultiRelay",
-        "cosmos-description": "🧅 Tor Guard Relay 1 - Multi-Relay Setup"
+        "cosmos-stack-main": "TorRelay1",
+        "cosmos-description": "🧅 Hardened Tor Guard Relay v1.1.0 with diagnostics & auto-healing",
+        "cosmos-icon": "https://raw.githubusercontent.com/r3bo0tbx1/tor-guard-relay/main/src/onion.png",
+        "cosmos-auto-update": "true",
+        "cosmos-auto-update-type": "registry",
+        "cosmos-force-network-secured": "false",
+        "cosmos-auto-update-notify": "true",
+        "cosmos-auto-update-restart": "true",
+        "cosmos-version": "1.1.0",
+        "maintainer": "rE-Bo0t.bx1 <r3bo0tbx1@brokenbotnet.com>"
       }
     },
     "TorRelay2": {
       "image": "ghcr.io/r3bo0tbx1/onion-relay:latest",
       "container_name": "TorRelay2",
       "restart": "unless-stopped",
+      "network_mode": "host",
       "environment": [
-        "TZ=UTC",
-        "TOR_DATA_DIR=/var/lib/tor/relay-2",
-        "TOR_LOG_DIR=/var/log/tor/relay-2",
+        "TZ=Asia/Tokyo",
         "ENABLE_METRICS=true",
+        "ENABLE_HEALTH_CHECK=true",
+        "ENABLE_NET_CHECK=true",
         "METRICS_PORT=9036"
       ],
-      "network_mode": "host",
       "volumes": [
         {
           "type": "bind",
@@ -58,31 +77,49 @@
         {
           "type": "volume",
           "source": "tor-relay-2-data",
-          "target": "/var/lib/tor/relay-2"
+          "target": "/var/lib/tor"
         },
         {
           "type": "volume",
           "source": "tor-relay-2-logs",
-          "target": "/var/log/tor/relay-2"
+          "target": "/var/log/tor"
         }
+      ],
+      "security_opt": [
+        "no-new-privileges:true"
+      ],
+      "cap_add": [
+        "NET_BIND_SERVICE",
+        "CHOWN",
+        "SETUID",
+        "SETGID",
+        "DAC_OVERRIDE"
       ],
       "labels": {
         "cosmos-stack": "TorMultiRelay",
-        "cosmos-description": "🧅 Tor Guard Relay 2 - Multi-Relay Setup"
+        "cosmos-description": "🧅 Hardened Tor Guard Relay v1.1.0 with diagnostics & auto-healing",
+        "cosmos-icon": "https://raw.githubusercontent.com/r3bo0tbx1/tor-guard-relay/main/src/onion.png",
+        "cosmos-auto-update": "true",
+        "cosmos-auto-update-type": "registry",
+        "cosmos-force-network-secured": "false",
+        "cosmos-auto-update-notify": "true",
+        "cosmos-auto-update-restart": "true",
+        "cosmos-version": "1.1.0",
+        "maintainer": "rE-Bo0t.bx1 <r3bo0tbx1@brokenbotnet.com>"
       }
     },
     "TorRelay3": {
       "image": "ghcr.io/r3bo0tbx1/onion-relay:latest",
       "container_name": "TorRelay3",
       "restart": "unless-stopped",
+      "network_mode": "host",
       "environment": [
-        "TZ=UTC",
-        "TOR_DATA_DIR=/var/lib/tor/relay-3",
-        "TOR_LOG_DIR=/var/log/tor/relay-3",
+        "TZ=Asia/Tokyo",
         "ENABLE_METRICS=true",
+        "ENABLE_HEALTH_CHECK=true",
+        "ENABLE_NET_CHECK=true",
         "METRICS_PORT=9037"
       ],
-      "network_mode": "host",
       "volumes": [
         {
           "type": "bind",
@@ -93,26 +130,42 @@
         {
           "type": "volume",
           "source": "tor-relay-3-data",
-          "target": "/var/lib/tor/relay-3"
+          "target": "/var/lib/tor"
         },
         {
           "type": "volume",
           "source": "tor-relay-3-logs",
-          "target": "/var/log/tor/relay-3"
+          "target": "/var/log/tor"
         }
+      ],
+      "security_opt": [
+        "no-new-privileges:true"
+      ],
+      "cap_add": [
+        "NET_BIND_SERVICE",
+        "CHOWN",
+        "SETUID",
+        "SETGID",
+        "DAC_OVERRIDE"
       ],
       "labels": {
         "cosmos-stack": "TorMultiRelay",
-        "cosmos-description": "🧅 Tor Guard Relay 3 - Multi-Relay Setup"
+        "cosmos-description": "🧅 Hardened Tor Guard Relay v1.1.0 with diagnostics & auto-healing",
+        "cosmos-icon": "https://raw.githubusercontent.com/r3bo0tbx1/tor-guard-relay/main/src/onion.png",
+        "cosmos-auto-update": "true",
+        "cosmos-auto-update-type": "registry",
+        "cosmos-force-network-secured": "false",
+        "cosmos-auto-update-notify": "true",
+        "cosmos-auto-update-restart": "true",
+        "cosmos-version": "1.1.0",
+        "maintainer": "rE-Bo0t.bx1 <r3bo0tbx1@brokenbotnet.com>"
       }
     },
     "Prometheus": {
       "image": "prom/prometheus:latest",
       "container_name": "PrometheusMonitor",
       "restart": "unless-stopped",
-      "ports": [
-        "9090:9090"
-      ],
+      "ports": ["9090:9090"],
       "volumes": [
         {
           "type": "bind",
@@ -126,14 +179,17 @@
           "target": "/prometheus"
         }
       ],
-      "command": [
-        "--config.file=/etc/prometheus/prometheus.yml",
-        "--storage.tsdb.path=/prometheus",
-        "--storage.tsdb.retention.time=30d"
-      ],
+      "command": "--config.file=/etc/prometheus/prometheus.yml --storage.tsdb.path=/prometheus --storage.tsdb.retention.time=30d",
       "labels": {
         "cosmos-stack": "TorMultiRelay",
-        "cosmos-description": "📊 Prometheus Metrics Collector",
+        "cosmos-description": "📊 Prometheus Metrics Collector for Tor Guard Relays",
+        "cosmos-icon": "https://raw.githubusercontent.com/r3bo0tbx1/tor-guard-relay/main/src/onion.png",
+        "cosmos-auto-update": "true",
+        "cosmos-auto-update-type": "registry",
+        "cosmos-force-network-secured": "false",
+        "cosmos-auto-update-notify": "true",
+        "cosmos-auto-update-restart": "true",
+        "cosmos-version": "1.1.0",
         "cosmos-proxy": "9090"
       }
     },
@@ -141,9 +197,7 @@
       "image": "grafana/grafana:latest",
       "container_name": "GrafanaDashboard",
       "restart": "unless-stopped",
-      "ports": [
-        "3000:3000"
-      ],
+      "ports": ["3000:3000"],
       "environment": [
         "GF_SECURITY_ADMIN_PASSWORD=admin",
         "GF_USERS_ALLOW_SIGN_UP=false",
@@ -164,7 +218,14 @@
       ],
       "labels": {
         "cosmos-stack": "TorMultiRelay",
-        "cosmos-description": "📈 Grafana Dashboards",
+        "cosmos-description": "📈 Grafana Dashboards for Relay Metrics",
+        "cosmos-icon": "https://raw.githubusercontent.com/r3bo0tbx1/tor-guard-relay/main/src/onion.png",
+        "cosmos-auto-update": "true",
+        "cosmos-auto-update-type": "registry",
+        "cosmos-force-network-secured": "false",
+        "cosmos-auto-update-notify": "true",
+        "cosmos-auto-update-restart": "true",
+        "cosmos-version": "1.1.0",
         "cosmos-proxy": "3000"
       }
     },
@@ -172,9 +233,7 @@
       "image": "prom/alertmanager:latest",
       "container_name": "AlertManager",
       "restart": "unless-stopped",
-      "ports": [
-        "9093:9093"
-      ],
+      "ports": ["9093:9093"],
       "volumes": [
         {
           "type": "bind",
@@ -188,31 +247,36 @@
           "target": "/alertmanager"
         }
       ],
-      "command": [
-        "--config.file=/etc/alertmanager/alertmanager.yml",
-        "--storage.path=/alertmanager"
-      ],
+      "command": "--config.file=/etc/alertmanager/alertmanager.yml --storage.path=/alertmanager",
       "labels": {
         "cosmos-stack": "TorMultiRelay",
-        "cosmos-description": "🚨 Alert Manager"
+        "cosmos-description": "🚨 Alert Manager for Relay Monitoring",
+        "cosmos-icon": "https://raw.githubusercontent.com/r3bo0tbx1/tor-guard-relay/main/src/onion.png",
+        "cosmos-auto-update": "true",
+        "cosmos-auto-update-type": "registry",
+        "cosmos-force-network-secured": "false",
+        "cosmos-auto-update-notify": "true",
+        "cosmos-auto-update-restart": "true",
+        "cosmos-version": "1.1.0",
+        "cosmos-proxy": "9093"
       }
     }
   },
   "volumes": {
-    "tor-relay-1-data": {},
-    "tor-relay-1-logs": {},
-    "tor-relay-2-data": {},
-    "tor-relay-2-logs": {},
-    "tor-relay-3-data": {},
-    "tor-relay-3-logs": {},
-    "prometheus-data": {},
-    "grafana-data": {},
-    "alertmanager-data": {}
+    "tor-relay-1-data": { "driver": "local" },
+    "tor-relay-1-logs": { "driver": "local" },
+    "tor-relay-2-data": { "driver": "local" },
+    "tor-relay-2-logs": { "driver": "local" },
+    "tor-relay-3-data": { "driver": "local" },
+    "tor-relay-3-logs": { "driver": "local" },
+    "prometheus-data": { "driver": "local" },
+    "grafana-data": { "driver": "local" },
+    "alertmanager-data": { "driver": "local" }
   },
   "metadata": {
-    "description": "🧅 Tor Guard Relay Multi-Relay Stack with Monitoring",
-    "version": "1.1",
+    "description": "🧅 Tor Guard Multi-Relay Stack with Monitoring (Prometheus + Grafana + Alertmanager)",
+    "version": "1.1.0",
     "author": "r3bo0tbx1",
-    "tags": ["tor", "relay", "privacy", "monitoring", "prometheus", "grafana"]
+    "tags": ["tor", "relay", "privacy", "monitoring", "prometheus", "grafana", "alertmanager"]
   }
 }
