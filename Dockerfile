@@ -1,20 +1,19 @@
 # syntax=docker/dockerfile:1.19
 # ============================================================================
-# Tor Guard Relay - Hardened relay with diagnostics and auto-healing
+# Tor Guard Relay - Ultra-optimized ~20 MB container
 # Base: Alpine 3.22.2 | Multi-arch: amd64, arm64
+# v1.1.1 - Busybox-only, 4 diagnostic tools, multi-mode support
 # ============================================================================
 
-FROM alpine:3.22.2 AS builder
+FROM alpine:3.22.2
 
-# Build arguments
 ARG BUILD_DATE
 ARG BUILD_VERSION
 ARG TARGETARCH
 
-# OCI labels
 LABEL maintainer="rE-Bo0t.bx1 <r3bo0tbx1@brokenbotnet.com>" \
       org.opencontainers.image.title="Tor Guard Relay" \
-      org.opencontainers.image.description="🧅 Hardened Tor Guard Relay with diagnostics & auto-healing" \
+      org.opencontainers.image.description="🧅 Ultra-optimized Tor Guard/Exit/Bridge Relay (~20 MB)" \
       org.opencontainers.image.version="${BUILD_VERSION}" \
       org.opencontainers.image.created="${BUILD_DATE}" \
       org.opencontainers.image.source="https://github.com/r3bo0tbx1/tor-guard-relay" \
@@ -26,69 +25,66 @@ LABEL maintainer="rE-Bo0t.bx1 <r3bo0tbx1@brokenbotnet.com>" \
       org.opencontainers.image.base.name="docker.io/library/alpine:3.22.2" \
       org.opencontainers.image.revision="${TARGETARCH}"
 
-# ============================================================================
-# Shell configuration
-# ============================================================================
 SHELL ["/bin/ash", "-eo", "pipefail", "-c"]
 
 # ============================================================================
-# Install core dependencies and perform base setup
-# hadolint ignore=DL3018,DL3059
+# Install minimal dependencies (tor + lyrebird for obfs4 bridge support)
+# No pinned versions - rebuild weekly for latest security patches
+# hadolint ignore=DL3018
 # ============================================================================
 RUN set -eux \
  && apk add --no-cache \
-    tor=0.4.8.19-r0 \
-    bash=5.2.37-r0 \
-    tini=0.19.0-r3 \
-    curl=8.14.1-r2 \
-    jq=1.8.0-r0 \
-    grep=3.12-r0 \
-    coreutils=9.7-r1 \
-    bind-tools=9.20.15-r0 \
-    netcat-openbsd=1.229.1-r0 \
- && mkdir -p /var/lib/tor /var/log/tor /run/tor \
- && chown -R tor:tor /var/lib/tor /var/log/tor /run/tor \
+    tor \
+    tini \
+    lyrebird \
+ && mkdir -p /var/lib/tor /var/log/tor /run/tor /etc/tor \
+ && chown -R tor:tor /var/lib/tor /var/log/tor /run/tor /etc/tor \
  && chmod 700 /var/lib/tor \
- && chmod 755 /var/log/tor /run/tor \
- && echo "# 🧅 Tor configuration is mounted at runtime" > /etc/tor/torrc \
+ && chmod 755 /var/log/tor /run/tor /etc/tor \
+ && rm -f /etc/tor/torrc \
  && printf "Version: %s\nBuild Date: %s\nArchitecture: %s\n" \
-    "${BUILD_VERSION:-dev}" "${BUILD_DATE:-unknown}" "${TARGETARCH:-amd64}" > /build-info.txt \
+    "${BUILD_VERSION:-unversioned}" "${BUILD_DATE:-unknown}" "${TARGETARCH:-amd64}" > /build-info.txt \
  && rm -rf /var/cache/apk/*
 
 # ============================================================================
-# Copy scripts and utilities
+# Copy entrypoint, healthcheck, and diagnostic tools (busybox-only, no .sh extensions)
 # ============================================================================
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
-COPY tools/ /usr/local/bin/
+COPY healthcheck.sh /usr/local/bin/healthcheck.sh
+COPY tools/status /usr/local/bin/status
+COPY tools/health /usr/local/bin/health
+COPY tools/fingerprint /usr/local/bin/fingerprint
+COPY tools/bridge-line /usr/local/bin/bridge-line
 
 # ============================================================================
-# Normalize, harden, and alias tools
+# Set permissions (all scripts are executable, line endings normalized via .gitattributes)
 # ============================================================================
 RUN set -eux \
- && apk add --no-cache dos2unix=7.5.2-r0 \
- && echo "🧩 Normalizing line endings and fixing permissions..." \
- && find /usr/local/bin -type f -name "*.sh" -exec dos2unix {} \; || true \
- && dos2unix /usr/local/bin/docker-entrypoint.sh || true \
- && chmod +x /usr/local/bin/*.sh /usr/local/bin/docker-entrypoint.sh \
- && echo "🔗 Creating symlinks for no-extension tool compatibility..." \
- && for f in /usr/local/bin/*.sh; do ln -sf "$f" "${f%.sh}"; done \
- && echo "✅ Tools normalized, executable, and aliased." \
- && echo "🧩 Registered tools:" \
- && for tool in docker-entrypoint net-check metrics health view-logs status fingerprint setup dashboard; do \
-      [ -e "/usr/local/bin/$tool" ] && echo "  ↳ $tool"; \
-    done \
- && apk del dos2unix \
- && rm -rf /var/cache/apk/*
+ && chmod +x /usr/local/bin/docker-entrypoint.sh \
+              /usr/local/bin/healthcheck.sh \
+              /usr/local/bin/status \
+              /usr/local/bin/health \
+              /usr/local/bin/fingerprint \
+              /usr/local/bin/bridge-line \
+ && echo "🧩 Registered diagnostic tools:" \
+ && ls -lh /usr/local/bin/status /usr/local/bin/health /usr/local/bin/fingerprint /usr/local/bin/bridge-line
 
 # ============================================================================
 # Environment configuration
+# All ports are configurable via ENV vars or config file
 # ============================================================================
 ENV TOR_DATA_DIR=/var/lib/tor \
     TOR_LOG_DIR=/var/log/tor \
     TOR_CONFIG=/etc/tor/torrc \
-    ENABLE_METRICS=false \
-    ENABLE_HEALTH_CHECK=true \
-    ENABLE_NET_CHECK=false \
+    TOR_RELAY_MODE=guard \
+    TOR_NICKNAME="" \
+    TOR_CONTACT_INFO="" \
+    TOR_ORPORT=9001 \
+    TOR_DIRPORT=9030 \
+    TOR_OBFS4_PORT=9002 \
+    TOR_BANDWIDTH_RATE="" \
+    TOR_BANDWIDTH_BURST="" \
+    TOR_EXIT_POLICY="" \
     PATH="/usr/local/bin:$PATH"
 
 # ============================================================================
@@ -97,27 +93,22 @@ ENV TOR_DATA_DIR=/var/lib/tor \
 RUN rm -rf /usr/share/man /tmp/* /var/tmp/* /root/.cache/*
 
 # ============================================================================
-# Ensure runtime directory writable by non-root
-# ============================================================================
-RUN mkdir -p /run/tor \
- && chown -R tor:tor /run/tor \
- && chmod 770 /run/tor
-
-# ============================================================================
 # Switch to non-root user
 # ============================================================================
 USER tor
 
 # ============================================================================
-# Expose ports
+# Expose ports (defaults shown, all fully configurable)
+# ORPort: 9001, DirPort: 9030, obfs4: 9002
 # ============================================================================
-EXPOSE 9001 9030
+EXPOSE 9001 9030 9002
 
 # ============================================================================
 # Health check (verify configuration every 10 minutes)
+# Uses smart healthcheck script that works with both mounted and ENV configs
 # ============================================================================
 HEALTHCHECK --interval=10m --timeout=15s --start-period=30s --retries=3 \
-  CMD tor --verify-config -f "$TOR_CONFIG" || exit 1
+  CMD /usr/local/bin/healthcheck.sh
 
 # ============================================================================
 # Entrypoint

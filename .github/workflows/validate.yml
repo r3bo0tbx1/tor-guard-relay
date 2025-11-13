@@ -14,10 +14,9 @@ on:
       # 🐳 Core build and runtime logic
       - 'Dockerfile'
       - 'docker-entrypoint.sh'
-      - 'integration-check.sh'
 
-      # 🧩 Tools and validation scripts
-      - 'tools/*.sh'
+      # 🧩 Tools and validation scripts (no .sh extension)
+      - 'tools/*'
 
       # ⚙️ CI/CD workflows
       - '.github/workflows/release.yml'
@@ -64,7 +63,7 @@ jobs:
       - name: 🔍 Validate Dockerfile Syntax
         run: |
           echo "🐳 Validating Dockerfile build context..."
-          docker build --no-cache --target builder -t tor-relay-test . 2>&1 | \
+          docker build --no-cache -t tor-relay-test . 2>&1 | \
             tee /tmp/docker-build.log || true
           if grep -i "error" /tmp/docker-build.log; then
             echo "❌ Dockerfile validation failed"
@@ -85,31 +84,23 @@ jobs:
             bash -n docker-entrypoint.sh || exit 1
             echo "   ✅ docker-entrypoint.sh syntax valid"
           fi
-          
-          # Check integration test script
-          if [ -f integration-check.sh ]; then
-            echo "📄 Checking integration-check.sh..."
-            bash -n integration-check.sh || exit 1
-            echo "   ✅ integration-check.sh syntax valid"
-          fi
-          
+
           echo ""
-          echo "📁 Checking tools directory (.sh files)..."
-          
-          # Check if tools directory exists and has .sh files
+          echo "📁 Checking tools directory (no .sh extension)..."
+
+          # Check if tools directory exists
           if [ ! -d "tools" ]; then
             echo "   ⚠️  tools/ directory not found"
-          elif [ -z "$(find tools -maxdepth 1 -type f -name '*.sh' 2>/dev/null)" ]; then
-            echo "   ⚠️  No .sh files found in tools/"
           else
-            # Check all .sh files in tools/
+            # Check all files in tools/ (no .sh extension)
             TOOL_COUNT=0
-            for script in tools/*.sh; do
-              [ -f "$script" ] || continue
-              echo "📄 Checking $(basename "$script")..."
-              bash -n "$script" || exit 1
-              echo "   ✅ $script syntax valid"
-              TOOL_COUNT=$((TOOL_COUNT + 1))
+            for script in tools/status tools/health tools/fingerprint tools/bridge-line; do
+              if [ -f "$script" ]; then
+                echo "📄 Checking $(basename "$script")..."
+                sh -n "$script" || exit 1
+                echo "   ✅ $script syntax valid"
+                TOOL_COUNT=$((TOOL_COUNT + 1))
+              fi
             done
             echo ""
             echo "   ✅ All $TOOL_COUNT tool scripts validated"
@@ -135,17 +126,17 @@ jobs:
             echo "🔍 ShellCheck: docker-entrypoint.sh"
             shellcheck -S warning docker-entrypoint.sh || true
           fi
-          
-          if [ -f integration-check.sh ]; then
-            echo "🔍 ShellCheck: integration-check.sh"
-            shellcheck -S warning integration-check.sh || true
-          fi
-          
-          # ShellCheck all .sh files in tools/
+
+          # ShellCheck all tools (no .sh extension)
           if [ -d "tools" ]; then
             echo ""
-            echo "🔍 ShellCheck: tools/*.sh"
-            find tools -maxdepth 1 -type f -name "*.sh" -exec shellcheck -S warning {} \; || true
+            echo "🔍 ShellCheck: tools/*"
+            for tool in tools/status tools/health tools/fingerprint tools/bridge-line; do
+              if [ -f "$tool" ]; then
+                echo "  Checking $(basename $tool)..."
+                shellcheck -S warning "$tool" || true
+              fi
+            done
           fi
           
           echo ""
@@ -154,51 +145,50 @@ jobs:
       - name: 🎯 Verify Tool Extensions
         run: |
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "📝 Verifying Tool File Extensions"
+          echo "📝 Verifying Tool File Extensions (NO .sh)"
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo ""
-          
+
           if [ ! -d "tools" ]; then
             echo "⚠️  tools/ directory not found - skipping check"
             exit 0
           fi
-          
-          MISSING_EXT=0
-          NON_SH_COUNT=0
-          SH_COUNT=0
-          
+
+          HAS_SH_EXT=0
+          NO_EXT_COUNT=0
+
           # Check all files in tools/
           for file in tools/*; do
             [ -f "$file" ] || continue
-            
+
             filename=$(basename "$file")
-            extension="${filename##*.}"
-            
+
             # Check if it's a shell script (has shebang)
             if head -1 "$file" 2>/dev/null | grep -q "^#!/"; then
-              if [ "$extension" != "sh" ]; then
-                echo "❌ Shell script missing .sh extension: $filename"
-                MISSING_EXT=1
+              # Tools should NOT have .sh extension
+              if echo "$filename" | grep -q '\.sh$'; then
+                echo "❌ Tool should NOT have .sh extension: $filename"
+                HAS_SH_EXT=1
               else
-                SH_COUNT=$((SH_COUNT + 1))
+                NO_EXT_COUNT=$((NO_EXT_COUNT + 1))
+                echo "✅ Tool has correct format (no .sh): $filename"
               fi
-            else
-              NON_SH_COUNT=$((NON_SH_COUNT + 1))
-              echo "ℹ️  Non-script file: $filename"
             fi
           done
-          
+
           echo ""
           echo "📊 Summary:"
-          echo "   • Shell scripts with .sh: $SH_COUNT"
-          [ $NON_SH_COUNT -gt 0 ] && echo "   • Other files: $NON_SH_COUNT"
+          echo "   • Tools without .sh extension: $NO_EXT_COUNT"
           echo ""
-          
-          if [ $MISSING_EXT -eq 1 ]; then
-            echo "❌ Some shell scripts are missing .sh extension"
+
+          if [ $HAS_SH_EXT -eq 1 ]; then
+            echo "❌ Some tools have .sh extension (should not have it)"
+            exit 1
+          elif [ $NO_EXT_COUNT -lt 4 ]; then
+            echo "❌ Expected 4 tools (status, health, fingerprint, bridge-line)"
             exit 1
           else
-            echo "✅ All shell scripts have proper .sh extension"
+            echo "✅ All tools have correct format (no .sh extension)"
           fi
 
       - name: 📋 Lint YAML Files
@@ -343,9 +333,8 @@ jobs:
       - name: 🚀 Run Container Smoke Test
         run: |
           echo "🚀 Starting container for smoke test..."
-          docker run -d --name tor-test -e ENABLE_METRICS=true \
-            -e ENABLE_HEALTH_CHECK=true tor-relay:test \
-            /bin/sh -c "echo 'Test mode active'; sleep 60" || true
+          docker run -d --name tor-test --entrypoint /bin/sh tor-relay:test \
+            -c "echo '✅ Container started successfully'; sleep 60" || true
           sleep 5
 
       - name: 🔍 Check Container Status
@@ -359,16 +348,15 @@ jobs:
       - name: 🔧 Verify Tools Installation
         run: |
           echo "🔍 Checking installed tools..."
-          docker run --rm tor-relay:test ls -la /usr/local/bin/ || exit 1
+          docker run --rm --entrypoint /bin/sh tor-relay:test -c "ls -la /usr/local/bin/" || exit 1
           echo ""
           echo "🛠️ Available diagnostic tools:"
-          docker run --rm tor-relay:test sh -c "ls -1 /usr/local/bin/*.sh 2>/dev/null | \
-            xargs -n1 basename | sort"
+          docker run --rm --entrypoint /bin/sh tor-relay:test -c "ls -1 /usr/local/bin/status /usr/local/bin/health /usr/local/bin/fingerprint /usr/local/bin/bridge-line"
 
       - name: 🧅 Verify Tor Installation
         run: |
           echo "🔍 Checking Tor version..."
-          TOR_VERSION=$(docker run --rm tor-relay:test tor --version | head -1)
+          TOR_VERSION=$(docker run --rm --entrypoint tor tor-relay:test --version | head -1)
           if [ -z "$TOR_VERSION" ]; then
             echo "❌ Tor installation failed"
             exit 1
@@ -377,7 +365,7 @@ jobs:
 
       - name: 📁 Verify File Structure
         run: |
-          docker run --rm tor-relay:test sh -c "
+          docker run --rm --entrypoint /bin/sh tor-relay:test -c "
             echo '📂 === Directory Structure ===' && \
             ls -la / | grep -E 'var|etc|usr' && \
             echo '' && \
@@ -394,16 +382,27 @@ jobs:
       - name: 📋 Check Build Metadata
         run: |
           echo "🔍 Checking build metadata..."
-          docker run --rm tor-relay:test cat /build-info.txt || exit 1
+          docker run --rm --entrypoint cat tor-relay:test /build-info.txt || exit 1
 
       - name: 🔐 Verify Permissions
         run: |
           echo "🔐 Verifying directory permissions..."
-          docker run --rm tor-relay:test sh -c "
-            ls -ld /var/lib/tor | grep -q '^d.*tor tor' && \
-              echo '✅ /var/lib/tor permissions correct' || exit 1
-            ls -ld /var/log/tor | grep -q '^d.*tor tor' && \
-              echo '✅ /var/log/tor permissions correct' || exit 1
+          docker run --rm --entrypoint /bin/sh tor-relay:test -c "
+            DATA_OWNER=\$(stat -c '%u %g' /var/lib/tor)
+            if [ \"\$DATA_OWNER\" = '100 101' ]; then
+              echo '✅ /var/lib/tor ownership correct (100:101)'
+            else
+              echo '❌ /var/lib/tor ownership incorrect: \$DATA_OWNER'
+              exit 1
+            fi
+
+            LOG_OWNER=\$(stat -c '%u %g' /var/log/tor)
+            if [ \"\$LOG_OWNER\" = '100 101' ]; then
+              echo '✅ /var/log/tor ownership correct (100:101)'
+            else
+              echo '❌ /var/log/tor ownership incorrect: \$LOG_OWNER'
+              exit 1
+            fi
           "
 
       - name: ✅ Integration Tests Summary
@@ -490,32 +489,29 @@ jobs:
       - name: "🔍 Test: Help Flags"
         if: matrix.test-case == 'help-flags'
         run: |
-          echo "🧪 Testing tool help flags..."
-          for tool in health.sh metrics.sh status.sh fingerprint.sh view-logs.sh \
-            net-check.sh setup.sh dashboard.sh; do
+          echo "🧪 Testing tool existence..."
+          for tool in status health fingerprint bridge-line; do
             TOOL_PATH="/usr/local/bin/$tool"
-            if docker run --rm tor-relay:test sh -c "test -f $TOOL_PATH"; then
-              echo "🔍 Testing $tool --help..."
-              docker run --rm tor-relay:test $tool --help > /dev/null && \
-                echo "✅ $tool --help works" || \
-                echo "⚠️ $tool --help failed (non-critical)"
+            if docker run --rm --entrypoint /bin/sh tor-relay:test -c "test -f $TOOL_PATH"; then
+              echo "✅ $tool exists at $TOOL_PATH"
             else
-              echo "⚠️  $tool not found at $TOOL_PATH"
+              echo "❌ $tool not found at $TOOL_PATH"
+              exit 1
             fi
           done
 
       - name: "🔐 Test: File Permissions"
         if: matrix.test-case == 'file-permissions'
         run: |
-          echo "🔐 Verifying file permissions for .sh tools..."
-          docker run --rm tor-relay:test sh -c "
-            for tool in /usr/local/bin/*.sh; do
+          echo "🔐 Verifying file permissions for tools..."
+          docker run --rm --entrypoint /bin/sh tor-relay:test -c "
+            for tool in /usr/local/bin/status /usr/local/bin/health /usr/local/bin/fingerprint /usr/local/bin/bridge-line; do
               if [ -f \"\$tool\" ]; then
                 test -x \"\$tool\" && echo \"✅ \$(basename \$tool) is executable\" || exit 1
               fi
             done
           "
-          docker run --rm tor-relay:test sh -c "
+          docker run --rm --entrypoint /bin/sh tor-relay:test -c "
             test -x /usr/local/bin/docker-entrypoint.sh && \
               echo '✅ docker-entrypoint.sh is executable' || exit 1
           "
@@ -524,7 +520,7 @@ jobs:
         if: matrix.test-case == 'alpine-compatibility'
         run: |
           echo "🏔️ Verifying Alpine base image..."
-          docker run --rm tor-relay:test sh -c "
+          docker run --rm --entrypoint /bin/sh tor-relay:test -c "
             cat /etc/os-release | grep -i alpine && \
               echo '✅ Alpine base confirmed' || exit 1
             test -x /bin/sh && echo '✅ /bin/sh available' || exit 1
@@ -536,13 +532,13 @@ jobs:
         if: matrix.test-case == 'tool-executability'
         run: |
           echo "🔧 Testing tool execution..."
-          docker run --rm tor-relay:test sh -c "
-            for tool in /usr/local/bin/*.sh; do
+          docker run --rm --entrypoint /bin/sh tor-relay:test -c "
+            for tool in /usr/local/bin/status /usr/local/bin/health /usr/local/bin/fingerprint /usr/local/bin/bridge-line; do
               if [ -f \"\$tool\" ]; then
                 BASENAME=\$(basename \"\$tool\")
                 echo \"🔍 Testing \$BASENAME...\"
-                \"\$tool\" --help > /dev/null 2>&1 || \
-                  echo \"  ⚠️  \$BASENAME --help failed (may require Tor process)\"
+                # Tools require Tor to be running, just verify they're executable
+                test -x \"\$tool\" && echo \"  ✅ \$BASENAME is executable\" || exit 1
               fi
             done
           "
@@ -574,8 +570,8 @@ jobs:
 
           ## ✅ Checks Performed
           - 🐳 Dockerfile validation with Hadolint
-          - 📝 Shell script syntax checking (all .sh files)
-          - 🎯 Shell script extension verification
+          - 📝 Shell script syntax checking (POSIX sh)
+          - 🎯 Tool extension verification (no .sh)
           - 🔎 ShellCheck static analysis
           - 📋 YAML validation (lenient for templates)
           - 🔖 JSON validation
@@ -583,7 +579,7 @@ jobs:
           - 🏗️ Docker image build (multi-arch ready)
           - 🚀 Container smoke test
           - 🧅 Tor installation verification
-          - 🔧 Tool availability check (.sh files)
+          - 🔧 Tool availability check (status, health, fingerprint, bridge-line)
           - 🔐 Permission verification
           - 🛡️ Security scanning with Trivy
           - 🧪 Test matrix execution

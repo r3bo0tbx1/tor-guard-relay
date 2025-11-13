@@ -1,0 +1,228 @@
+version: "3.8"
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Tor obfs4 Bridge - Official ENV Naming
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Drop-in replacement for thetorproject/obfs4-bridge:latest
+#
+# Features:
+# - 100% compatible with official Tor Project bridge ENV variables
+# - Weekly security rebuilds (Sundays 18:30 UTC)
+# - 4 diagnostic tools (status, health, fingerprint, bridge-line)
+# - JSON health API for monitoring integration
+# - Ultra-minimal 20MB Alpine Linux base
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+services:
+  obfs4-bridge:
+    image: r3bo0tbx1/onion-relay:latest
+    container_name: obfs4-bridge
+    restart: unless-stopped
+    network_mode: host
+
+    environment:
+      # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      # REQUIRED: Official Tor Project Bridge ENV Variables
+      # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      # These match the official thetorproject/obfs4-bridge naming
+
+      # OR_PORT: Tor relay traffic port (ORPort)
+      # Suggested: 443, 9001, or any port > 1024
+      - OR_PORT=${OR_PORT:-9001}
+
+      # PT_PORT: Pluggable transport port (obfs4)
+      # Can be any port > 1024
+      - PT_PORT=${PT_PORT:-9002}
+
+      # EMAIL: Contact email address
+      # REQUIRED: Used in bridge descriptor
+      - EMAIL=${EMAIL:?EMAIL is required}
+
+      # NICKNAME: Bridge nickname
+      # Optional: Defaults to "DockerObfs4Bridge" if not set
+      - NICKNAME=${NICKNAME:-DockerObfs4Bridge}
+
+      # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      # OPTIONAL: Advanced Configuration
+      # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+      # Enable processing of OBFS4V_* environment variables
+      - OBFS4_ENABLE_ADDITIONAL_VARIABLES=${OBFS4_ENABLE_ADDITIONAL_VARIABLES:-1}
+
+      # Example OBFS4V_* variables (additional torrc options)
+      # Uncomment and modify as needed:
+
+      # Disable IPv6 address announcements
+      - OBFS4V_AddressDisableIPv6=${OBFS4V_AddressDisableIPv6:-0}
+
+      # Set maximum memory in queues (helps with high-bandwidth bridges)
+      - OBFS4V_MaxMemInQueues=${OBFS4V_MaxMemInQueues:-1024 MB}
+
+      # Other common OBFS4V_* options:
+      # - OBFS4V_BandwidthRate=10 MBytes
+      # - OBFS4V_BandwidthBurst=20 MBytes
+      # - OBFS4V_AccountingMax=100 GBytes
+      # - OBFS4V_AccountingStart=month 1 00:00
+
+      # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      # Optional: Container Configuration
+      # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      - TZ=${TZ:-UTC}
+
+    volumes:
+      # Data volume: Stores bridge keys, state, and pt_state
+      - obfs4-data:/var/lib/tor
+
+      # Logs volume: Separate log storage for easier management
+      - obfs4-logs:/var/log/tor
+
+    # Security hardening
+    security_opt:
+      - no-new-privileges:true
+
+    # Minimal required capabilities
+    cap_add:
+      - NET_BIND_SERVICE  # Allow binding to ports < 1024
+      - CHOWN             # Fix volume permissions on startup
+      - SETUID            # Switch to tor user
+      - SETGID            # Switch to tor group
+      - DAC_OVERRIDE      # Override file permissions for healing
+
+    # Drop all other capabilities
+    cap_drop:
+      - ALL
+
+    # Health check using built-in health tool
+    healthcheck:
+      test: ["CMD-SHELL", "health | grep -q '\"status\":\"healthy\"' || exit 1"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+
+    labels:
+      # Container metadata
+      com.centurylinklabs.watchtower.enable: "true"
+      description: "Tor obfs4 Bridge - Drop-in replacement for thetorproject/obfs4-bridge"
+      version: "1.1.1"
+      maintainer: "rE-Bo0t.bx1 <r3bo0tbx1@brokenbotnet.com>"
+
+volumes:
+  obfs4-data:
+    # Volume naming matches official thetorproject/obfs4-bridge convention
+    # Format: tor-datadir-<OR_PORT>-<PT_PORT>
+    name: tor-datadir-${OR_PORT:-9001}-${PT_PORT:-9002}
+    driver: local
+
+  obfs4-logs:
+    name: tor-logs-${OR_PORT:-9001}-${PT_PORT:-9002}
+    driver: local
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# USAGE INSTRUCTIONS
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#
+# 1. Create a .env file with your configuration:
+#
+#    OR_PORT=9001
+#    PT_PORT=9002
+#    EMAIL=admin@example.com
+#    NICKNAME=MyObfs4Bridge
+#
+# 2. Deploy the bridge:
+#
+#    docker-compose -f docker-compose-bridge-official.yml up -d
+#
+# 3. Verify deployment:
+#
+#    # Check container status
+#    docker-compose -f docker-compose-bridge-official.yml ps
+#
+#    # View logs
+#    docker-compose -f docker-compose-bridge-official.yml logs -f
+#
+#    # Full health report
+#    docker exec obfs4-bridge status
+#
+#    # JSON health check
+#    docker exec obfs4-bridge health | jq .
+#
+# 4. Get your bridge line (after 24-48 hours):
+#
+#    docker exec obfs4-bridge bridge-line
+#
+# 5. Check fingerprint:
+#
+#    docker exec obfs4-bridge fingerprint
+#
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# MIGRATION FROM OFFICIAL IMAGE
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#
+# If you're migrating from thetorproject/obfs4-bridge:
+#
+# 1. Stop the old container:
+#    docker-compose down
+#
+# 2. Update docker-compose.yml with this file (or change image to r3bo0tbx1/onion-relay:latest)
+#
+# 3. Start with same volumes (preserves bridge keys):
+#    docker-compose -f docker-compose-bridge-official.yml up -d
+#
+# Your bridge identity is preserved! No need to share a new bridge line.
+#
+# See docs/MIGRATION-V1.1.X.md for detailed migration guide (Path 2).
+#
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# MONITORING & OBSERVABILITY
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#
+# Use the JSON health API for monitoring:
+#
+# Prometheus Node Exporter (textfile collector):
+#   docker exec obfs4-bridge health | jq -r '
+#     "tor_bootstrap_percent \(.bootstrap)",
+#     "tor_reachable \(if .reachable then 1 else 0 end)"
+#   ' > /var/lib/node_exporter/tor-bridge.prom
+#
+# Nagios/Icinga check:
+#   #!/bin/bash
+#   STATUS=$(docker exec obfs4-bridge health | jq -r '.status')
+#   [ "$STATUS" = "healthy" ] && exit 0 || exit 2
+#
+# Cron-based alerting:
+#   */5 * * * * docker exec obfs4-bridge health | jq -r '.status' | grep -q 'healthy' || alert
+#
+# See docs/MONITORING.md for complete integration examples.
+#
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# FIREWALL CONFIGURATION
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#
+# Allow incoming connections to your bridge:
+#
+# UFW (Ubuntu):
+#   sudo ufw allow 9001/tcp comment 'Tor ORPort'
+#   sudo ufw allow 9002/tcp comment 'Tor obfs4'
+#
+# firewalld (CentOS/RHEL):
+#   sudo firewall-cmd --permanent --add-port=9001/tcp
+#   sudo firewall-cmd --permanent --add-port=9002/tcp
+#   sudo firewall-cmd --reload
+#
+# iptables:
+#   sudo iptables -A INPUT -p tcp --dport 9001 -j ACCEPT
+#   sudo iptables -A INPUT -p tcp --dport 9002 -j ACCEPT
+#
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# RESOURCES
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#
+# - GitHub: https://github.com/r3bo0tbx1/tor-guard-relay
+# - Docker Hub: https://hub.docker.com/r/r3bo0tbx1/onion-relay
+# - GHCR: ghcr.io/r3bo0tbx1/onion-relay
+# - Documentation: https://github.com/r3bo0tbx1/tor-guard-relay/tree/main/docs
+# - Migration Guide: docs/MIGRATION-FROM-OFFICIAL.md
+# - Tor Bridge Guide: https://community.torproject.org/relay/setup/bridge/
+#
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

@@ -1,0 +1,69 @@
+{
+  "minVersion": "0.8.0",
+  "services": {
+    "tor-bridge": {
+      "image": "ghcr.io/r3bo0tbx1/onion-relay:latest",
+      "container_name": "tor-bridge",
+      "restart": "unless-stopped",
+      "network_mode": "host",
+      "environment": [
+        "TOR_RELAY_MODE=bridge",
+        "TOR_NICKNAME=MyTorBridge",
+        "TOR_CONTACT_INFO=admin@example.com",
+        "TOR_ORPORT=9001",
+        "TOR_OBFS4_PORT=9002"
+      ],
+      "volumes": [
+        {
+          "type": "volume",
+          "source": "tor-bridge-data",
+          "target": "/var/lib/tor"
+        },
+        {
+          "type": "volume",
+          "source": "tor-bridge-logs",
+          "target": "/var/log/tor"
+        }
+      ],
+      "security_opt": ["no-new-privileges:true"],
+      "cap_drop": ["ALL"],
+      "cap_add": [
+        "NET_BIND_SERVICE",
+        "CHOWN",
+        "SETUID",
+        "SETGID",
+        "DAC_OVERRIDE"
+      ],
+      "labels": {
+        "cosmos-stack": "TorBridge",
+        "cosmos-stack-main": "tor-bridge",
+        "cosmos-description": "🧅 Tor obfs4 Bridge - ENV-based config | TOR_* naming | Minimal setup with weekly security updates",
+        "cosmos-icon": "https://raw.githubusercontent.com/r3bo0tbx1/tor-guard-relay/refs/heads/main/src/obfs4.png",
+        "cosmos-auto-update": "true",
+        "cosmos-force-network-secured": "false",
+        "cosmos-version": "1.1.1"
+      }
+    }
+  },
+  "volumes": {
+    "tor-bridge-data": {},
+    "tor-bridge-logs": {}
+  },
+  "metadata": {
+    "description": "🧅 Tor obfs4 Bridge - ENV-based configuration with TOR_* naming",
+    "version": "1.1.1",
+    "author": "r3bo0tbx1",
+    "tags": ["tor", "bridge", "obfs4", "censorship", "privacy"],
+    "configuration_method": "environment_variables",
+    "notes": [
+      "ENV-based configuration - no config file needed",
+      "Required: TOR_NICKNAME, TOR_CONTACT_INFO, TOR_ORPORT, TOR_OBFS4_PORT",
+      "Alternative naming: Use OR_PORT/PT_PORT/EMAIL/NICKNAME (official Tor Project naming)",
+      "See cosmos-compose-bridge-official.json for drop-in thetorproject/obfs4-bridge replacement",
+      "For mounted config file, remove environment variables and add:",
+      "  { \"type\": \"bind\", \"source\": \"/path/to/relay-bridge.conf\", \"target\": \"/etc/tor/torrc\", \"read_only\": true }",
+      "After deployment: docker exec tor-bridge bridge-line",
+      "Weekly security rebuilds every Sunday 18:30 UTC"
+    ]
+  }
+}

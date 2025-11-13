@@ -93,7 +93,7 @@ body:
     id: diagnostic
     attributes:
       label: Diagnostic Output
-      description: Output from `docker exec guard-relay relay-status`
+      description: Output from `docker exec guard-relay status` or `docker exec guard-relay health`
       render: shell
       placeholder: Paste diagnostic output here
 

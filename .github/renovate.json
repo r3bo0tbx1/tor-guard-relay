@@ -13,46 +13,41 @@
   "assignees": ["r3bo0tbx1"],
   "reviewers": ["r3bo0tbx1"],
 
-  "enabledManagers": ["dockerfile", "regex"],
-
-  "regexManagers": [
-    {
-      "fileMatch": ["Dockerfile"],
-      "matchStrings": [
-        "tor=(?<currentValue>[0-9a-zA-Z\\.-]+)",
-        "bash=(?<currentValue>[0-9a-zA-Z\\.-]+)",
-        "tini=(?<currentValue>[0-9a-zA-Z\\.-]+)",
-        "curl=(?<currentValue>[0-9a-zA-Z\\.-]+)",
-        "jq=(?<currentValue>[0-9a-zA-Z\\.-]+)",
-        "grep=(?<currentValue>[0-9a-zA-Z\\.-]+)",
-        "coreutils=(?<currentValue>[0-9a-zA-Z\\.-]+)",
-        "bind-tools=(?<currentValue>[0-9a-zA-Z\\.-]+)",
-        "netcat-openbsd=(?<currentValue>[0-9a-zA-Z\\.-]+)",
-        "dos2unix=(?<currentValue>[0-9a-zA-Z\\.-]+)"
-      ],
-      "datasourceTemplate": "alpine",
-      "depNameTemplate": "{{{matchString}}}"
-    }
-  ],
+  "enabledManagers": ["dockerfile"],
 
   "packageRules": [
     {
-      "matchDatasources": ["alpine"],
-      "groupName": "🧅 Alpine Packages",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["alpine"],
+      "groupName": "🐳 Alpine Base Image",
       "schedule": ["before 3am on monday"],
       "prPriority": 1,
-      "allowedVersions": "<3.23.0"
+      "automerge": false,
+      "allowedVersions": "/^3\\.(2[2-9]|[3-9][0-9])\\./",
+      "description": "Track Alpine 3.22+ versions for security updates"
     },
     {
       "matchManagers": ["dockerfile"],
-      "groupName": "🐳 Base Images",
+      "excludePackageNames": ["alpine"],
+      "groupName": "🐳 Other Docker Images",
       "schedule": ["before 3am on monday"],
-      "prPriority": 2
+      "prPriority": 2,
+      "automerge": false
     }
   ],
 
-  "timezone": "UTC",
-  "automerge": false,
-  "prConcurrentLimit": 5
-}
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "labels": ["security", "dependencies"],
+    "assignees": ["r3bo0tbx1"],
+    "schedule": ["at any time"]
+  },
 
+  "osvVulnerabilityAlerts": true,
+  "timezone": "UTC",
+  "prConcurrentLimit": 5,
+
+  "customManagers": [],
+
+  "description": "Renovate tracks only Docker base images. Alpine packages (tor, tini, lyrebird) are NOT pinned and update automatically via weekly rebuilds."
+}

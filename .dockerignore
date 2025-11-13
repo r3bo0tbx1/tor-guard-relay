@@ -45,4 +45,4 @@ __pycache__/
 !Dockerfile
 !tools/
 !docker-entrypoint.sh
-!integration-check.sh
+!healthcheck.sh

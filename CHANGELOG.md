@@ -10,10 +10,133 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### 🎯 Planned Features
 
-* 🌉 Bridge relay variant
 * 📊 Additional monitoring integrations (Datadog, New Relic)
 * 🔄 Automatic relay configuration updates
 * 🧪 Enhanced integration testing suite
+
+---
+
+## [1.1.1] - 2025-11-14
+
+### 🚀 Major Release: Ultra-Optimized Build + Security Hardening + Configuration Enhancement
+
+**This is a major architectural release** migrating from a dual-build structure (45MB) to a single ultra-optimized 20MB build with busybox-only dependencies, comprehensive security hardening, simplified multi-mode operation, and enhanced configuration documentation.
+
+### ✨ Core Features
+
+* 🧅 **Multi-mode relay support** - Single container for guard/exit/bridge via `TOR_RELAY_MODE` environment variable
+* 🌉 **Bridge relay with obfs4** - Integrated lyrebird for pluggable transport (drop-in replacement for `thetorproject/obfs4-bridge`)
+* 🔧 **ENV-based configuration** - Full relay setup via environment variables (TOR_*, official bridge naming compatible)
+* 📊 **Smart diagnostics** - 4 busybox-only tools: `status`, `health`, `fingerprint`, `bridge-line`
+* 📉 **Image size** - Reduced from ~45MB to ~20MB (busybox-only, no bash/python/jq)
+* 🩺 **Smart healthcheck** - New `healthcheck.sh` works with both mounted configs and ENV variables
+* 🔄 **Weekly rebuilds** - Automated Sunday 18:30 UTC rebuilds with latest Alpine/Tor patches (same version tag, fresh packages)
+
+### 📖 Configuration & Documentation Enhancements (Latest)
+
+* 🔧 **OBFS4V_* Variable Parsing (CRITICAL FIX)**
+  - Fixed busybox regex incompatibility causing rejection of values with spaces
+  - Issue: `OBFS4V_MaxMemInQueues="1024 MB"` was rejected with "dangerous characters" error
+  - Solution: Rewrote validation (docker-entrypoint.sh:309-321) with busybox-compatible commands (`wc -l`, `tr -d`)
+  - Impact: Bridge operators can now use advanced memory/CPU settings without errors
+
+* 🌉 **PT_PORT Support & Official Bridge Naming**
+  - Added `PT_PORT` environment variable for drop-in compatibility with `thetorproject/obfs4-bridge`
+  - PT_PORT automatically detects and enables bridge mode (no `TOR_RELAY_MODE` needed)
+  - Full compatibility with official bridge ENV naming: `OR_PORT`, `PT_PORT`, `EMAIL`, `NICKNAME`
+  - Bridge templates now reference both TOR_* and official naming conventions
+
+* 📊 **Bandwidth Configuration Clarification**
+  - Documented `TOR_BANDWIDTH_RATE/BURST` → `RelayBandwidthRate/Burst` translation
+  - Added Option 1 vs Option 2 explanations in all example configs:
+    - `RelayBandwidthRate/Burst` (relay-specific traffic only, recommended)
+    - `BandwidthRate/Burst` (all Tor traffic including directory requests)
+  - Updated all templates with inline bandwidth option comments
+
+* 📚 **Template & Example Updates**
+  - **examples/relay-bridge.conf**: Added Method 2 with PT_PORT (official naming)
+  - **examples/relay-exit.conf**: Added BandwidthRate/Burst as Option 2 with explanations
+  - **examples/relay-guard.conf**: Added BandwidthRate/Burst as Option 2 for consistency
+  - **cosmos-compose-bridge.json**: Added note about OR_PORT/PT_PORT alternative
+  - **cosmos-compose-guard.json**: Documented bandwidth options (RelayBandwidth vs Bandwidth)
+  - **cosmos-compose-exit.json**: Documented bandwidth options with recommendations
+  - **docker-compose-bridge.yml**: Added official naming alternative info
+  - **docker-compose-guard-env.yml**: Added bandwidth comment explaining options
+  - **docker-compose-exit.yml**: Added bandwidth comment explaining options
+
+* 📝 **Documentation Updates**
+  - **CLAUDE.md**: Enhanced "Key Differences" section with bandwidth options
+  - **templates/README.md**: Cross-references to bandwidth configuration methods
+  - All templates now include comprehensive mounted config vs ENV comparison
+
+### 🔒 Security Fixes
+
+* 🔐 **Fixed 32 vulnerabilities** across 4 severity levels:
+  - **6 CRITICAL**: Command injection (OBFS4V_*), health check failures, privilege escalation, validation gaps, workflow permissions, temp file races
+  - **8 HIGH**: JSON injection, bash-specific features, permission handling
+  - **10 MEDIUM**: Various validation and error handling improvements
+  - **8 LOW**: Code quality and best practices
+* 🛡️ **Minimal attack surface** - No exposed monitoring ports, all diagnostics via `docker exec` only
+* 🔑 **Input validation** - Comprehensive ENV variable validation with whitespace trimming and OBFS4V_* whitelist
+* 📋 **Security audit** - Complete vulnerability analysis documented in `SECURITY-AUDIT-REPORT.md`
+
+### 📚 Templates & Documentation
+
+* **Templates (13 files updated)**:
+  - All Docker Compose templates now use smart `healthcheck.sh` script
+  - Cosmos templates use `:latest` tag instead of hardcoded versions
+  - Fixed image names (tor-guard-relay → onion-relay) and broken migration doc references
+  - Added official bridge templates with `thetorproject/obfs4-bridge` ENV compatibility
+* **Documentation consolidation**:
+  - Removed outdated monitoring infrastructure references (metrics ports, HTTP endpoints, old ENV vars)
+  - Clarified `jq` usage (must be on HOST machine, not in container)
+  - Documented weekly build strategy (overwrites version tags with fresh packages)
+  - Consolidated 7 migration docs into 2 canonical guides
+  - Complete rewrite of TOOLS.md and MONITORING.md for v1.1.1 architecture
+
+### ⚙️ Configuration & Compatibility
+
+* 🔄 **Tor bootstrap logs** - Real-time progress (0-100%) now visible in `docker logs` for all relay types
+* 🎨 **Enhanced emoji logging** - Clear visual feedback throughout (🔖, 💚, 🛑, 🗂️, 🔐, 🔧, 🔎, 📊, 🧩)
+* 🔄 **Official bridge ENV compatibility** - 100% compatible with `OR_PORT`, `PT_PORT`, `EMAIL`, `NICKNAME`, `OBFS4V_*` variables
+* 🧹 **Simplified bridge config** - Removed redundant `ExitPolicy reject *:*` (BridgeRelay 1 is sufficient)
+* 📦 **Build metadata** - `/build-info.txt` with version, build date, and architecture
+
+### 🔧 Dependency Management
+
+* **Renovate** - Removed pinned package version tracking (only tracks Alpine base image), added OSV vulnerability scanning
+* **Dependabot** - Added security labels, major version blocks, clarified unpinned package strategy
+* **Hadolint** - Added trusted registries whitelist, comprehensive security check documentation
+
+### 🗑️ Removed (Simplification)
+
+* ❌ **Monitoring ENV vars** - ENABLE_METRICS, ENABLE_HEALTH_CHECK, ENABLE_NET_CHECK, METRICS_PORT (use external monitoring)
+* ❌ **Deprecated tools** - metrics, dashboard, net-check, view-logs, setup, metrics-http (consolidated to 4 core tools)
+* ❌ **Built-in monitoring stack** - Prometheus/Grafana/Alertmanager (use external solutions)
+* ❌ **Dual-build structure** - Single optimized build only
+
+### 🐛 Bug Fixes
+
+* **CRITICAL**: Fixed TOR_CONTACT_INFO validation crash loops (whitespace handling, line count check)
+* **CRITICAL**: Fixed missing Tor bootstrap logs in container output (added `Log notice stdout`)
+* Fixed healthcheck failures on ENV-based deployments
+* Fixed version references across all scripts and documentation
+* Corrected image size documentation (~35MB → ~20MB)
+
+### 🔄 Migration Path
+
+**Breaking Changes:**
+- ENV vars `ENABLE_METRICS`, `ENABLE_HEALTH_CHECK`, `ENABLE_NET_CHECK`, `METRICS_PORT` no longer supported
+- Tools `metrics`, `dashboard`, `net-check`, `view-logs`, `setup`, `metrics-http` removed
+
+**Upgrade Steps:**
+1. Remove old monitoring ENV vars from your deployment configs
+2. Update to use `TOR_RELAY_MODE` environment variable (guard/exit/bridge)
+3. Use external monitoring with `docker exec <container> health` for JSON health data
+4. **Guard/Middle relays**: Seamless upgrade with mounted configs
+5. **Bridges from official image**: Requires UID ownership fix (`chown -R 100:101`)
+
+**See**: `docs/MIGRATION-V1.1.X.md` for complete step-by-step migration instructions.
 
 ---
 
@@ -200,7 +323,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## 📊 Release Information
 
 * **🎉 First Release:** v1.0.0 (November 1, 2025)
-* **📦 Current Stable:** v1.1.0 (November 8, 2025)
+* **📦 Current Stable:** v1.1.1 (November 13, 2025)
 * **🔗 Latest Release:** [GitHub Releases](https://github.com/r3bo0tbx1/tor-guard-relay/releases/latest)
 * **🐳 Docker Images:**
 
@@ -213,15 +336,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Version   | Status                | Support Level                               |
 | --------- | --------------------- | ------------------------------------------- |
-| **1.1.0** | 🟢 🛡️ **Active**     | Full support (current stable)               |
-| **1.0.9** | 🟡 🔧 **Maintenance** | Security + critical fixes only              |
-| **1.0.8** | 🟠 ⚠️ **Legacy**      | Security patches only – upgrade recommended |
-| **1.0.7** | 🔴 ❌ **EOL**          | No support – upgrade immediately            |
+| **1.1.1** | 🟢 🛡️ **Active**     | Full support (current stable)               |
+| **1.1.0** | 🟡 🔧 **Maintenance** | Security + critical fixes only              |
+| **1.0.9** | 🟠 ⚠️ **Legacy**      | Security patches only – upgrade recommended |
+| **1.0.8** | 🔴 ❌ **EOL**          | No support – upgrade immediately            |
 
 ---
 
 ## 🔗 Release Links
 
+[1.1.1]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.1.1
 [1.1.0]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.1.0
 [1.0.9]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.0.9
 [1.0.8]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.0.8
@@ -232,7 +356,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [1.0.3]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.0.3
 [1.0.2]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.0.2
 [1.0.1]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.0.1
-[Unreleased]: https://github.com/r3bo0tbx1/tor-guard-relay/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/r3bo0tbx1/tor-guard-relay/compare/v1.1.1...HEAD
 
 ---
 

@@ -3,7 +3,7 @@ SPDX-License-Identifier: MIT
 
 ## Scope
 
-This policy covers the **Tor Guard Relay** Docker image, scripts, and workflows in this repository.  
+This policy covers the **Tor Guard Relay** Docker image, scripts, and workflows in this repository.
 Issues related to the Tor network itself should be reported directly to [The Tor Project](https://www.torproject.org/).
 
 ---
@@ -14,203 +14,198 @@ We actively support the following versions with security updates:
 
 | Version   | Status                | Support Level                               |
 | --------- | --------------------- | ------------------------------------------- |
-| **1.1.0** | 🟢 🛡️ **Active**     | Full support (current stable)               |
-| **1.0.9** | 🟡 🔧 **Maintenance** | Security + critical fixes only              |
-| **1.0.8** | 🟠 ⚠️ **Legacy**      | Security patches only – upgrade recommended |
-| **1.0.7** | 🔴 ❌ **EOL**          | No support – upgrade immediately            |
+| **1.1.1** | 🟢 🛡️ **Active**     | Full support (current stable)               |
+| **1.1.0** | 🟡 🔧 **Maintenance** | Security + critical fixes only              |
+| **1.0.9** | 🟠 ⚠️ **Legacy**      | Security patches only – upgrade recommended |
+| **1.0.8** | 🔴 ❌ **EOL**          | No support – upgrade immediately            |
 
 ---
 
 ## 🔒 Network Security Model
 
-### External Port Exposure
+### Ultra-Minimal Port Exposure
 
-**CRITICAL: Only TWO ports should be exposed to the public internet:**
+**v1.1.1 follows an ultra-minimal security architecture:**
 
+- ✅ **NO monitoring HTTP endpoints** - Removed for maximum security
+- ✅ **NO exposed metrics ports** - All monitoring via `docker exec` only
+- ✅ **Only Tor protocol ports exposed** - ORPort, DirPort (configurable), obfs4 (bridge mode)
+- ✅ **~20 MB image** - Minimal attack surface
+
+### Public Port Exposure (Configurable)
+
+**Ports exposed depend on relay mode and configuration:**
+
+#### Guard/Middle Relay Mode:
 ```
-EXPOSED PORTS (Public):
-  9001/tcp  →  Tor ORPort (Onion Router Port)
-  9030/tcp  →  Tor DirPort (Directory Service Port)
+PUBLIC PORTS:
+  TOR_ORPORT   (default: 9001)  →  Tor ORPort (relay traffic)
+  TOR_DIRPORT  (default: 9030)  →  Directory service (optional, set to 0 to disable)
 ```
 
-**All other services MUST bind to localhost only (127.0.0.1)** for security:
-
+#### Exit Relay Mode:
 ```
-INTERNAL SERVICES (Localhost Only):
-  127.0.0.1:9035  →  Prometheus metrics endpoint
-  127.0.0.1:9036  →  Health check API
-  127.0.0.1:9037  →  Dashboard HTTP server
-  127.0.0.1:9038+ →  Additional relay instances
+PUBLIC PORTS:
+  TOR_ORPORT   (default: 9001)  →  Tor ORPort (relay traffic)
+  TOR_DIRPORT  (default: 9030)  →  Directory service (optional, set to 0 to disable)
+```
+
+#### Bridge Relay Mode:
+```
+PUBLIC PORTS:
+  TOR_ORPORT      (default: 9001)  →  Tor ORPort (relay traffic)
+  TOR_OBFS4_PORT  (default: 9002)  →  obfs4 pluggable transport
+```
+
+**All port numbers are fully configurable via environment variables.**
+
+### No Monitoring Ports
+
+**v1.1.1 has ZERO exposed monitoring services:**
+
+- ❌ No metrics HTTP endpoints
+- ❌ No health check HTTP APIs
+- ❌ No dashboard web interfaces
+- ✅ All diagnostics via `docker exec` commands only
+
+**Available diagnostic tools (container exec only):**
+```bash
+docker exec tor-relay status        # Health report with emojis
+docker exec tor-relay health        # JSON health output
+docker exec tor-relay fingerprint   # Display fingerprint
+docker exec tor-relay bridge-line   # Get bridge line (bridge mode)
 ```
 
 ### Network Architecture
 
-This project follows a **two-tier port exposure model**:
+This project uses **host networking mode** (`--network host`) for best Tor performance:
 
-#### 🌐 Public Ports (External Access Required)
+**Why host networking?**
+- ✅ **IPv6 Support** - Direct access to host's IPv6 stack
+- ✅ **No NAT** - Tor binds directly to ports without translation
+- ✅ **Better Performance** - Eliminates network overhead
+- ✅ **Tor Recommended** - Follows Tor Project best practices
 
-- **9001** - ORPort (Tor relay traffic)
-  - Must be publicly accessible
-  - Firewall: Allow inbound TCP
-  - Required for relay operation
-  
-- **9030** - DirPort (Directory service)
-  - Should be publicly accessible
-  - Optional but recommended
-  - Reduces load on directory authorities
-
-#### 🔒 Internal Ports (Localhost Only)
-
-- **9035** - Metrics HTTP (Prometheus endpoint)
-  - Bound to 127.0.0.1 by default
-  - Access via: `docker exec` or localhost tunnel
-  - ⚠️ Never expose without authentication
-
-- **9036** - Health Check (Status API)
-  - Bound to 127.0.0.1 by default
-  - For monitoring systems only
-  - ⚠️ Never expose without authentication
-
-- **9037** - Dashboard HTTP (Web UI)
-  - Bound to 127.0.0.1 by default
-  - Access via: SSH tunnel or reverse proxy
-  - ⚠️ Never expose without authentication
+**Security with host networking:**
+- ✅ Runs as non-root user (`tor` UID 100)
+- ✅ Drops all capabilities, adds only required ones
+- ✅ Uses `no-new-privileges:true`
+- ✅ Minimal Alpine Linux base (~20 MB)
+- ✅ No exposed monitoring ports
+- ✅ Automatic permission healing
 
 ### Port Policy Rationale
 
 **Why this matters:**
 - ✅ **Minimizes attack surface** - Only Tor protocol ports exposed
-- ✅ **Prevents unauthorized access** - Metrics/dashboards remain private
+- ✅ **No monitoring vulnerabilities** - Cannot attack what doesn't exist
 - ✅ **Follows Tor best practices** - Standard relay configuration
-- ✅ **Defense in depth** - Additional layer beyond firewall rules
+- ✅ **Defense in depth** - Ultra-minimal design philosophy
 
 **Security implications:**
-- Exposed ORPort (9001): Required for Tor relay operation
-- Exposed DirPort (9030): Optional but recommended for directory service
-- Internal metrics (9035+): Protected from external access
-- No other services should be externally accessible
+- Exposed ORPort: Required for Tor relay operation (configurable)
+- Exposed DirPort: Optional for directory service (can be disabled)
+- Exposed obfs4 port: Only in bridge mode (configurable)
+- NO other services are accessible (internal or external)
 
 ### Port Exposure Best Practices
 
-#### ✅ Secure Configuration
+#### ✅ Secure Configuration (Recommended)
 
 ```bash
-# Docker CLI - Secure port mapping
+# Docker CLI with host networking (recommended)
 docker run -d \
   --name tor-relay \
-  -p 9001:9001 \
-  -p 9030:9030 \
-  -p 127.0.0.1:9035:9035 \
-  -p 127.0.0.1:9036:9036 \
+  --network host \
+  --restart unless-stopped \
+  -v $(pwd)/relay.conf:/etc/tor/torrc:ro \
+  -v tor-guard-data:/var/lib/tor \
+  -v tor-guard-logs:/var/log/tor \
   ghcr.io/r3bo0tbx1/onion-relay:latest
 ```
 
 ```yaml
-# Docker Compose - Secure port mapping
+# Docker Compose with host networking
 services:
   tor-relay:
-    ports:
-      - "9001:9001"              # Public - ORPort
-      - "9030:9030"              # Public - DirPort
-      - "127.0.0.1:9035:9035"    # Localhost - Metrics
-      - "127.0.0.1:9036:9036"    # Localhost - Health
-```
-
-#### ❌ Insecure Configuration (DO NOT USE)
-
-```bash
-# ❌ BAD - Exposes monitoring without auth
-docker run -p 0.0.0.0:9035:9035 ...
-
-# ❌ BAD - Exposes all internal services
-docker run -p 9035:9035 -p 9036:9036 ...
-
-# ⚠️ USE WITH CAUTION - Host network mode
-docker run --network host ...
-# Only use if you understand implications and have proper firewall rules
+    image: ghcr.io/r3bo0tbx1/onion-relay:latest
+    container_name: tor-relay
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - ./relay.conf:/etc/tor/torrc:ro
+      - tor-guard-data:/var/lib/tor
+      - tor-guard-logs:/var/log/tor
 ```
 
 ### External Monitoring Access
 
-If you need external access to metrics/health endpoints, use one of these secure methods:
+v1.1.1 uses external monitoring for maximum security and minimal image size:
 
-#### Option 1: Reverse Proxy with Authentication (Recommended)
-
-```nginx
-# Nginx with HTTP Basic Auth
-server {
-    listen 443 ssl;
-    server_name metrics.example.com;
-    
-    ssl_certificate /path/to/cert.pem;
-    ssl_certificate_key /path/to/key.pem;
-    
-    location /metrics {
-        auth_basic "Restricted";
-        auth_basic_user_file /etc/nginx/.htpasswd;
-        proxy_pass http://127.0.0.1:9035;
-    }
-    
-    location /health {
-        auth_basic "Restricted";
-        auth_basic_user_file /etc/nginx/.htpasswd;
-        proxy_pass http://127.0.0.1:9036;
-    }
-}
-```
-
-#### Option 2: SSH Tunnel
+#### Option 1: Docker Exec (Simplest)
 
 ```bash
-# Forward remote metrics to local machine
-ssh -L 9035:localhost:9035 user@relay-server
-ssh -L 9036:localhost:9036 user@relay-server
+# Check status
+docker exec tor-relay status
 
-# Access locally (no public exposure)
-curl http://localhost:9035/metrics
-curl http://localhost:9036/health
+# Get JSON health (raw)
+docker exec tor-relay health
+
+# Parse with jq (requires jq on host)
+docker exec tor-relay health | jq .
+
+# View fingerprint
+docker exec tor-relay fingerprint
 ```
 
-#### Option 3: VPN Access
+#### Option 2: JSON Health API Wrapper
 
-- Deploy relay and monitoring in same VPN
-- Access internal ports over encrypted VPN tunnel
-- No public exposure required
-- Recommended for multi-relay deployments
+Create your own HTTP wrapper if needed:
 
-### Default Behavior Changes (v1.0.2)
+```python
+#!/usr/bin/env python3
+from flask import Flask, jsonify
+import subprocess
+import json
 
-Prior to v1.0.2, some tools defaulted to `0.0.0.0` (all interfaces). **As of v1.0.2:**
+app = Flask(__name__)
 
-| Tool | Previous Default | New Default | Override |
-|------|------------------|-------------|----------|
-| dashboard | 0.0.0.0:8080 | 127.0.0.1:8080 | `DASHBOARD_BIND=0.0.0.0` |
-| metrics-http | 0.0.0.0:9035 | 127.0.0.1:9035 | `METRICS_BIND=0.0.0.0` |
+@app.route('/health')
+def health():
+    result = subprocess.run(
+        ['docker', 'exec', 'tor-relay', 'health'],
+        capture_output=True,
+        text=True
+    )
+    return jsonify(json.loads(result.stdout))
 
-**Migration Note**: If you previously relied on external access without explicit configuration, you must now:
+if __name__ == '__main__':
+    app.run(host='127.0.0.1', port=9100)  # Bind to localhost only!
+```
 
-1. **Use environment variables** to bind to `0.0.0.0` (NOT recommended), OR
-2. **Implement reverse proxy** with authentication (RECOMMENDED)
+#### Option 3: External Prometheus Exporter
 
-Example of override (only if you understand the security implications):
+Use dedicated Tor exporters for Prometheus integration:
 
 ```bash
-# NOT RECOMMENDED - Only use in trusted networks
-docker run -d \
-  -e METRICS_BIND=0.0.0.0 \
-  -p 9035:9035 \
-  ghcr.io/r3bo0tbx1/onion-relay:latest
+# Use tor_exporter for detailed metrics
+docker run -d --name tor-exporter \
+  --network host \
+  ghcr.io/atx/prometheus-tor_exporter:latest \
+  --tor.control-address=127.0.0.1:9051
 ```
+
+See [Monitoring Guide](docs/MONITORING.md) for complete integration examples.
 
 ### Firewall Configuration
 
-**Recommended firewall rules:**
+**Recommended firewall rules for guard/middle relay:**
 
 ```bash
 # UFW (Ubuntu/Debian)
 sudo ufw default deny incoming
-sudo ufw allow 9001/tcp  # ORPort
-sudo ufw allow 9030/tcp  # DirPort (optional)
+sudo ufw allow 9001/tcp  # ORPort (or your custom port)
+sudo ufw allow 9030/tcp  # DirPort (optional, or your custom port)
 sudo ufw enable
 
 # iptables
@@ -224,20 +219,22 @@ sudo firewall-cmd --permanent --add-port=9030/tcp
 sudo firewall-cmd --reload
 ```
 
-### Docker Network Mode
+**For bridge mode:**
 
-**Host networking (network_mode: host):**
-- Used for dual-stack IPv4/IPv6 support
-- Allows direct port binding without NAT
-- Services still bind to 127.0.0.1 for internal access
-- Container remains isolated (non-root user, dropped capabilities)
+```bash
+# UFW (Ubuntu/Debian)
+sudo ufw allow 9001/tcp  # ORPort
+sudo ufw allow 9002/tcp  # obfs4 port
+```
 
-**Security measures when using host networking:**
-- Non-root execution (runs as `tor` user)
-- Capability restrictions (`--cap-drop ALL`)
-- No new privileges (`--security-opt no-new-privileges:true`)
-- Minimal Alpine base image
-- Automatic permission healing
+**For custom ports:**
+
+```bash
+# Replace with your configured ports
+sudo ufw allow <TOR_ORPORT>/tcp
+sudo ufw allow <TOR_DIRPORT>/tcp  # guard/exit only
+sudo ufw allow <TOR_OBFS4_PORT>/tcp  # bridge only
+```
 
 ---
 
@@ -255,7 +252,9 @@ To reduce patch-lag risk, GitHub Actions automatically:
 2. Installs the latest Tor package
 3. Applies security patches
 4. Rebuilds multi-architecture images
-5. Publishes to GHCR
+5. Publishes to Docker Hub and GHCR
+
+**Rebuild schedule:** Sundays at 18:30 UTC
 
 These rebuilds include Alpine CVE patches and Tor security fixes without changing functionality.
 
@@ -267,8 +266,8 @@ These rebuilds include Alpine CVE patches and Tor security fixes without changin
 
 ### How to Report
 
-**Email:** r3bo0tbx1@brokenbotnet.com  
-**Subject:** `[SECURITY] Tor Guard Relay – <short summary>`  
+**Email:** r3bo0tbx1@brokenbotnet.com
+**Subject:** `[SECURITY] Tor Guard Relay – <short summary>`
 
 Please use my PGP key [0xB3BD6196E1CFBFB4 🔑](https://keys.openpgp.org/vks/v1/by-fingerprint/33727F5377D296C320AF704AB3BD6196E1CFBFB4) to encrypt if your report contains sensitive technical details.
 
@@ -310,29 +309,6 @@ We follow responsible disclosure practices:
 
 ### For Relay Operators
 
-#### Port Security Configuration
-
-```bash
-# Verify only required ports are exposed
-docker ps --format "table {{.Names}}\t{{.Ports}}"
-
-# Expected output should show ONLY:
-# 0.0.0.0:9001->9001/tcp
-# 0.0.0.0:9030->9030/tcp
-
-# Check internal services bind to localhost
-docker exec guard-relay netstat -tlnp | grep -E "9035|9036|9037"
-# Should show 127.0.0.1:PORT only
-
-# Test external accessibility (should fail for metrics)
-curl -m 5 http://YOUR_PUBLIC_IP:9035/metrics
-# Should timeout or be refused
-
-# Test internal accessibility (should work from container)
-docker exec guard-relay curl -s http://127.0.0.1:9035/metrics
-# Should return Prometheus metrics
-```
-
 #### Configuration Security
 
 ```bash
@@ -364,22 +340,28 @@ yum update -y                  # RHEL/CentOS
 # Verify firewall rules
 sudo ufw status numbered
 sudo iptables -L -n -v
+
+# Pull latest security-patched image
+docker pull ghcr.io/r3bo0tbx1/onion-relay:latest
 ```
 
 #### Monitoring
 
 ```bash
 # Log monitoring
-docker logs guard-relay 2>&1 | grep -iE "(error|warn|critical)"
+docker logs tor-relay 2>&1 | grep -iE "(error|warn|critical)"
 
-# Scheduled health checks
-0 */6 * * * docker exec guard-relay status >> /var/log/relay-check.log
+# Health checks via diagnostic tools
+docker exec tor-relay status
+
+# JSON health check for automation (raw)
+docker exec tor-relay health
+
+# Parse with jq (requires jq on host)
+docker exec tor-relay health | jq .
 
 # Resource monitoring
-docker stats guard-relay --no-stream
-
-# Port accessibility audit
-docker exec guard-relay net-check
+docker stats tor-relay --no-stream
 ```
 
 ---
@@ -393,6 +375,7 @@ docker exec guard-relay net-check
 * Review dependencies for vulnerabilities
 * Follow the principle of least privilege
 * Validate all user inputs
+* Use POSIX sh only (no bash dependencies)
 
 #### Docker Security
 
@@ -407,6 +390,10 @@ USER tor
 --security-opt no-new-privileges:true
 --cap-drop ALL
 --cap-add NET_BIND_SERVICE
+--cap-add CHOWN
+--cap-add SETUID
+--cap-add SETGID
+--cap-add DAC_OVERRIDE
 ```
 
 #### Secret Management
@@ -426,25 +413,29 @@ echo "relay.conf" >> .gitignore
 
 ### Host Network Mode
 
-**What:** Container uses `--network host`  
-**Why:** Enables Tor dual-stack (IPv4 + IPv6) support
+**What:** Container uses `--network host`
+**Why:** Enables Tor dual-stack (IPv4 + IPv6) support and eliminates NAT overhead
 
 **Security Impact:**
-* ✅ Container cannot access other containers
-* ✅ Runs as non-root user (`tor`)
-* ⚠️ Shares host network namespace
-* ⚠️ Can bind to any host port (mitigated by localhost binding)
+* ✅ Container runs as non-root user (`tor` UID 100)
+* ✅ Drops all capabilities, adds only required ones
+* ✅ Uses `no-new-privileges:true`
+* ✅ No exposed monitoring services
+* ⚠️ Shares host network namespace (required for IPv6)
+* ⚠️ Relies on firewall for port isolation
 
 **Mitigations:**
-* Drops unnecessary capabilities
+* Drops all capabilities by default
+* Adds only NET_BIND_SERVICE, CHOWN, SETUID, SETGID, DAC_OVERRIDE
 * Uses `no-new-privileges:true`
-* Only grants required capabilities
-* Internal services bind to 127.0.0.1 only
-* Relies on proper firewall configuration
+* Ultra-minimal Alpine base (~20 MB)
+* NO monitoring HTTP endpoints to attack
+* Automatic permission healing
+* Configuration validation before start
 
 ### Volume Permissions
 
-**What:** Persistent volumes store keys and state  
+**What:** Persistent volumes store keys and state
 **Security Impact:** Keys live in `/var/lib/tor`; protect from unauthorized access
 
 **Mitigation:**
@@ -458,15 +449,20 @@ chmod 700 /var/lib/tor
 chown tor:tor /var/lib/tor
 ```
 
+**UID/GID in Alpine:**
+- `tor` user: UID 100, GID 101
+- Different from Debian-based images (UID 101)
+- Automatic permission healing on startup
+
 ### Configuration Exposure
 
-**What:** Configuration is mounted from the host  
+**What:** Configuration is mounted from the host
 **Impact:** May reveal bandwidth limits, ContactInfo, etc.
 
 **Mitigation:**
 * Use read-only mount (`:ro`)
 * Set restrictive file permissions (600)
-* Never commit configs
+* Never commit configs to Git
 * Sanitize before sharing
 
 ---
@@ -475,37 +471,49 @@ chown tor:tor /var/lib/tor
 
 ### Built-in Protections
 
-* ✅ Non-root operation (user `tor`)
-* ✅ Minimal base image (Alpine Linux)
-* ✅ Drops unnecessary capabilities
+* ✅ Non-root operation (user `tor` UID 100)
+* ✅ Minimal base image (Alpine Linux ~20 MB)
+* ✅ Drops all capabilities, adds only required ones
 * ✅ Read-only configuration mount
 * ✅ Automatic permission healing
 * ✅ Configuration validation on startup
-* ✅ Localhost-only binding for internal services
+* ✅ NO exposed monitoring HTTP endpoints
+* ✅ Busybox-only tools (no bash/python dependencies)
+* ✅ Smart healthcheck.sh for Docker health checks
+* ✅ Input validation for all ENV variables
+* ✅ OBFS4V_* whitelist to prevent command injection
 
-### Port Binding Security
+### Multi-Mode Support (v1.1.1)
 
-**External (public) services:**
-```
-ORPort 9001          # Binds to 0.0.0.0:9001
-ORPort [::]:9001     # Binds to [::]:9001 (IPv6)
-DirPort 9030         # Binds to 0.0.0.0:9030
+The container supports three relay modes:
+
+| Mode | Default Config | Security Risk |
+|------|----------------|---------------|
+| **guard** | Guard/middle relay | Low |
+| **exit** | Exit relay | **HIGH** - Legal implications |
+| **bridge** | obfs4 bridge | Low-Medium |
+
+**Default:** Guard/middle relay (lowest risk)
+
+**Changing modes:**
+```bash
+-e TOR_RELAY_MODE=guard   # Guard/middle relay (default)
+-e TOR_RELAY_MODE=exit    # Exit relay (understand legal risks!)
+-e TOR_RELAY_MODE=bridge  # obfs4 bridge
 ```
 
-**Internal (localhost-only) services:**
-```
-metrics-http binds to 127.0.0.1:9035
-health API binds to 127.0.0.1:9036
-dashboard binds to 127.0.0.1:9037
-```
+See [docs/MULTI-MODE.md](docs/MULTI-MODE.md) and [docs/LEGAL.md](docs/LEGAL.md) for details.
 
 ### Weekly Security Updates
 
 To ensure ongoing hardening, CI automatically:
-1. Pulls latest Alpine base
-2. Installs updated Tor
-3. Applies available patches
-4. Rebuilds and republishes to GHCR
+1. Pulls latest Alpine base (weekly)
+2. Installs updated Tor package
+3. Applies available security patches
+4. Rebuilds for AMD64 + ARM64
+5. Publishes to Docker Hub and GHCR
+
+**Schedule:** Sundays at 18:30 UTC
 
 Enable automatic updates in Cosmos:
 
@@ -522,16 +530,18 @@ Enable automatic updates in Cosmos:
 
 Running a Tor relay is legal in most countries, but:
 * ⚠️ Check local laws and ISP terms of service
-* ⚠️ Understand exit vs. guard relay differences
+* ⚠️ Understand guard vs. exit vs. bridge differences
 * ⚠️ Keep contact information accurate
+* ⚠️ Read [docs/LEGAL.md](docs/LEGAL.md) before deployment
 
-**This project runs GUARD relays (not exit relays) by default.**
+**This project supports guard, exit, and bridge modes (configurable via TOR_RELAY_MODE).**
 
 ### Data Handling
 
 * Tor relays do **not** log traffic content
-* Relay fingerprints are public
-* Contact information and bandwidth statistics are public
+* Relay fingerprints are public (guard/exit modes)
+* Bridge fingerprints are NOT public (distributed via BridgeDB)
+* Contact information and bandwidth statistics are public (guard/exit modes)
 
 ### Abuse Handling
 
@@ -551,6 +561,7 @@ If you receive abuse complaints:
 * [Tor Relay Guide](https://community.torproject.org/relay/)
 * [Tor Security Documentation](https://support.torproject.org/)
 * [Good/Bad Relays Criteria](https://community.torproject.org/relay/community-resources/good-bad-isps/)
+* [EFF Tor Legal FAQ](https://community.torproject.org/relay/community-resources/eff-tor-legal-faq/)
 
 ### Docker Security
 
@@ -573,49 +584,54 @@ If you receive abuse complaints:
 #!/bin/bash
 # security-audit.sh - Quick security audit for Tor Guard Relay
 
-echo "🔒 Tor Guard Relay Security Audit"
-echo "=================================="
+echo "🔒 Tor Guard Relay v1.1.1 Security Audit"
+echo "==========================================="
 
-# Check exposed ports
+# Check container is using host networking
 echo ""
-echo "1. Checking exposed ports..."
-docker ps --format "table {{.Names}}\t{{.Ports}}" | grep guard-relay
+echo "1. Checking network mode..."
+NETWORK_MODE=$(docker inspect tor-relay --format='{{.HostConfig.NetworkMode}}')
+if [ "$NETWORK_MODE" = "host" ]; then
+  echo "✅ Using host networking (recommended)"
+else
+  echo "⚠️  Not using host networking: $NETWORK_MODE"
+fi
 
-# Check internal service bindings
+# Test Tor ports
 echo ""
-echo "2. Checking internal service bindings..."
-docker exec guard-relay netstat -tlnp 2>/dev/null | grep -E "9035|9036|9037" || echo "No internal services detected"
-
-# Test external accessibility
-echo ""
-echo "3. Testing external port accessibility..."
+echo "2. Testing Tor port accessibility..."
 PUBLIC_IP=$(curl -s https://icanhazip.com)
-timeout 5 nc -zv $PUBLIC_IP 9001 && echo "✅ ORPort 9001 accessible" || echo "❌ ORPort 9001 not accessible"
-timeout 5 nc -zv $PUBLIC_IP 9030 && echo "✅ DirPort 9030 accessible" || echo "⚠️  DirPort 9030 not accessible"
+timeout 5 nc -zv $PUBLIC_IP 9001 && echo "✅ ORPort accessible" || echo "❌ ORPort not accessible"
 
-# Test metrics should NOT be externally accessible
+# Verify diagnostic tools work
 echo ""
-echo "4. Testing metrics port (should NOT be accessible externally)..."
-timeout 5 curl -s http://$PUBLIC_IP:9035/metrics && echo "❌ SECURITY ISSUE: Metrics exposed!" || echo "✅ Metrics properly secured"
+echo "3. Testing diagnostic tools..."
+docker exec tor-relay status > /dev/null 2>&1 && echo "✅ status tool works" || echo "❌ status tool failed"
+docker exec tor-relay health > /dev/null 2>&1 && echo "✅ health tool works" || echo "❌ health tool failed"
 
 # Check file permissions
 echo ""
-echo "5. Checking critical file permissions..."
-docker exec guard-relay ls -la /var/lib/tor | grep -E "keys|fingerprint"
+echo "4. Checking critical file permissions..."
+docker exec tor-relay ls -la /var/lib/tor | grep -E "keys|fingerprint"
 
-# Check user
+# Check process user
 echo ""
-echo "6. Checking process user..."
-docker exec guard-relay ps aux | grep tor | head -1
+echo "5. Checking process user..."
+docker exec tor-relay ps aux | grep -E "^tor" | grep -v grep | head -1
 
 # Check capabilities
 echo ""
-echo "7. Checking container capabilities..."
-docker inspect guard-relay --format='{{.HostConfig.CapDrop}}' | grep -q "ALL" && echo "✅ All capabilities dropped" || echo "⚠️  Capabilities not fully restricted"
+echo "6. Checking container capabilities..."
+docker inspect tor-relay --format='{{.HostConfig.CapDrop}}' | grep -q "ALL" && echo "✅ All capabilities dropped" || echo "⚠️  Capabilities not fully restricted"
+
+# Check volumes
+echo ""
+echo "7. Checking volume mounts..."
+docker inspect tor-relay --format='{{range .Mounts}}{{.Source}} → {{.Destination}} ({{.Mode}}){{println}}{{end}}'
 
 echo ""
-echo "=================================="
-echo "Audit complete!"
+echo "==========================================="
+echo "✅ Audit complete!"
 ```
 
 ---
@@ -640,4 +656,4 @@ Security researchers who responsibly disclose vulnerabilities will be listed her
 
 ---
 
-*Last Updated: 2025-11-05 | Version: 1.1.0*
+*Last Updated: 2025-11-13 | Version: 1.1.1*

@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # relay-status.sh — Tor relay/bridge status checker with security validation
-# Version: 1.0.2
+# Version: 1.1.1
 # Automatically detects Tor containers or uses specified container name
 #
 
@@ -11,7 +11,7 @@ set -euo pipefail
 CONTAINER="${1:-}"  # Accept container name as first argument
 readonly FINGERPRINT_PATH="/var/lib/tor/fingerprint"
 readonly TORRC_PATH="/etc/tor/torrc"
-readonly VERSION="1.0.2"
+readonly VERSION="1.1.1"
 
 # Colors for output
 readonly RED='\033[0;31m'
@@ -309,27 +309,21 @@ show_resources() {
 # Show network diagnostics
 show_network_diagnostics() {
     print_section "Network Diagnostics"
-    
-    # Check if net-check tool is available
-    if sudo docker exec "${CONTAINER}" command -v net-check &>/dev/null; then
-        print_info "Running comprehensive network check..."
-        sudo docker exec "${CONTAINER}" net-check 2>&1 | sed 's/^/  /'
+
+    print_info "Basic network connectivity check..."
+
+    # IPv4 check
+    if sudo docker exec "${CONTAINER}" curl -4 -s --max-time 5 https://icanhazip.com &>/dev/null; then
+        print_success "IPv4 connectivity OK"
     else
-        print_info "Basic network connectivity check..."
-        
-        # IPv4 check
-        if sudo docker exec "${CONTAINER}" curl -4 -s --max-time 5 https://icanhazip.com &>/dev/null; then
-            print_success "IPv4 connectivity OK"
-        else
-            print_warning "IPv4 connectivity issues"
-        fi
-        
-        # IPv6 check
-        if sudo docker exec "${CONTAINER}" curl -6 -s --max-time 5 https://icanhazip.com &>/dev/null; then
-            print_success "IPv6 connectivity OK"
-        else
-            print_info "IPv6 not available or configured"
-        fi
+        print_warning "IPv4 connectivity issues"
+    fi
+
+    # IPv6 check
+    if sudo docker exec "${CONTAINER}" curl -6 -s --max-time 5 https://icanhazip.com &>/dev/null; then
+        print_success "IPv6 connectivity OK"
+    else
+        print_info "IPv6 not available or configured"
     fi
 }
 
@@ -365,7 +359,7 @@ EOF
 # Show version
 show_version() {
     echo "relay-status.sh version ${VERSION}"
-    echo "Part of Tor Guard Relay v1.0.2"
+    echo "Part of Tor Guard Relay v1.1.1"
 }
 
 # Main execution

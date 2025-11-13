@@ -4,6 +4,7 @@
 # Ensure shell scripts always use LF (Linux line endings)
 *.sh text eol=lf
 docker-entrypoint.sh text eol=lf
+healthcheck.sh text eol=lf
 tools/* text eol=lf
 
 # Dockerfiles
@@ -16,8 +17,8 @@ Dockerfile text eol=lf
 # Standard file handling
 *.md text
 *.txt text
-*.yml text
-*.yaml text
+*.yml text eol=lf
+*.yaml text eol=lf
 
 # Binary files
 *.png binary

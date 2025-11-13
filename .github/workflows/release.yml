@@ -18,9 +18,10 @@ on:
     tags:
       - 'v*.*.*'
 
+# SECURITY: Global permissions set to read-only (principle of least privilege)
+# Individual jobs grant additional permissions as needed
 permissions:
-  contents: write
-  packages: write
+  contents: read
 
 env:
   GHCR_REGISTRY: ghcr.io
@@ -31,6 +32,8 @@ jobs:
   determine-version:
     name: 🏷️ Determine Version and Build Type
     runs-on: ubuntu-latest
+    permissions:
+      contents: read  # Only needs to read repo for version detection
     outputs:
       version: ${{ steps.version.outputs.version }}
       build_type: ${{ steps.version.outputs.build_type }}
@@ -61,11 +64,13 @@ jobs:
             IS_RELEASE="false"
             echo "👤 Manual build version: ${VERSION}"
           else
+            # Weekly rebuild: Use the last release version (no suffix)
+            # This rebuilds the image with updated Alpine packages
             LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v1.0.0")
             VERSION="${LATEST_TAG#v}"
             BUILD_TYPE="weekly"
             IS_RELEASE="false"
-            echo "📅 Weekly build version: ${VERSION}"
+            echo "📅 Weekly rebuild of last release: ${VERSION} (with updated packages)"
           fi
           BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
           SHORT_SHA=$(git rev-parse --short HEAD)
@@ -88,6 +93,9 @@ jobs:
     name: 🏗️ Multi-Arch Build and Push
     runs-on: ubuntu-latest
     needs: determine-version
+    permissions:
+      contents: read      # Read repository code
+      packages: write     # Push to GHCR
     if: |
       github.event_name != 'workflow_run' ||
       github.event.workflow_run.conclusion == 'success'
@@ -96,10 +104,10 @@ jobs:
       - name: 📥 Checkout Repository
         uses: actions/checkout@v5
 
-      - name: 🎯 Verify Shell Script Extensions
+      - name: 🎯 Verify Tools Directory
         run: |
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "📝 Pre-Build: Verifying .sh Extensions"
+          echo "📝 Pre-Build: Verifying Tools"
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo ""
 
@@ -108,31 +116,24 @@ jobs:
             exit 1
           fi
 
-          MISSING_EXT=0
-          SH_COUNT=0
+          TOOL_COUNT=0
 
           for file in tools/*; do
             [ -f "$file" ] || continue
             filename=$(basename "$file")
-            extension="${filename##*.}"
 
-            if head -1 "$file" 2>/dev/null | grep -q "^#!/"; then
-              if [ "$extension" != "sh" ]; then
-                echo "❌ Shell script missing .sh extension: $filename"
-                MISSING_EXT=1
-              else
-                echo "✅ $filename"
-                SH_COUNT=$((SH_COUNT + 1))
-              fi
+            if head -1 "$file" 2>/dev/null | grep -q "^#!/bin/sh"; then
+              echo "✅ $filename (busybox sh)"
+              TOOL_COUNT=$((TOOL_COUNT + 1))
             fi
           done
 
           echo ""
-          if [ $MISSING_EXT -eq 1 ]; then
-            echo "❌ Build blocked: Some shell scripts missing .sh extension"
+          if [ $TOOL_COUNT -lt 1 ]; then
+            echo "❌ Build blocked: No tools found in tools/"
             exit 1
           else
-            echo "🎉 All $SH_COUNT shell scripts have proper .sh extension"
+            echo "🎉 Found $TOOL_COUNT diagnostic tools (busybox-only, no .sh extension)"
           fi
 
       - name: 🔧 Normalize scripts before build
@@ -145,7 +146,7 @@ jobs:
           sudo apt-get update -qq && sudo apt-get install -y dos2unix
 
           echo "📄 Processing main scripts..."
-          for script in docker-entrypoint.sh integration-check.sh Dockerfile; do
+          for script in docker-entrypoint.sh healthcheck.sh Dockerfile; do
             if [ -f "$script" ]; then
               dos2unix "$script" 2>/dev/null || true
               echo "   ✅ Normalized: $script"
@@ -153,17 +154,17 @@ jobs:
           done
 
           echo ""
-          echo "📁 Processing tools/*.sh..."
+          echo "📁 Processing tools/*..."
           if [ -d "tools" ]; then
-            find tools -type f -name "*.sh" -exec dos2unix {} \; 2>/dev/null || true
-            TOOL_COUNT=$(find tools -type f -name "*.sh" | wc -l)
+            find tools -type f -exec dos2unix {} \; 2>/dev/null || true
+            TOOL_COUNT=$(find tools -type f | wc -l)
             echo "   ✅ Normalized: $TOOL_COUNT tool scripts"
           fi
 
           echo ""
           echo "🔐 Setting execute permissions..."
-          chmod +x docker-entrypoint.sh integration-check.sh 2>/dev/null || true
-          [ -d "tools" ] && chmod +x tools/*.sh 2>/dev/null || true
+          chmod +x docker-entrypoint.sh healthcheck.sh 2>/dev/null || true
+          [ -d "tools" ] && chmod +x tools/* 2>/dev/null || true
 
           echo "   ✅ Permissions verified"
           echo ""
@@ -200,17 +201,22 @@ jobs:
           TAGS=()
 
           if [ "$BUILD_TYPE" = "release" ]; then
+            # New release: Update both :latest and version tags
             TAGS+=("${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:latest")
             TAGS+=("${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION}")
             TAGS+=("${{ env.DOCKERHUB_IMAGE_NAME }}:latest")
             TAGS+=("${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}")
           elif [ "$BUILD_TYPE" = "weekly" ]; then
-            TAGS+=("${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION}-weekly")
-            TAGS+=("${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}-weekly")
+            # Weekly rebuild: Update version tag with fresh packages, keep :latest pointing to last release
+            TAGS+=("${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION}")
+            TAGS+=("${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}")
+            TAGS+=("${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:latest")
+            TAGS+=("${{ env.DOCKERHUB_IMAGE_NAME }}:latest")
           elif [ "$BUILD_TYPE" = "validated" ]; then
             TAGS+=("${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION}-validated")
             TAGS+=("${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}-validated")
           else
+            # Manual builds: version tag only
             TAGS+=("${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION}")
             TAGS+=("${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}")
           fi
@@ -243,6 +249,8 @@ jobs:
     name: 📝 Generate Release Notes
     runs-on: ubuntu-latest
     needs: [determine-version, build-and-push]
+    permissions:
+      contents: write     # Create GitHub releases
     if: needs.determine-version.outputs.is_release == 'true'
 
     steps:
@@ -304,4 +312,3 @@ jobs:
           body_path: release_notes.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-

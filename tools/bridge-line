@@ -1,0 +1,87 @@
+#!/bin/sh
+# Extract obfs4 bridge line (slim version)
+
+TOR_DATA_DIR="${TOR_DATA_DIR:-/var/lib/tor}"
+PT_STATE_DIR="${TOR_DATA_DIR}/pt_state"
+BRIDGE_LINE_FILE="${PT_STATE_DIR}/obfs4_bridgeline.txt"
+TORRC_FILE="${TOR_CONFIG:-/etc/tor/torrc}"
+
+# Check if we're running as a bridge
+if [ -f "$TORRC_FILE" ] && grep -q "^BridgeRelay 1" "$TORRC_FILE" 2>/dev/null; then
+  : # Bridge mode confirmed
+elif [ -f "$TORRC_FILE" ]; then
+  echo ""
+  echo "❌ Not a bridge relay"
+  echo ""
+  echo "Bridge line is only available for bridge mode relays."
+  echo "Set TOR_RELAY_MODE=bridge to run as a bridge."
+  echo ""
+  exit 1
+else
+  echo ""
+  echo "⚠️  Cannot determine relay mode (torrc not found)"
+  echo ""
+  echo "Bridge line requires running Tor in bridge mode."
+  echo ""
+  exit 1
+fi
+
+# Check for bridge line file
+if [ -f "$BRIDGE_LINE_FILE" ]; then
+  echo ""
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo "🌉 obfs4 Bridge Line"
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo ""
+
+  cat "$BRIDGE_LINE_FILE"
+
+  echo ""
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo ""
+  echo "📋 Sharing Guidelines:"
+  echo "   • Only share with people you trust"
+  echo "   • Do NOT publish publicly"
+  echo "   • Helps users in censored countries"
+  echo ""
+  echo "👤 How users add this bridge:"
+  echo "   1. Open Tor Browser"
+  echo "   2. Settings → Connection → Bridges"
+  echo "   3. Select 'Provide a bridge I know'"
+  echo "   4. Paste the bridge line above"
+  echo ""
+  exit 0
+fi
+
+# Bridge line not available yet
+echo ""
+echo "⏳ Bridge line not available yet"
+echo ""
+echo "Timeline: Bridge line appears 24-48 hours after first start"
+echo ""
+echo "🔍 Troubleshooting:"
+echo ""
+echo "  1. Check if lyrebird is running:"
+echo "     docker exec <container> pgrep -a lyrebird"
+echo ""
+echo "  2. Check pt_state directory:"
+echo "     docker exec <container> ls -la $PT_STATE_DIR"
+echo ""
+echo "  3. Check Tor logs:"
+echo "     docker logs <container> | grep -i obfs4"
+echo ""
+echo "  4. Verify bridge config:"
+echo "     docker exec <container> grep BridgeRelay $TORRC_FILE"
+echo ""
+
+# Try to find bridge line in logs as fallback
+if [ -f "/var/log/tor/notices.log" ]; then
+  if grep -q "bridge line" /var/log/tor/notices.log 2>/dev/null; then
+    echo "📝 Found in logs:"
+    echo ""
+    grep "bridge line" /var/log/tor/notices.log | tail -n 1
+    echo ""
+  fi
+fi
+
+exit 1

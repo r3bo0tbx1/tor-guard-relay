@@ -24,15 +24,16 @@
 
 **Tor Guard Relay** is a **production-ready, self-healing Tor relay container** designed for privacy advocates who want to contribute to the Tor network securely and efficiently.
 
-> **🌉 Want to run a Tor Bridge instead?**  
-> This project focuses on guard/middle relays. For bridge setup, visit the [Official Tor Bridge Guide](https://community.torproject.org/relay/setup/bridge/docker/)
+> **🌉 Multi-Mode Support:**
+> This container supports **guard**, **exit**, and **bridge** relays with obfs4 pluggable transport. Configure via `TOR_RELAY_MODE` environment variable.
 
 ### Why Choose This Project?
 
-- 🛡️ **Security-First** - Hardened Alpine Linux, non-root operation, automatic permission healing
+- 🛡️ **Security-First** - Hardened Alpine Linux, non-root operation, ultra-minimal 20MB image
 - 🎯 **Simple** - One command to deploy, minimal configuration needed
-- 📊 **Observable** - 9 built-in diagnostic tools + Prometheus metrics
-- 🔄 **Automated** - Weekly builds, auto-updates, CI/CD ready
+- 📊 **Observable** - 4 busybox-only diagnostic tools with JSON health API
+- 🌉 **Multi-Mode** - Supports guard, exit, and bridge (obfs4) relays
+- 🔄 **Automated** - Weekly security rebuilds, CI/CD ready
 - 📚 **Documented** - Comprehensive guides for deployment, monitoring, backup, and more
 - 🏗️ **Multi-Arch** - Native support for AMD64 and ARM64 (Raspberry Pi, AWS Graviton, etc.)
 
@@ -41,18 +42,16 @@
 ## 🔒 Security Model
 
 **Port Exposure Policy:**
-- **9001** (ORPort) - Tor relay traffic - **PUBLIC**
-- **9030** (DirPort) - Directory service - **PUBLIC**  
-- **9035** (Metrics) - Prometheus endpoint - **LOCALHOST ONLY** (127.0.0.1)
-- **9036** (Health) - Health check API - **LOCALHOST ONLY** (127.0.0.1)
+- **9001** (ORPort) - Tor relay traffic - **PUBLIC** (configurable)
+- **9030** (DirPort) - Directory service - **PUBLIC** (guard/exit only, configurable)
+- **9002** (obfs4) - Pluggable transport - **PUBLIC** (bridge mode only, configurable)
 
-All monitoring and diagnostic services are bound to `127.0.0.1` by default. To expose externally:
-```bash
-# ⚠️ INSECURE - Only for testing/development
-docker run -e DASHBOARD_BIND=0.0.0.0 ...
-```
+**All ports are fully configurable** via environment variables:
+- `TOR_ORPORT` - Default: 9001 (suggested: 443, 9001, or any port > 1024)
+- `TOR_DIRPORT` - Default: 9030 (guard/exit only, set to 0 to disable)
+- `TOR_OBFS4_PORT` - Default: 9002 (bridge mode only)
 
-**Production recommendation**: Use reverse proxy with authentication for external monitoring access.
+**Diagnostics via `docker exec` only** - no exposed monitoring ports. Ultra-minimal attack surface (~20MB busybox-only image).
 
 ---
 
@@ -74,9 +73,10 @@ docker run -e DASHBOARD_BIND=0.0.0.0 ...
 ### Network Security Notice
 
 ⚠️ **Port Exposure:**
-- Only ports **9001** (ORPort) and **9030** (DirPort) should be publicly accessible
-- Monitoring services (9035, 9036) are **localhost-only** by default
-- Use `--network host` or explicit port mapping: `-p 9001:9001 -p 9030:9030`
+- **Guard/Middle/Exit:** Ports 9001 (ORPort) and 9030 (DirPort) should be publicly accessible
+- **Bridge:** Ports 9001 (ORPort) and 9002 (obfs4) should be publicly accessible
+- **No monitoring ports** - all diagnostics via `docker exec` commands only
+- Use `--network host` for best IPv6 support (Tor recommended practice)
 
 ### Deploy in 30 Seconds
 
@@ -154,8 +154,8 @@ Choose the method that fits your workflow:
 
 Running multiple relays? We have templates for that:
 
-- **Docker Compose:** [docker-compose-multi-relay.yml](templates/docker-compose-multi-relay.yml) - 3 relays + Prometheus + Grafana
-- **Cosmos Cloud:** [cosmos-compose-multi-relay.json](templates/cosmos-compose-multi-relay.json) - Full monitoring stack
+- **Docker Compose:** [docker-compose-multi-relay.yml](templates/docker-compose-multi-relay.yml) - 3 relays setup
+- **Cosmos Cloud:** [cosmos-compose-multi-relay.json](templates/cosmos-compose-multi-relay.json) - Multi-relay stack
 
 See [Deployment Guide](docs/DEPLOYMENT.md) for complete instructions.
 
@@ -163,88 +163,85 @@ See [Deployment Guide](docs/DEPLOYMENT.md) for complete instructions.
 
 ## 🔧 Diagnostic Tools
 
-**v1.1.0 includes 9 production-ready diagnostic tools** - no external scripts needed!
+**v1.1.1 includes 4 essential busybox-only diagnostic tools** - ultra-minimal with no bash/python dependencies!
 
 ### Quick Reference
 
 | Tool | Purpose | Usage |
 |------|---------|-------|
-| **status** | Complete health report | `docker exec tor-relay status` |
-| **fingerprint** | Display relay fingerprint | `docker exec tor-relay fingerprint` |
-| **health** | JSON health check | `docker exec tor-relay health` |
-| **metrics** | Prometheus metrics | `docker exec tor-relay metrics` |
-| **dashboard** | HTML dashboard | `docker exec tor-relay dashboard` |
-| **net-check** | Network diagnostics | `docker exec tor-relay net-check` |
-| **view-logs** | Stream logs | `docker exec tor-relay view-logs` |
-| **setup** | Config wizard | `docker exec -it tor-relay setup` |
-| **metrics-http** | HTTP metrics server | Background service on port 9035 |
+| **status** | Complete health report with emojis | `docker exec tor-relay status` |
+| **health** | JSON health check for monitoring | `docker exec tor-relay health` |
+| **fingerprint** | Display relay fingerprint + Tor Metrics URL | `docker exec tor-relay fingerprint` |
+| **bridge-line** | Get obfs4 bridge line (bridge mode only) | `docker exec tor-relay bridge-line` |
 
 ### Example: Quick Health Check
 
 ```bash
-docker exec tor-relay status --short
+# Full health report with emojis
+docker exec tor-relay status
+
+# JSON output for automation/monitoring
+docker exec tor-relay health
 ```
 
-**Output:**
-```
-🧅 Tor Relay Status Summary
-═══════════════════════════════════
-📦 Build: v1.1.0 (2025-11-08, x86_64)
-🚀 Bootstrap: ✅ 100% Complete
-🌐 Reachable: ❌ Not reachable
-📊 Uptime: 0m (Container)
-🔑 MyRelay (1234...ABCD)
-🔌 ORPort: 9001 | DirPort: 9030
-⚙️  Type: 🔒 Guard/Middle Relay
-⚠️  Errors: 00 | Warnings: 00
-🕒 2025-11-07T10:21:41Z
+**JSON output example:**
+```json
+{
+  "status": "healthy",
+  "bootstrap": 100,
+  "reachable": true,
+  "fingerprint": "1234567890ABCDEF...",
+  "nickname": "MyRelay",
+  "uptime_seconds": 3600
+}
 ```
 
-> 📖 **Complete reference:** See [Tools Documentation](docs/TOOLS.md) for all 9 tools with examples, environment variables, and troubleshooting.
+> 📖 **Complete reference:** See [Tools Documentation](docs/TOOLS.md) for all 4 tools with examples, JSON schema, and integration guides.
 
 ---
 
 ## 📊 Monitoring & Observability
 
-### Built-in Metrics
+**v1.1.1 uses external monitoring** for minimal image size and maximum security.
 
-Expose Prometheus metrics for monitoring:
+### JSON Health API
 
-```bash
-# Enable metrics endpoint
-docker run -d \
-  --name tor-relay \
-  -e ENABLE_METRICS=true \
-  -e METRICS_PORT=9035 \
-  -p 9035:9035 \
-  ghcr.io/r3bo0tbx1/onion-relay:latest
-```
-
-Access metrics at `http://localhost:9035/metrics`
-
-### Full Monitoring Stack
-
-Deploy with **Prometheus + Grafana + Alertmanager**:
+The `health` tool provides JSON output for monitoring integration:
 
 ```bash
-# Download multi-relay template with monitoring
-curl -O https://raw.githubusercontent.com/r3bo0tbx1/tor-guard-relay/main/templates/docker-compose-multi-relay.yml
+# Get health status (raw JSON)
+docker exec tor-relay health
 
-# Start everything
-docker-compose -f docker-compose-multi-relay.yml up -d
+# Parse with jq (requires jq installed on HOST machine)
+docker exec tor-relay health | jq .
 
-# Access dashboards
-# Grafana:     http://localhost:3000 (admin/admin)
-# Prometheus:  http://localhost:9090
+# Example cron-based monitoring
+*/5 * * * * docker exec tor-relay health | jq '.status' | grep -q 'healthy' || alert
 ```
 
-**Includes:**
-- Pre-configured Prometheus scraping
-- [Grafana dashboard](templates/grafana-dashboard.json) with visualizations
-- [Alert rules](templates/prometheus.yml) for relay health
-- [Alertmanager](templates/alertmanager.yml) for Slack/Discord notifications
+> **Note:** `jq` must be installed on your HOST machine (`apt install jq` / `brew install jq`), NOT in the container.
 
-> 📖 **Complete setup:** See [Monitoring Guide](docs/MONITORING.md) for metrics reference, alert rules, dashboard setup, and troubleshooting.
+### Integration Examples
+
+**Prometheus Node Exporter:**
+```bash
+# Use textfile collector (requires jq on host)
+docker exec tor-relay health | jq -r '
+  "tor_bootstrap_percent \(.bootstrap)",
+  "tor_reachable \(if .reachable then 1 else 0 end)"
+' > /var/lib/node_exporter/tor.prom
+```
+
+**Nagios/Icinga:**
+```bash
+#!/bin/bash
+# Requires jq on host machine
+HEALTH=$(docker exec tor-relay health)
+STATUS=$(echo "$HEALTH" | jq -r '.status')
+[ "$STATUS" = "healthy" ] && exit 0 || exit 2
+```
+
+> 📖 **Complete guide:** See [Monitoring Documentation](docs/MONITORING.md) for Prometheus, Grafana, alert integration, and observability setup.
 
 ---
 
@@ -252,18 +249,20 @@ docker-compose -f docker-compose-multi-relay.yml up -d
 
 ### Security & Reliability
 - ✅ Non-root execution (runs as `tor` user)
-- ✅ Hardened Alpine Linux base (~35 MB)
+- ✅ Ultra-minimal Alpine Linux base (**~20 MB**)
+- ✅ Busybox-only tools (no bash/python dependencies)
 - ✅ Automatic permission healing on startup
 - ✅ Configuration validation before start
 - ✅ Tini init for proper signal handling
 - ✅ Graceful shutdown with cleanup
 
 ### Operations & Automation
-- ✅ **9 diagnostic tools** built-in (status, health, metrics, etc.)
-- ✅ **Prometheus metrics** for monitoring
-- ✅ **HTML dashboard** for at-a-glance status
+- ✅ **4 busybox-only diagnostic tools** (status, health, fingerprint, bridge-line)
+- ✅ **JSON health API** for monitoring integration
+- ✅ **Multi-mode support** (guard, exit, bridge with obfs4)
+- ✅ **ENV-based configuration** (TOR_RELAY_MODE, TOR_NICKNAME, etc.)
 - ✅ **Multi-architecture** builds (AMD64, ARM64)
-- ✅ **Weekly auto-builds** via GitHub Actions
+- ✅ **Weekly security rebuilds** via GitHub Actions
 - ✅ **Docker Compose templates** for single/multi-relay
 - ✅ **Cosmos Cloud support** with one-click deploy
 
@@ -279,15 +278,15 @@ docker-compose -f docker-compose-multi-relay.yml up -d
 
 ## 📚 Documentation
 
-**v1.1.0 includes comprehensive documentation** organized by topic:
+**v1.1.1 includes comprehensive documentation** organized by topic:
 
 ### Getting Started
 - **[Deployment Guide](docs/DEPLOYMENT.md)** - Complete installation for Docker CLI, Compose, Cosmos Cloud, and Portainer
-- **[Migration Guide](docs/MIGRATION.md)** - Upgrade from v1.0 or migrate from other Tor setups
+- **[Migration Guide](docs/MIGRATION-V1.1.X.md)** - Upgrade to v1.1.1 or migrate from other Tor setups
 
 ### Operations
-- **[Tools Reference](docs/TOOLS.md)** - Complete guide to all 9 diagnostic tools
-- **[Monitoring Guide](docs/MONITORING.md)** - Prometheus, Grafana, alerts, and observability
+- **[Tools Reference](docs/TOOLS.md)** - Complete guide to all 4 diagnostic tools
+- **[Monitoring Guide](docs/MONITORING.md)** - External monitoring integration, JSON health API, alerts, and observability
 - **[Backup Guide](docs/BACKUP.md)** - Data persistence, recovery, and disaster planning
 - **[Performance Guide](docs/PERFORMANCE.md)** - Optimization, tuning, and resource management
 
@@ -361,7 +360,10 @@ See the [`examples/`](examples/) directory for complete, annotated configuration
 # Quick status
 docker exec tor-relay status
 
-# JSON output for automation
+# JSON output for automation (raw)
+docker exec tor-relay health
+
+# Parse specific field with jq (requires jq on host)
 docker exec tor-relay health | jq .bootstrap
 ```
 
@@ -397,14 +399,14 @@ Search by:
 # Check overall status
 docker exec tor-relay status
 
-# Run network diagnostics
-docker exec tor-relay net-check
+# Check JSON health (raw)
+docker exec tor-relay health
 
-# View recent errors
-docker exec tor-relay view-logs --errors
+# View fingerprint
+docker exec tor-relay fingerprint
 
-# Check JSON health
-docker exec tor-relay health | jq .
+# For bridge mode: Get bridge line
+docker exec tor-relay bridge-line
 ```
 
 ### Common Issues
@@ -494,9 +496,7 @@ All templates are in the [`templates/`](templates/) directory:
 - [cosmos-compose-multi-relay.json](templates/cosmos-compose-multi-relay.json) - Multi-relay stack
 
 ### Monitoring
-- [prometheus.yml](templates/prometheus.yml) - Prometheus configuration
-- [alertmanager.yml](templates/alertmanager.yml) - Alert routing
-- [grafana-dashboard.json](templates/grafana-dashboard.json) - Pre-built dashboard
+See [Monitoring Guide](docs/MONITORING.md) for external monitoring integration examples with Prometheus, Nagios, and other tools
 
 ### Configuration Examples
 See [`examples/`](examples/) directory for relay configurations.
@@ -521,9 +521,11 @@ Found a vulnerability? See our [Security Policy](SECURITY.md) for responsible di
 ### Updates
 
 Images are automatically rebuilt weekly to include security patches:
-- **Schedule:** Every Monday at 03:00 UTC
+- **Schedule:** Every Sunday at 18:30 UTC
 - **Includes:** Latest Tor + Alpine updates
-- **Auto-published:** To GitHub Container Registry
+- **Strategy:** Overwrites last release version (e.g., `:1.1.1`) with updated packages
+- **Tags Updated:** Both `:latest` and version tags (e.g., `:1.1.1`)
+- **Auto-published:** To Docker Hub and GitHub Container Registry
 
 ---
 
@@ -555,9 +557,10 @@ Images are automatically rebuilt weekly to include security patches:
 ![GitHub Stars](https://img.shields.io/github/stars/r3bo0tbx1/tor-guard-relay?style=for-the-badge)
 ![GitHub Issues](https://img.shields.io/github/issues/r3bo0tbx1/tor-guard-relay?style=for-the-badge)
 
-**Current Version:** v1.1.0  
-**Status:** Production Ready  
-**Last Build:** Weekly (Mondays 03:00 JST)  
+**Current Version:** v1.1.1
+**Status:** Production Ready
+**Image Size:** ~20 MB (ultra-optimized)
+**Rebuild:** Weekly (Sundays 18:30 UTC)
 **Registries:** Docker Hub • GHCR
 
 </div>

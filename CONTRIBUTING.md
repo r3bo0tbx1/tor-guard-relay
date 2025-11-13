@@ -166,7 +166,7 @@ docker build -f Dockerfile -t test:latest .
 docker run --rm test:latest ls -la /usr/local/bin/
 
 # Test diagnostics
-docker run --rm test:latest relay-status || echo "Expected to fail without config"
+docker run --rm test:latest status || echo "Expected to fail without config"
 ```
 
 ### Configuration Validation

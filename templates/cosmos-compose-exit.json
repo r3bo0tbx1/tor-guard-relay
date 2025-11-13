@@ -1,0 +1,91 @@
+{
+  "minVersion": "0.8.0",
+  "services": {
+    "tor-exit-relay": {
+      "image": "ghcr.io/r3bo0tbx1/onion-relay:latest",
+      "container_name": "tor-exit-relay",
+      "restart": "unless-stopped",
+      "network_mode": "host",
+      "environment": [
+        "TOR_RELAY_MODE=exit",
+        "TOR_NICKNAME=MyExitRelay",
+        "TOR_CONTACT_INFO=admin@example.com <0xYOUR_PGP_KEY>",
+        "TOR_ORPORT=9001",
+        "TOR_DIRPORT=9030",
+        "TOR_BANDWIDTH_RATE=50 MBytes",
+        "TOR_BANDWIDTH_BURST=100 MBytes",
+        "TOR_EXIT_POLICY=accept *:80,accept *:443,reject *:*"
+      ],
+      "volumes": [
+        {
+          "type": "volume",
+          "source": "tor-exit-data",
+          "target": "/var/lib/tor"
+        },
+        {
+          "type": "volume",
+          "source": "tor-exit-logs",
+          "target": "/var/log/tor"
+        }
+      ],
+      "security_opt": ["no-new-privileges:true"],
+      "cap_drop": ["ALL"],
+      "cap_add": [
+        "NET_BIND_SERVICE",
+        "CHOWN",
+        "SETUID",
+        "SETGID",
+        "DAC_OVERRIDE"
+      ],
+      "labels": {
+        "cosmos-stack": "TorExitRelay",
+        "cosmos-stack-main": "tor-exit-relay",
+        "cosmos-description": "⚠️ Tor Exit Relay v1.1.1 - Reduced exit policy (HTTP/HTTPS only) | ENV-based config | Weekly security updates",
+        "cosmos-icon": "https://raw.githubusercontent.com/r3bo0tbx1/tor-guard-relay/refs/heads/main/src/exit.png",
+        "cosmos-auto-update": "true",
+        "cosmos-force-network-secured": "false",
+        "cosmos-version": "1.1.1"
+      }
+    }
+  },
+  "volumes": {
+    "tor-exit-data": {},
+    "tor-exit-logs": {}
+  },
+  "metadata": {
+    "description": "⚠️ Tor Exit Relay - Requires dedicated IP, abuse handling, and legal preparation",
+    "version": "1.1.1",
+    "author": "r3bo0tbx1",
+    "tags": ["tor", "relay", "exit", "privacy", "requires-legal-preparation"],
+    "configuration_method": "environment_variables",
+    "warnings": [
+      "⚠️ EXIT RELAYS REQUIRE DEDICATED IP AND ABUSE HANDLING",
+      "⚠️ READ docs/LEGAL.md BEFORE RUNNING AN EXIT RELAY",
+      "⚠️ Configure proper abuse contact and WHOIS information",
+      "⚠️ Set up automated abuse complaint handling",
+      "⚠️ Use reduced exit policy (HTTP/HTTPS only) to minimize abuse"
+    ],
+    "notes": [
+      "ENV-based configuration - no config file needed",
+      "Required: TOR_NICKNAME, TOR_CONTACT_INFO (with PGP key), TOR_ORPORT, TOR_DIRPORT",
+      "Optional: TOR_BANDWIDTH_RATE, TOR_BANDWIDTH_BURST (sets RelayBandwidthRate/Burst)",
+      "Exit policy: TOR_EXIT_POLICY (default: accept *:80,accept *:443,reject *:*)",
+      "For mounted config file, remove environment variables and add:",
+      "  { \"type\": \"bind\", \"source\": \"/path/to/relay-exit.conf\", \"target\": \"/etc/tor/torrc\", \"read_only\": true }",
+      "In mounted config: Use RelayBandwidthRate/Burst (relay-only) or BandwidthRate/Burst (global)",
+      "After deployment: docker exec tor-exit-relay status",
+      "Check fingerprint: docker exec tor-exit-relay fingerprint",
+      "Weekly security rebuilds every Sunday 18:30 UTC"
+    ],
+    "exit_policy_examples": {
+      "reduced_exit_http_https": "accept *:80,accept *:443,reject *:*",
+      "full_exit": "accept *:*",
+      "no_exit_middle_only": "reject *:*"
+    },
+    "recommended_bandwidth": {
+      "minimum": "100 MBytes rate, 200 MBytes burst",
+      "recommended": "500 MBytes rate, 1 GBytes burst",
+      "high_performance": "1 GBytes rate, 2 GBytes burst"
+    }
+  }
+}

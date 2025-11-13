@@ -12,12 +12,13 @@ updates:
       interval: "weekly"
       day: "monday"
       time: "03:00"
-      timezone: "Asia/Tokyo"
+      timezone: "UTC"
     open-pull-requests-limit: 5
     rebase-strategy: "auto"
     labels:
       - "dependencies"
       - "github-actions"
+      - "security"
     commit-message:
       prefix: "ci"
       include: "scope"
@@ -25,6 +26,10 @@ updates:
       - "r3bo0tbx1"
     assignees:
       - "r3bo0tbx1"
+    # Security: Allow both patch and minor updates for GitHub Actions
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
 
   # ────────────────────────────────
   # 🐳 Docker (Base Image Updates)
@@ -34,12 +39,13 @@ updates:
     schedule:
       interval: "daily"
       time: "03:00"
-      timezone: "Asia/Tokyo"
+      timezone: "UTC"
     open-pull-requests-limit: 3
     rebase-strategy: "auto"
     labels:
       - "dependencies"
       - "docker"
+      - "security"
     commit-message:
       prefix: "build"
       include: "scope"
@@ -47,6 +53,10 @@ updates:
       - "r3bo0tbx1"
     assignees:
       - "r3bo0tbx1"
+    # Security: Allow patch updates for Alpine base image
+    ignore:
+      - dependency-name: "alpine"
+        update-types: ["version-update:semver-major"]
 
 # ────────────────────────────────
 # Strategy Notes
@@ -55,12 +65,19 @@ updates:
 # ✅ Daily Docker checks for timely base image security patches
 # ✅ Automatic PR rebasing to prevent stale dependency branches
 # ✅ Manual merge approval required (no auto-merge)
+# ✅ Security-focused: Block major version updates, allow patch/minor
 #
 # Monitored ecosystems:
 # 1. GitHub Actions (workflow dependencies)
-# 2. Docker (Alpine base image)
+# 2. Docker (Alpine base image - tracks 3.22.x → 3.23.x updates)
 #
-# Manual updates:
-# - Shell scripts and Tor binary (require validation)
-# - Alpine system packages pinned for consistency
-# - Other dependencies managed outside Dependabot
+# NOT monitored (by design):
+# - Alpine packages (tor, tini, lyrebird) - No pinned versions
+#   → Updated automatically via weekly rebuilds (Sundays 18:30 UTC)
+#   → Strategy: apk add --no-cache always pulls latest available
+#
+# Security strategy:
+# - Base image updates: Dependabot tracks Alpine version changes
+# - Package updates: Weekly rebuilds pull latest tor/tini/lyrebird from Alpine repos
+# - CI/CD updates: Dependabot tracks GitHub Actions version changes
+# - Manual review required for all PRs (no auto-merge)

@@ -1,0 +1,59 @@
+# Hadolint configuration for Tor Guard Relay
+# https://github.com/hadolint/hadolint
+# Dockerfile linting with security-first approach
+
+# ============================================================================
+# Ignored Rules
+# ============================================================================
+
+ignored:
+  # DL3018: Ignore unpinned package versions in apk add
+  # Rationale: Alpine Linux frequently updates packages, causing pinned versions
+  # to break builds. We prefer resilience and automatic security updates over
+  # strict reproducibility. Weekly rebuilds (Sundays 18:30 UTC) ensure we get
+  # latest security patches automatically.
+  - DL3018
+
+# ============================================================================
+# Security & Quality Settings
+# ============================================================================
+
+failure-threshold: error  # Only fail on errors, not warnings
+
+# Enable all built-in checks (except explicitly ignored above)
+no-fail: false
+
+# ============================================================================
+# Trusted Registries (Security)
+# ============================================================================
+
+# Only allow official registries and alpine base image
+trustedRegistries:
+  - "docker.io"
+  - "registry.hub.docker.com"
+
+# ============================================================================
+# Additional Notes
+# ============================================================================
+#
+# Enabled security checks include:
+# - DL3001: Avoid using sudo
+# - DL3002: Warn on using USER root
+# - DL3003: Use WORKDIR for absolute paths
+# - DL3006: Use --platform for multi-arch builds
+# - DL3007: Use specific tags for base images (not :latest)
+# - DL3008: Pin versions in apt-get (N/A - we use apk)
+# - DL3009: Delete apt-get lists after install (N/A - we use apk)
+# - DL3013: Pin versions in pip install (N/A - no Python)
+# - DL3015: Avoid additional packages in apt-get (N/A - we use apk)
+# - DL3016: Pin versions in npm (N/A - no Node.js)
+# - DL3020: Use COPY instead of ADD for files/dirs
+# - DL3022: COPY --from should reference valid stage
+# - DL3025: Use JSON notation for CMD/ENTRYPOINT
+# - DL4001: Warn on wget/curl without verified downloads
+# - DL4003: Multiple CMD instructions (only last one counts)
+# - DL4004: Multiple ENTRYPOINT instructions
+# - DL4006: Set SHELL to pipefail mode
+# - SC1000-SC9999: All ShellCheck warnings (for RUN commands)
+#
+# Our Dockerfile passes all checks except DL3018 (unpinned versions by design).

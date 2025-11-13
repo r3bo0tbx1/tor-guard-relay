@@ -346,38 +346,65 @@ time docker exec guard-relay tor --resolve example.com
 
 ## Monitoring & Metrics
 
-### 1. Enable Prometheus Metrics
+v1.1.1 uses **external monitoring** with the `health` JSON API for minimal image size and maximum security.
 
-**In docker-compose.yml:**
+### 1. JSON Health API
 
-```yaml
-services:
-  tor-guard-relay:
-    environment:
-      - "ENABLE_METRICS=true"
-      - "METRICS_PORT=9035"
-```
-
-**Or in relay.conf:**
-
-```conf
-# Prometheus metrics port
-# MetricsPort 9035
-```
-
-### 2. Access Metrics Endpoint
+Get relay metrics via the `health` tool:
 
 ```bash
-# Pull metrics
-curl http://localhost:9035/metrics
+# Get full health status (raw JSON)
+docker exec guard-relay health
 
-# Example output:
-# tor_relay_bandwidth_read_bytes 1234567890
-# tor_relay_bandwidth_write_bytes 1987654321
-# tor_relay_connections 234
+# Parse with jq (requires jq on host)
+docker exec guard-relay health | jq .
+
+# Check specific metrics
+docker exec guard-relay health | jq .bootstrap      # Bootstrap percentage
+docker exec guard-relay health | jq .reachable      # ORPort reachability
+docker exec guard-relay health | jq .uptime_seconds # Uptime
 ```
 
-### 3. Set Up Prometheus Monitoring
+**Example JSON output:**
+```json
+{
+  "status": "up",
+  "bootstrap": 100,
+  "reachable": true,
+  "fingerprint": "1234567890ABCDEF...",
+  "nickname": "MyRelay",
+  "uptime_seconds": 86400
+}
+```
+
+### 2. Prometheus Integration (External)
+
+Use the `health` tool with Prometheus node_exporter textfile collector:
+
+**Create metrics exporter script:**
+
+```bash
+#!/bin/bash
+# /usr/local/bin/tor-metrics-exporter.sh
+# Requires: jq on host (apt install jq / brew install jq)
+
+HEALTH=$(docker exec guard-relay health)
+
+echo "$HEALTH" | jq -r '
+  "tor_bootstrap_percent \(.bootstrap)",
+  "tor_reachable \(if .reachable then 1 else 0 end)",
+  "tor_uptime_seconds \(.uptime_seconds // 0)"
+' > /var/lib/node_exporter/textfile_collector/tor.prom
+```
+
+**Run via cron every 5 minutes:**
+```bash
+chmod +x /usr/local/bin/tor-metrics-exporter.sh
+crontab -e
+*/5 * * * * /usr/local/bin/tor-metrics-exporter.sh
+```
+
+### 3. Set Up Prometheus Scraping
 
 **prometheus.yml:**
 
@@ -386,7 +413,7 @@ global:
   scrape_interval: 15s
 
 scrape_configs:
-  - job_name: 'tor-relay'
+  - job_name: 'node_exporter'  # Scrapes textfile collector
     static_configs:
       - targets: ['localhost:9035']
     metrics_path: '/metrics'
@@ -548,7 +575,9 @@ docker exec guard-relay grep "RelayBandwidth" /etc/tor/torrc
 docker logs guard-relay 2>&1 | grep "Average"
 
 # Verify ORPort is reachable
-docker exec guard-relay relay-status | grep "reachable"
+docker exec guard-relay status | grep "reachable"
+# Or use JSON health check
+docker exec guard-relay health | jq .reachable
 ```
 
 **Solutions:**

@@ -1,0 +1,156 @@
+version: '3.8'
+
+# ============================================================================
+# Tor Exit Relay - Docker Compose
+# ⚠️  WARNING: Read legal considerations before deploying!
+# ============================================================================
+
+services:
+  tor-exit-relay:
+    image: ghcr.io/r3bo0tbx1/onion-relay:latest
+    container_name: tor-exit-relay
+    restart: unless-stopped
+    network_mode: host
+
+    environment:
+      # ──────────────────────────────────────────────────
+      # Relay Mode Configuration
+      # ──────────────────────────────────────────────────
+      TOR_RELAY_MODE: exit
+
+      # ──────────────────────────────────────────────────
+      # Required: Relay Identity
+      # ──────────────────────────────────────────────────
+      TOR_NICKNAME: MyExitRelay
+      TOR_CONTACT_INFO: "your-email@example.com <0xYOUR_PGP_KEY>"
+
+      # ──────────────────────────────────────────────────
+      # Network Ports (defaults shown, fully configurable)
+      # Suggested: Use 443 for ORPort in censored regions
+      # ──────────────────────────────────────────────────
+      TOR_ORPORT: 9001      # Default: 9001, suggested: 443 or any port > 1024
+      TOR_DIRPORT: 9030     # Default: 9030, set to 0 to disable
+
+      # ──────────────────────────────────────────────────
+      # Bandwidth Limits (adjust for your connection)
+      # TOR_BANDWIDTH_RATE/BURST sets RelayBandwidthRate/Burst in torrc
+      # For mounted config, you can use either:
+      #   - RelayBandwidthRate/Burst (relay-specific, recommended)
+      #   - BandwidthRate/Burst (global, all Tor traffic)
+      # ──────────────────────────────────────────────────
+      TOR_BANDWIDTH_RATE: "50 MBytes"
+      TOR_BANDWIDTH_BURST: "100 MBytes"
+
+      # ──────────────────────────────────────────────────
+      # Exit Policy (optional - defaults to reduced exit policy)
+      # Format: "accept *:80,accept *:443,reject *:*"
+      # Leave empty for default reduced exit policy
+      # ──────────────────────────────────────────────────
+      # TOR_EXIT_POLICY: ""
+
+    volumes:
+      # Persistent data (keys, state, fingerprint)
+      - tor-exit-data:/var/lib/tor
+
+      # Persistent logs
+      - tor-exit-logs:/var/log/tor
+
+      # Optional: Mount custom configuration instead of using env vars
+      # - ./relay-exit.conf:/etc/tor/torrc:ro
+
+    # Healthcheck
+    healthcheck:
+      test: ["CMD-SHELL", "/usr/local/bin/healthcheck.sh"]
+      interval: 10m
+      timeout: 15s
+      start_period: 30s
+      retries: 3
+
+volumes:
+  tor-exit-data:
+    driver: local
+  tor-exit-logs:
+    driver: local
+
+# ============================================================================
+# Usage Instructions
+# ============================================================================
+#
+# 1. BEFORE DEPLOYMENT:
+#    - Read exit relay legal FAQ: https://community.torproject.org/relay/community-resources/eff-tor-legal-faq/
+#    - Prepare for abuse complaints
+#    - Inform your ISP (recommended)
+#    - Set up abuse@ email address
+#
+# 2. CONFIGURE:
+#    Edit environment variables above:
+#    - TOR_NICKNAME: Your relay name
+#    - TOR_CONTACT_INFO: Your email (CRITICAL for exit relays!)
+#    - TOR_BANDWIDTH_RATE/BURST: Adjust for your connection
+#
+# 3. DEPLOY:
+#    docker-compose -f docker-compose-exit.yml up -d
+#
+# 4. VERIFY:
+#    # Check status
+#    docker exec tor-exit-relay status
+#
+#    # View logs
+#    docker logs -f tor-exit-relay
+#
+#    # Get fingerprint
+#    docker exec tor-exit-relay fingerprint
+#
+# 5. MONITORING:
+#    # Health check (JSON output)
+#    docker exec tor-exit-relay health
+#
+# 6. FIND YOUR RELAY:
+#    After 1-2 hours, search for your relay on:
+#    https://metrics.torproject.org/rs.html
+#
+# ============================================================================
+# Exit Relay Checklist
+# ============================================================================
+#
+# ✓ Read and understand exit relay legal implications
+# ✓ Set TOR_NICKNAME to a unique name
+# ✓ Set TOR_CONTACT_INFO with valid email
+# ✓ Configure bandwidth limits appropriate for your connection
+# ✓ Ensure ORPort and DirPort are publicly accessible (defaults: 9001, 9030)
+# ✓ Set up abuse complaint handling procedures
+# ✓ Prepare standard response template for abuse complaints
+# ✓ Monitor logs daily
+# ✓ Set up email alerts for issues
+#
+# ============================================================================
+# Port Information
+# ============================================================================
+#
+# Using network_mode: host, all ports bind directly to the host:
+#
+# PUBLIC (must be accessible from internet):
+# - ORPort (default: 9001, configurable) - Tor relay traffic
+# - DirPort (default: 9030, configurable) - Directory service
+#
+# Recommended: Use port 443 for ORPort in censored regions
+# Any port > 1024 works, configure via TOR_ORPORT and TOR_DIRPORT
+#
+# ============================================================================
+# Firewall Configuration
+# ============================================================================
+#
+# UFW (Ubuntu/Debian):
+#   sudo ufw allow <your-orport>/tcp    # e.g., 9001 or 443
+#   sudo ufw allow <your-dirport>/tcp   # e.g., 9030
+#
+# firewalld (RHEL/CentOS):
+#   sudo firewall-cmd --permanent --add-port=<your-orport>/tcp
+#   sudo firewall-cmd --permanent --add-port=<your-dirport>/tcp
+#   sudo firewall-cmd --reload
+#
+# iptables:
+#   sudo iptables -A INPUT -p tcp --dport <your-orport> -j ACCEPT
+#   sudo iptables -A INPUT -p tcp --dport <your-dirport> -j ACCEPT
+#
+# ============================================================================

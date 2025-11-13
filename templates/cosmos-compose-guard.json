@@ -1,0 +1,78 @@
+{
+  "minVersion": "0.8.0",
+  "services": {
+    "tor-guard-relay": {
+      "image": "ghcr.io/r3bo0tbx1/onion-relay:latest",
+      "container_name": "tor-guard-relay",
+      "restart": "unless-stopped",
+      "network_mode": "host",
+      "environment": [
+        "TOR_RELAY_MODE=guard",
+        "TOR_NICKNAME=MyGuardRelay",
+        "TOR_CONTACT_INFO=admin@example.com",
+        "TOR_ORPORT=9001",
+        "TOR_DIRPORT=9030",
+        "TOR_BANDWIDTH_RATE=50 MBytes",
+        "TOR_BANDWIDTH_BURST=100 MBytes"
+      ],
+      "volumes": [
+        {
+          "type": "volume",
+          "source": "tor-guard-data",
+          "target": "/var/lib/tor"
+        },
+        {
+          "type": "volume",
+          "source": "tor-guard-logs",
+          "target": "/var/log/tor"
+        }
+      ],
+      "security_opt": ["no-new-privileges:true"],
+      "cap_drop": ["ALL"],
+      "cap_add": [
+        "NET_BIND_SERVICE",
+        "CHOWN",
+        "SETUID",
+        "SETGID",
+        "DAC_OVERRIDE"
+      ],
+      "labels": {
+        "cosmos-stack": "TorGuardRelay",
+        "cosmos-stack-main": "tor-guard-relay",
+        "cosmos-description": "🧅 Tor Guard Relay v1.1.1 - High-bandwidth guard/middle node | ENV-based config | Weekly security updates",
+        "cosmos-icon": "https://raw.githubusercontent.com/r3bo0tbx1/tor-guard-relay/refs/heads/main/src/onion.png",
+        "cosmos-auto-update": "true",
+        "cosmos-force-network-secured": "false",
+        "cosmos-version": "1.1.1"
+      }
+    }
+  },
+  "volumes": {
+    "tor-guard-data": {},
+    "tor-guard-logs": {}
+  },
+  "metadata": {
+    "description": "🧅 Tor Guard Relay - High-bandwidth guard/middle node",
+    "version": "1.1.1",
+    "author": "r3bo0tbx1",
+    "tags": ["tor", "relay", "guard", "middle", "privacy"],
+    "configuration_method": "environment_variables",
+    "notes": [
+      "ENV-based configuration - no config file needed",
+      "Required: TOR_NICKNAME, TOR_CONTACT_INFO, TOR_ORPORT, TOR_DIRPORT",
+      "Optional: TOR_BANDWIDTH_RATE, TOR_BANDWIDTH_BURST (sets RelayBandwidthRate/Burst)",
+      "Set TOR_DIRPORT=0 to disable directory service (less bandwidth)",
+      "For mounted config file, remove environment variables and add:",
+      "  { \"type\": \"bind\", \"source\": \"/path/to/relay-guard.conf\", \"target\": \"/etc/tor/torrc\", \"read_only\": true }",
+      "In mounted config: Use RelayBandwidthRate/Burst (relay-only) or BandwidthRate/Burst (global)",
+      "After deployment: docker exec tor-guard-relay status",
+      "Check fingerprint: docker exec tor-guard-relay fingerprint",
+      "Weekly security rebuilds every Sunday 18:30 UTC"
+    ],
+    "recommended_bandwidth": {
+      "minimum": "10 MBytes rate, 20 MBytes burst",
+      "recommended": "50 MBytes rate, 100 MBytes burst",
+      "high_performance": "100 MBytes rate, 200 MBytes burst"
+    }
+  }
+}
