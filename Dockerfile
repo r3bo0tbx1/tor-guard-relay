@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1.19
+# syntax=docker/dockerfile:1.20
 # ============================================================================
 # Tor Guard Relay - Ultra-optimized ~20 MB container
 # Base: Alpine 3.22.2 | Multi-arch: amd64, arm64
