@@ -10,7 +10,7 @@ version: "3.8"
 # - Weekly security rebuilds (Sundays 18:30 UTC)
 # - 4 diagnostic tools (status, health, fingerprint, bridge-line)
 # - JSON health API for monitoring integration
-# - Ultra-minimal 20MB Alpine Linux base
+# - Ultra-minimal 17.1MB Alpine Linux base
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 services:

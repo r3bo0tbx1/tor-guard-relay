@@ -24,6 +24,7 @@ community include:
   and learning from the experience
 * Focusing on what is best not just for us as individuals, but for the
   overall community
+* Contributors are expected to follow privacy respecting and security conscious practices when discussing configurations, logs, or network details related to Tor or relay operations.
 
 Examples of unacceptable behavior include:
 
@@ -35,6 +36,8 @@ Examples of unacceptable behavior include:
   address, without their explicit permission
 * Other conduct which could reasonably be considered inappropriate in a
   professional setting
+* Sharing malicious code, harmful configurations, or techniques intended to compromise systems or violate the privacy of others
+
 
 ## Enforcement Responsibilities
 
@@ -65,6 +68,7 @@ All complaints will be reviewed and investigated promptly and fairly.
 
 All community leaders are obligated to respect the privacy and security of the
 reporter of any incident.
+Encrypted communication is available upon request for sensitive or high impact reports.
 
 ## Enforcement Guidelines
 

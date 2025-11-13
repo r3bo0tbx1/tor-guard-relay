@@ -29,7 +29,7 @@
 
 ### Why Choose This Project?
 
-- 🛡️ **Security-First** - Hardened Alpine Linux, non-root operation, ultra-minimal 20MB image
+- 🛡️ **Security-First** - Hardened Alpine Linux, non-root operation, ultra-minimal 17.1MB image
 - 🎯 **Simple** - One command to deploy, minimal configuration needed
 - 📊 **Observable** - 4 busybox-only diagnostic tools with JSON health API
 - 🌉 **Multi-Mode** - Supports guard, exit, and bridge (obfs4) relays
@@ -51,7 +51,7 @@
 - `TOR_DIRPORT` - Default: 9030 (guard/exit only, set to 0 to disable)
 - `TOR_OBFS4_PORT` - Default: 9002 (bridge mode only)
 
-**Diagnostics via `docker exec` only** - no exposed monitoring ports. Ultra-minimal attack surface (~20MB busybox-only image).
+**Diagnostics via `docker exec` only** - no exposed monitoring ports. Ultra-minimal attack surface (~17.1MB busybox-only image).
 
 ---
 
@@ -444,7 +444,7 @@ Docker automatically pulls the correct architecture:
 # - x86_64 servers (pulls amd64)
 # - Raspberry Pi (pulls arm64)
 # - AWS Graviton (pulls arm64)
-docker pull ghcr.io/r3bo0tbx1/onion-relay:latest
+docker pull r3bo0tbx1/onion-relay:latest
 ```
 
 Verify what you got:
@@ -615,6 +615,12 @@ Or via **[AnonPay](https://trocador.app/anonpay?ticker_to=xmr&network_to=Mainnet
 - 📢 **Share** with others who might benefit
 
 Stars and feedback are just as valuable! 🙏
+
+---
+
+## ⭐ Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=r3bo0tbx1/tor-guard-relay&type=date&legend=top-left)](https://www.star-history.com/#r3bo0tbx1/tor-guard-relay&type=date&legend=top-left)
 
 ---
 

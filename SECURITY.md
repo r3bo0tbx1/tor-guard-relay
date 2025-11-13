@@ -121,14 +121,14 @@ docker run -d \
   -v $(pwd)/relay.conf:/etc/tor/torrc:ro \
   -v tor-guard-data:/var/lib/tor \
   -v tor-guard-logs:/var/log/tor \
-  ghcr.io/r3bo0tbx1/onion-relay:latest
+  r3bo0tbx1/onion-relay:latest
 ```
 
 ```yaml
 # Docker Compose with host networking
 services:
   tor-relay:
-    image: ghcr.io/r3bo0tbx1/onion-relay:latest
+    image: r3bo0tbx1/onion-relay:latest
     container_name: tor-relay
     restart: unless-stopped
     network_mode: host
@@ -342,7 +342,7 @@ sudo ufw status numbered
 sudo iptables -L -n -v
 
 # Pull latest security-patched image
-docker pull ghcr.io/r3bo0tbx1/onion-relay:latest
+docker pull r3bo0tbx1/onion-relay:latest
 ```
 
 #### Monitoring

@@ -50,7 +50,7 @@ docker run -d \
   -e TOR_ORPORT=9001 \
   -e TOR_OBFS4_PORT=9002 \
   -v tor-data:/var/lib/tor \
-  ghcr.io/r3bo0tbx1/onion-relay:latest
+  r3bo0tbx1/onion-relay:latest
 ```
 
 **All available ENV variables:**
@@ -91,7 +91,7 @@ docker run -d \
   --network host \
   -v /path/to/relay-bridge.conf:/etc/tor/torrc:ro \
   -v tor-data:/var/lib/tor \
-  ghcr.io/r3bo0tbx1/onion-relay:latest
+  r3bo0tbx1/onion-relay:latest
 ```
 
 **Cosmos Cloud JSON (remove environment, add bind mount):**

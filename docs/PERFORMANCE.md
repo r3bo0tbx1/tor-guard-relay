@@ -606,7 +606,7 @@ docker exec guard-relay ulimit -n
 docker run -d \
   --ulimit nofile=65535:65535 \
   # ... other options
-  ghcr.io/r3bo0tbx1/onion-relay:latest
+  r3bo0tbx1/onion-relay:latest
 ```
 
 ---

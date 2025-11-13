@@ -357,7 +357,7 @@ docker run -d \
   -v tor-guard-data:/var/lib/tor \
   -v tor-guard-logs:/var/log/tor \
   --restart unless-stopped \
-  ghcr.io/r3bo0tbx1/onion-relay:latest
+  r3bo0tbx1/onion-relay:latest
 
 # 6. Verify relay is using old identity
 docker exec guard-relay fingerprint
@@ -456,7 +456,7 @@ docker run -d \
   -v tor-guard-data:/var/lib/tor \
   -v tor-guard-logs:/var/log/tor \
   --restart unless-stopped \
-  ghcr.io/r3bo0tbx1/onion-relay:latest
+  r3bo0tbx1/onion-relay:latest
 
 # 7. Verify startup and identity
 docker logs -f guard-relay
@@ -516,7 +516,7 @@ docker run -d \
   -v tor-guard-data:/var/lib/tor \
   -v tor-guard-logs:/var/log/tor \
   --restart unless-stopped \
-  ghcr.io/r3bo0tbx1/onion-relay:latest
+  r3bo0tbx1/onion-relay:latest
 
 # 3. Verify NEW server is running
 docker logs guard-relay | grep "Bootstrapped"

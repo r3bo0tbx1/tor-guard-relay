@@ -2,7 +2,7 @@
   "minVersion": "0.8.0",
   "services": {
     "TorRelay1": {
-      "image": "ghcr.io/r3bo0tbx1/onion-relay:latest",
+      "image": "r3bo0tbx1/onion-relay:latest",
       "container_name": "TorRelay1",
       "restart": "unless-stopped",
       "network_mode": "host",
@@ -52,7 +52,7 @@
       }
     },
     "TorRelay2": {
-      "image": "ghcr.io/r3bo0tbx1/onion-relay:latest",
+      "image": "r3bo0tbx1/onion-relay:latest",
       "container_name": "TorRelay2",
       "restart": "unless-stopped",
       "network_mode": "host",
@@ -101,7 +101,7 @@
       }
     },
     "TorRelay3": {
-      "image": "ghcr.io/r3bo0tbx1/onion-relay:latest",
+      "image": "r3bo0tbx1/onion-relay:latest",
       "container_name": "TorRelay3",
       "restart": "unless-stopped",
       "network_mode": "host",
@@ -159,7 +159,7 @@
     "tor-relay-3-logs": { "driver": "local" }
   },
   "metadata": {
-    "description": "🧅 Tor Guard Multi-Relay Stack - 3 relays with ultra-optimized 20MB containers",
+    "description": "🧅 Tor Guard Multi-Relay Stack - 3 relays with ultra-optimized 17.1MB containers",
     "version": "1.1.1",
     "author": "r3bo0tbx1",
     "tags": ["tor", "relay", "privacy", "multi-relay"]

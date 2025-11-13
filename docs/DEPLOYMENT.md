@@ -78,7 +78,7 @@ docker run -d \
   -v tor-data:/var/lib/tor \
   -v tor-logs:/var/log/tor \
   --restart unless-stopped \
-  ghcr.io/r3bo0tbx1/onion-relay:latest
+  r3bo0tbx1/onion-relay:latest
 ```
 
 ### Step 4: Verify Deployment
@@ -288,7 +288,7 @@ version: '3.8'
 
 services:
   tor-relay:
-    image: ghcr.io/r3bo0tbx1/onion-relay:latest
+    image: r3bo0tbx1/onion-relay:latest
     container_name: tor-relay
     restart: unless-stopped
     network_mode: host
@@ -338,7 +338,7 @@ docker run -d \
   --network host \
   -v ~/relay-guard.conf:/etc/tor/torrc:ro \
   -v tor-data:/var/lib/tor \
-  ghcr.io/r3bo0tbx1/onion-relay:latest
+  r3bo0tbx1/onion-relay:latest
 
 # With ENV variables
 docker run -d \
@@ -350,7 +350,7 @@ docker run -d \
   -e TOR_ORPORT=9001 \
   -e TOR_DIRPORT=9030 \
   -v tor-data:/var/lib/tor \
-  ghcr.io/r3bo0tbx1/onion-relay:latest
+  r3bo0tbx1/onion-relay:latest
 ```
 
 ### Exit Relay
@@ -362,7 +362,7 @@ docker run -d \
   --network host \
   -v ~/relay-exit.conf:/etc/tor/torrc:ro \
   -v tor-data:/var/lib/tor \
-  ghcr.io/r3bo0tbx1/onion-relay:latest
+  r3bo0tbx1/onion-relay:latest
 
 # With ENV variables
 docker run -d \
@@ -375,7 +375,7 @@ docker run -d \
   -e TOR_DIRPORT=9030 \
   -e TOR_EXIT_POLICY="accept *:80,accept *:443,reject *:*" \
   -v tor-data:/var/lib/tor \
-  ghcr.io/r3bo0tbx1/onion-relay:latest
+  r3bo0tbx1/onion-relay:latest
 ```
 
 ### Bridge Relay (obfs4)
@@ -387,7 +387,7 @@ docker run -d \
   --network host \
   -v ~/relay-bridge.conf:/etc/tor/torrc:ro \
   -v tor-data:/var/lib/tor \
-  ghcr.io/r3bo0tbx1/onion-relay:latest
+  r3bo0tbx1/onion-relay:latest
 
 # With ENV variables
 docker run -d \
@@ -399,7 +399,7 @@ docker run -d \
   -e TOR_ORPORT=9001 \
   -e TOR_OBFS4_PORT=9002 \
   -v tor-data:/var/lib/tor \
-  ghcr.io/r3bo0tbx1/onion-relay:latest
+  r3bo0tbx1/onion-relay:latest
 
 # Get bridge line for sharing
 docker exec tor-bridge bridge-line
@@ -447,7 +447,7 @@ version: '3.8'
 
 services:
   tor-relay:
-    image: ghcr.io/r3bo0tbx1/onion-relay:latest
+    image: r3bo0tbx1/onion-relay:latest
     container_name: tor-relay
     restart: unless-stopped
     network_mode: host
@@ -475,7 +475,7 @@ version: '3.8'
 
 services:
   obfs4-bridge:
-    image: ghcr.io/r3bo0tbx1/onion-relay:latest
+    image: r3bo0tbx1/onion-relay:latest
     container_name: obfs4-bridge
     restart: unless-stopped
     network_mode: host
@@ -507,7 +507,7 @@ docker ps | grep tor-relay
 Expected output:
 ```
 CONTAINER ID   IMAGE                                    STATUS
-abc123def456   ghcr.io/r3bo0tbx1/onion-relay:latest    Up 5 minutes (healthy)
+abc123def456   r3bo0tbx1/onion-relay:latest    Up 5 minutes (healthy)
 ```
 
 ### 2. Run Diagnostics
@@ -774,7 +774,7 @@ docker logs tor-relay --tail 50
 # Validate configuration (if using mounted config)
 docker run --rm \
   -v ~/tor-relay/relay.conf:/etc/tor/torrc:ro \
-  ghcr.io/r3bo0tbx1/onion-relay:latest \
+  r3bo0tbx1/onion-relay:latest \
   tor --verify-config -f /etc/tor/torrc
 ```
 

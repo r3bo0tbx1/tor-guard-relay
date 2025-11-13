@@ -111,7 +111,7 @@ docker run -d \
   -e TOR_BANDWIDTH_BURST="100 MBytes" \
   -v tor-guard-data:/var/lib/tor \
   -v tor-guard-logs:/var/log/tor \
-  ghcr.io/r3bo0tbx1/onion-relay:latest
+  r3bo0tbx1/onion-relay:latest
 ```
 
 ### Docker Compose
@@ -121,7 +121,7 @@ version: '3.8'
 
 services:
   tor-guard-relay:
-    image: ghcr.io/r3bo0tbx1/onion-relay:latest
+    image: r3bo0tbx1/onion-relay:latest
     container_name: tor-guard-relay
     restart: unless-stopped
     network_mode: host
@@ -192,7 +192,7 @@ docker run -d \
   -e TOR_BANDWIDTH_BURST="100 MBytes" \
   -v tor-exit-data:/var/lib/tor \
   -v tor-exit-logs:/var/log/tor \
-  ghcr.io/r3bo0tbx1/onion-relay:latest
+  r3bo0tbx1/onion-relay:latest
 ```
 
 ### Exit Policy
@@ -256,7 +256,7 @@ docker run -d \
   -e TOR_BANDWIDTH_BURST="20 MBytes" \
   -v tor-bridge-data:/var/lib/tor \
   -v tor-bridge-logs:/var/log/tor \
-  ghcr.io/r3bo0tbx1/onion-relay:latest
+  r3bo0tbx1/onion-relay:latest
 ```
 
 ### Docker Compose

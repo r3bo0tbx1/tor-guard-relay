@@ -7,7 +7,7 @@ version: '3.8'
 
 services:
   tor-bridge:
-    image: ghcr.io/r3bo0tbx1/onion-relay:latest
+    image: r3bo0tbx1/onion-relay:latest
     container_name: tor-bridge
     restart: unless-stopped
     network_mode: host
