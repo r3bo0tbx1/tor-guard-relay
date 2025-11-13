@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.20
 # ============================================================================
-# Tor Guard Relay - Ultra-optimized ~20 MB container
+# Tor Guard Relay - Ultra-optimized ~17.1 MB container
 # Base: Alpine 3.22.2 | Multi-arch: amd64, arm64
 # v1.1.1 - Busybox-only, 4 diagnostic tools, multi-mode support
 # ============================================================================
@@ -13,7 +13,7 @@ ARG TARGETARCH
 
 LABEL maintainer="rE-Bo0t.bx1 <r3bo0tbx1@brokenbotnet.com>" \
       org.opencontainers.image.title="Tor Guard Relay" \
-      org.opencontainers.image.description="🧅 Ultra-optimized Tor Guard/Exit/Bridge Relay (~20 MB)" \
+      org.opencontainers.image.description="🧅 Ultra-optimized Tor Guard/Exit/Bridge Relay (~17.1 MB)" \
       org.opencontainers.image.version="${BUILD_VERSION}" \
       org.opencontainers.image.created="${BUILD_DATE}" \
       org.opencontainers.image.source="https://github.com/r3bo0tbx1/tor-guard-relay" \

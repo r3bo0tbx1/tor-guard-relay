@@ -1,14 +1,15 @@
+
 <a id="readme-top"></a>
-<div align="center">
+<div align="center" style="background:#0d0d0f;padding:40px;border-radius:14px;border:1px solid #1f1f22;box-shadow:0 0 22px #0a0a0c;">
 
 # 🧅 Tor Guard Relay
 
 [![🚀✨ Build](https://github.com/r3bo0tbx1/tor-guard-relay/actions/workflows/release.yml/badge.svg)](https://github.com/r3bo0tbx1/tor-guard-relay/actions/workflows/release.yml)
-[![Release](https://img.shields.io/github/v/release/r3bo0tbx1/tor-guard-relay?color=blue&label=version)](https://github.com/r3bo0tbx1/tor-guard-relay/releases/latest)
-![Platforms](https://img.shields.io/badge/platforms-amd64%20%7C%20arm64-2ea44f?logo=docker)
-[![Docker Hub](https://img.shields.io/docker/pulls/r3bo0tbx1/onion-relay?logo=docker&label=Docker%20Hub)](https://hub.docker.com/r/r3bo0tbx1/onion-relay)
-[![GHCR](https://img.shields.io/badge/GHCR-ghcr.io%2Fr3bo0tbx1%2Fonion--relay-blue?logo=github)](https://github.com/r3bo0tbx1/tor-guard-relay/pkgs/container/onion-relay)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE.txt)
+[![Release](https://img.shields.io/github/v/release/r3bo0tbx1/tor-guard-relay?color=blue&label=version&labelColor=0a0a0a)](https://github.com/r3bo0tbx1/tor-guard-relay/releases/latest)
+![Platforms](https://img.shields.io/badge/platforms-amd64%20%7C%20arm64-2ea44f?logo=docker&labelColor=0a0a0a)
+[![Docker Hub](https://img.shields.io/docker/pulls/r3bo0tbx1/onion-relay?logo=docker&label=Docker%20Hub&labelColor=0a0a0a)](https://hub.docker.com/r/r3bo0tbx1/onion-relay)
+[![GHCR](https://img.shields.io/badge/GHCR-ghcr.io%2Fr3bo0tbx1%2Fonion--relay-blue?logo=github&labelColor=0a0a0a)](https://github.com/r3bo0tbx1/tor-guard-relay/pkgs/container/onion-relay)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?labelColor=0a0a0a)](LICENSE.txt)
 
 <img src="src/onion.png" alt="Onion diagram" width="400"/>
 
@@ -18,14 +19,15 @@
 
 </div>
 
----
+<br>
 
-## 🚀 What is This?
+<div style="background:#101013;padding:28px;border-radius:14px;border:1px solid #1f1f22;box-shadow:0 0 12px #0a0a0c;">
 
-**Tor Guard Relay** is a **production-ready, self-healing Tor relay container** designed for privacy advocates who want to contribute to the Tor network securely and efficiently.
+<div style="color:#7ce5ff;font-family:monospace;font-size:17px;margin-bottom:14px;">▍ 🚀 What is This?</div>
 
-> **🌉 Multi-Mode Support:**
-> This container supports **guard**, **exit**, and **bridge** relays with obfs4 pluggable transport. Configure via `TOR_RELAY_MODE` environment variable.
+**Tor Guard Relay** is a production-ready, self-healing Tor relay container designed for privacy advocates who want to contribute to the Tor network securely and efficiently.
+
+> 🌉 **Multi-Mode:** guard, exit, and bridge with obfs4 transport. Configure via `TOR_RELAY_MODE`.
 
 ### Why Choose This Project?
 
@@ -37,40 +39,52 @@
 - 📚 **Documented** - Comprehensive guides for deployment, monitoring, backup, and more
 - 🏗️ **Multi-Arch** - Native support for AMD64 and ARM64 (Raspberry Pi, AWS Graviton, etc.)
 
----
+</div>
 
-## 🔒 Security Model
+<br>
 
-**Port Exposure Policy:**
-- **9001** (ORPort) - Tor relay traffic - **PUBLIC** (configurable)
-- **9030** (DirPort) - Directory service - **PUBLIC** (guard/exit only, configurable)
-- **9002** (obfs4) - Pluggable transport - **PUBLIC** (bridge mode only, configurable)
+<div style="background:#101013;padding:28px;border-radius:14px;border:1px solid #1f1f22;box-shadow:0 0 12px #0a0a0c;">
 
-**All ports are fully configurable** via environment variables:
-- `TOR_ORPORT` - Default: 9001 (suggested: 443, 9001, or any port > 1024)
-- `TOR_DIRPORT` - Default: 9030 (guard/exit only, set to 0 to disable)
-- `TOR_OBFS4_PORT` - Default: 9002 (bridge mode only)
+<div style="color:#7ce5ff;font-family:monospace;font-size:17px;margin-bottom:14px;">▍ 🔒 Security Model</div>
 
-**Diagnostics via `docker exec` only** - no exposed monitoring ports. Ultra-minimal attack surface (~17.1MB busybox-only image).
+**Port Exposure Policy**
 
----
+- **9001** ORPort, public  
+- **9030** DirPort, public for guard and exit  
+- **9002** obfs4 for bridge mode  
 
-## ⚡ Quick Start
+**Environment Variables**
+
+- `TOR_ORPORT` default 9001  
+- `TOR_DIRPORT` default 9030  
+- `TOR_OBFS4_PORT` default 9002  
+
+Diagnostics are run only through `docker exec`, with no exposed monitoring ports.
+
+Minimal surface area, roughly 17.1 MB.
+
+</div>
+
+<br>
+
+<div style="background:#101013;padding:28px;border-radius:14px;border:1px solid:#1f1f22;box-shadow:0 0 12px #0a0a0c;">
+
+<div style="color:#7ce5ff;font-family:monospace;font-size:17px;margin-bottom:14px;">▍ ⚡ Quick Start</div>
 
 ### System Requirements
 
 | Component | Minimum | Recommended |
-|-----------|---------|-------------|
+|----------|----------|-------------|
 | CPU | 1 core | 2+ cores |
 | RAM | 512 MB | 1 GB+ |
 | Disk | 10 GB | 20 GB+ SSD |
 | Bandwidth | 10 Mbps | 100+ Mbps |
-| Uptime | 95%+ | 99%+ |
+| Uptime | 95 percent | 99 percent |
 | Docker | 20.10+ | Latest |
 
-**Supported Architectures:** AMD64 (x86_64) • ARM64 (aarch64)
+**Supported Architectures:** AMD64, ARM64
 
-### Network Security Notice
+### Network Security Notes
 
 ⚠️ **Port Exposure:**
 - **Guard/Middle/Exit:** Ports 9001 (ORPort) and 9030 (DirPort) should be publicly accessible
@@ -81,21 +95,15 @@
 ### Deploy in 30 Seconds
 
 **Step 1:** Create your relay configuration (or use our [example](examples/relay.conf)):
+
 ```bash
-# Create config directory
 mkdir -p ~/tor-relay && cd ~/tor-relay
-
-# Download example config
 curl -O https://raw.githubusercontent.com/r3bo0tbx1/tor-guard-relay/main/examples/relay.conf
-
-# Edit with your details
 nano relay.conf
-# Important: Set Nickname, ContactInfo, and bandwidth limits
 ```
 
-**Step 2:** Run the relay:
+### **Step 2:** Run (Docker Hub)
 
-**Option A - Docker Hub:**
 ```bash
 docker run -d \
   --name tor-relay \
@@ -107,19 +115,7 @@ docker run -d \
   r3bo0tbx1/onion-relay:latest
 ```
 
-**Option B - GitHub Container Registry:**
-```bash
-docker run -d \
-  --name tor-relay \
-  --restart unless-stopped \
-  --network host \
-  -v $(pwd)/relay.conf:/etc/tor/torrc:ro \
-  -v tor-guard-data:/var/lib/tor \
-  -v tor-guard-logs:/var/log/tor \
-  ghcr.io/r3bo0tbx1/onion-relay:latest
-```
-
-**Step 3:** Verify it's running:
+### **Step 3:** Verify it's running:
 ```bash
 # Check status
 docker exec tor-relay status
@@ -135,18 +131,23 @@ docker logs -f tor-relay
 
 > 📖 **Need more?** See our comprehensive [Deployment Guide](docs/DEPLOYMENT.md) for Docker Compose, Cosmos Cloud, Portainer, and advanced setups.
 
----
+</div>
 
-## 🏗️ Deployment Methods
 
-Choose the method that fits your workflow:
+<br>
+
+<div style="background:#101013;padding:28px;border-radius:14px;border:1px solid #1f1f22;box-shadow:0 0 12px #0a0a0c;">
+
+<div style="color:#7ce5ff;font-family:monospace;font-size:17px;margin-bottom:14px;">▍ 🏗️ Deployment Methods</div>
+
+Choose the method that fits your workflow.
 
 | Method | Best For | Guide |
-|--------|----------|-------|
-| 🐳 **Docker CLI** | Quick testing, learning | [Guide](docs/DEPLOYMENT.md#method-1-docker-cli) |
-| 📦 **Docker Compose** | Production, GitOps | [Guide](docs/DEPLOYMENT.md#method-2-docker-compose) |
-| ☁️ **Cosmos Cloud** | Beautiful UI, beginners | [Guide](docs/DEPLOYMENT.md#method-3-cosmos-cloud) |
-| 🎛️ **Portainer** | Web UI management | [Guide](docs/DEPLOYMENT.md#method-4-portainer) |
+|--------|----------|--------|
+| 🐳 Docker CLI | Quick testing | [Guide](docs/DEPLOYMENT.md#method-1-docker-cli) |
+| 📦 Docker Compose | Production | [Guide](docs/DEPLOYMENT.md#method-2-docker-compose) |
+| ☁️ Cosmos Cloud | UI based deployment | [Guide](docs/DEPLOYMENT.md#method-3-cosmos-cloud) |
+| 🎛️ Portainer | Web UI | [Guide](docs/DEPLOYMENT.md#method-4-portainer) |
 
 **New to Docker?** Try [Cosmos Cloud](https://cosmos-cloud.io/) by [azukaar](https://github.com/azukaar) - a gorgeous, self-hosted Docker management platform.
 
@@ -159,22 +160,22 @@ Running multiple relays? We have templates for that:
 
 See [Deployment Guide](docs/DEPLOYMENT.md) for complete instructions.
 
----
+</div>
 
-## 🔧 Diagnostic Tools
+<br>
 
-**v1.1.1 includes 4 essential busybox-only diagnostic tools** - ultra-minimal with no bash/python dependencies!
+<div style="background:#101013;padding:28px;border-radius:14px;border:1px solid #1f1f22;box-shadow:0 0 12px #0a0a0c;">
 
-### Quick Reference
+<div style="color:#7ce5ff;font-family:monospace;font-size:17px;margin-bottom:14px;">▍ 🔧 Diagnostic Tools</div>
+
+Version 1.1.1 includes four busybox-only tools.
 
 | Tool | Purpose | Usage |
-|------|---------|-------|
-| **status** | Complete health report with emojis | `docker exec tor-relay status` |
-| **health** | JSON health check for monitoring | `docker exec tor-relay health` |
-| **fingerprint** | Display relay fingerprint + Tor Metrics URL | `docker exec tor-relay fingerprint` |
-| **bridge-line** | Get obfs4 bridge line (bridge mode only) | `docker exec tor-relay bridge-line` |
-
-### Example: Quick Health Check
+|------|---------|--------|
+| status | Full health report | `docker exec tor-relay status` |
+| health | JSON health | `docker exec tor-relay health` |
+| fingerprint | Show fingerprint | `docker exec tor-relay fingerprint` |
+| bridge-line | obfs4 line | `docker exec tor-relay bridge-line` |
 
 ```bash
 # Full health report with emojis
@@ -184,23 +185,27 @@ docker exec tor-relay status
 docker exec tor-relay health
 ```
 
-**JSON output example:**
+Example JSON:
+
 ```json
 {
   "status": "healthy",
   "bootstrap": 100,
   "reachable": true,
-  "fingerprint": "1234567890ABCDEF...",
+  "fingerprint": "1234567890ABCDEF",
   "nickname": "MyRelay",
   "uptime_seconds": 3600
 }
 ```
 
 > 📖 **Complete reference:** See [Tools Documentation](docs/TOOLS.md) for all 4 tools with examples, JSON schema, and integration guides.
+</div>
 
----
+<br>
 
-## 📊 Monitoring & Observability
+<div style="background:#101013;padding:28px;border-radius:14px;border:1px solid #1f1f22;box-shadow:0 0 12px #0a0a0c;">
+
+<div style="color:#7ce5ff;font-family:monospace;font-size:17px;margin-bottom:14px;">▍ 📊 Monitoring and Observability</div>
 
 **v1.1.1 uses external monitoring** for minimal image size and maximum security.
 
@@ -242,14 +247,17 @@ STATUS=$(echo "$HEALTH" | jq -r '.status')
 ```
 
 > 📖 **Complete guide:** See [Monitoring Documentation](docs/MONITORING.md) for Prometheus, Grafana, alert integration, and observability setup.
+</div>
 
----
+<br>
 
-## 🎯 Key Features
+<div style="background:#101013;padding:28px;border-radius:14px;border:1px solid #1f1f22;box-shadow:0 0 12px #0a0a0c;">
+
+<div style="color:#7ce5ff;font-family:monospace;font-size:17px;margin-bottom:14px;">▍ 🎯 Key Features</div>
 
 ### Security & Reliability
 - ✅ Non-root execution (runs as `tor` user)
-- ✅ Ultra-minimal Alpine Linux base (**~20 MB**)
+- ✅ Ultra-minimal Alpine Linux base (**~17.1 MB**)
 - ✅ Busybox-only tools (no bash/python dependencies)
 - ✅ Automatic permission healing on startup
 - ✅ Configuration validation before start
@@ -260,7 +268,7 @@ STATUS=$(echo "$HEALTH" | jq -r '.status')
 - ✅ **4 busybox-only diagnostic tools** (status, health, fingerprint, bridge-line)
 - ✅ **JSON health API** for monitoring integration
 - ✅ **Multi-mode support** (guard, exit, bridge with obfs4)
-- ✅ **ENV-based configuration** (TOR_RELAY_MODE, TOR_NICKNAME, etc.)
+- ✅ **ENV-based config** (TOR_RELAY_MODE, TOR_NICKNAME, etc.)
 - ✅ **Multi-architecture** builds (AMD64, ARM64)
 - ✅ **Weekly security rebuilds** via GitHub Actions
 - ✅ **Docker Compose templates** for single/multi-relay
@@ -273,10 +281,13 @@ STATUS=$(echo "$HEALTH" | jq -r '.status')
 - ✅ Automated dependency updates (Dependabot)
 - ✅ CI/CD validation and testing
 - ✅ Multi-arch support (same command, any platform)
+</div>
 
----
+<br>
 
-## 📚 Documentation
+<div style="background:#101013;padding:28px;border-radius:14px;border:1px solid #1f1f22;box-shadow:0 0 12px #0a0a0c;">
+
+<div style="color:#7ce5ff;font-family:monospace;font-size:17px;margin-bottom:14px;">▍ 📚 Documentation</div>
 
 **v1.1.1 includes comprehensive documentation** organized by topic:
 
@@ -301,23 +312,22 @@ STATUS=$(echo "$HEALTH" | jq -r '.status')
 - **[Changelog](CHANGELOG.md)** - Version history and changes
 
 > 💡 **Tip:** Start with the [Documentation Index](docs/README.md) to find what you need quickly.
+</div>
 
----
+<br>
 
-## 🛠️ Configuration
+<div style="background:#101013;padding:28px;border-radius:14px;border:1px solid #1f1f22;box-shadow:0 0 12px #0a0a0c;">
+
+<div style="color:#7ce5ff;font-family:monospace;font-size:17px;margin-bottom:14px;">▍ 🛠️ Configuration</div>
 
 ### Minimal Configuration
 
-The simplest relay needs just these settings:
-
 ```ini
-# relay.conf
 Nickname MyTorRelay
 ContactInfo your-email@example.com
 ORPort 9001
 ORPort [::]:9001
 DirPort 9030
-
 ExitRelay 0
 SocksPort 0
 DataDirectory /var/lib/tor
@@ -326,33 +336,30 @@ Log notice file /var/log/tor/notices.log
 
 ### Production Configuration
 
-Add bandwidth limits and optimizations:
-
 ```ini
-# Bandwidth (MB/s)
 RelayBandwidthRate 50 MBytes
 RelayBandwidthBurst 100 MBytes
-
-# Performance
 NumCPUs 2
 MaxMemInQueues 512 MB
-
-# IPv6 support
 ORPort [::]:9001
 ```
 
 ### Example Configurations
 
-See the [`examples/`](examples/) directory for complete, annotated configuration files:
+Examples are found in the [`examples/`](examples/) directory for complete, annotated configuration files:
 
 - **[relay.conf](examples/relay.conf)** - Recommended production config
 - Additional examples for specific use cases
 
 > 📖 **Configuration help:** See [Deployment Guide](docs/DEPLOYMENT.md#configuration) for complete reference.
 
----
+</div>
 
-## 🔍 Monitoring Your Relay
+<br>
+
+<div style="background:#101013;padding:28px;border-radius:14px;border:1px solid #1f1f22;box-shadow:0 0 12px #0a0a0c;">
+
+<div style="color:#7ce5ff;font-family:monospace;font-size:17px;margin-bottom:14px;">▍ 🔍 Monitoring Your Relay</div>
 
 ### Check Bootstrap Status
 
@@ -365,6 +372,7 @@ docker exec tor-relay health
 
 # Parse specific field with jq (requires jq on host)
 docker exec tor-relay health | jq .bootstrap
+```r exec tor-relay health | jq .bootstrap
 ```
 
 ### View on Tor Metrics
@@ -388,10 +396,13 @@ Search by:
 | Guard Flag | 8+ days | Trusted for entry connections |
 
 > 📖 **Detailed monitoring:** See [Monitoring Guide](docs/MONITORING.md) for complete observability setup with Prometheus and Grafana.
+</div>
 
----
+<br>
 
-## 🐛 Troubleshooting
+<div style="background:#101013;padding:28px;border-radius:14px;border:1px solid #1f1f22;box-shadow:0 0 12px #0a0a0c;">
+
+<div style="color:#7ce5ff;font-family:monospace;font-size:17px;margin-bottom:14px;">▍ 🐛 Troubleshooting</div>
 
 ### Quick Diagnostics
 
@@ -420,9 +431,13 @@ docker exec tor-relay bridge-line
 
 > 📖 **Full troubleshooting:** See [Tools Documentation](docs/TOOLS.md#troubleshooting) for detailed diagnostic procedures.
 
----
+</div>
 
-## 🏢 Architecture & Design
+<br>
+
+<div style="background:#101013;padding:28px;border-radius:14px;border:1px solid #1f1f22;box-shadow:0 0 12px #0a0a0c;">
+
+<div style="color:#7ce5ff;font-family:monospace;font-size:17px;margin-bottom:14px;">▍ 🏢 Architecture and Design</div>
 
 ### Why Host Network Mode?
 
@@ -451,12 +466,15 @@ Verify what you got:
 ```bash
 docker exec tor-relay cat /build-info.txt | grep Architecture
 ```
+</div>
 
----
+<br>
 
-## 🤝 Contributing
+<div style="background:#101013;padding:28px;border-radius:14px;border:1px solid #1f1f22;box-shadow:0 0 12px #0a0a0c;">
 
-We welcome contributions! Here's how you can help:
+<div style="color:#7ce5ff;font-family:monospace;font-size:17px;margin-bottom:14px;">▍ 🤝 Contributing</div>
+
+Contributions are welcome.
 
 - 🐛 **Report bugs** via [GitHub Issues](https://github.com/r3bo0tbx1/tor-guard-relay/issues)
 - 💡 **Suggest features** or improvements
@@ -465,7 +483,7 @@ We welcome contributions! Here's how you can help:
 - ⭐ **Star the repository** to show support
 - 🧅 **Run a relay** and strengthen the network!
 
-### Development
+### Development Setup
 
 ```bash
 # Clone repository
@@ -480,10 +498,13 @@ docker run --rm tor-relay:dev status
 ```
 
 See [Contributing Guide](CONTRIBUTING.md) for detailed instructions.
+</div>
 
----
+<br>
 
-## 📦 Templates & Examples
+<div style="background:#101013;padding:28px;border-radius:14px;border:1px solid #1f1f22;box-shadow:0 0 12px #0a0a0c;">
+
+<div style="color:#7ce5ff;font-family:monospace;font-size:17px;margin-bottom:14px;">▍ 📦 Templates and Examples</div>
 
 All templates are in the [`templates/`](templates/) directory:
 
@@ -501,9 +522,13 @@ See [Monitoring Guide](docs/MONITORING.md) for external monitoring integration e
 ### Configuration Examples
 See [`examples/`](examples/) directory for relay configurations.
 
----
+</div>
 
-## 🔐 Security
+<br>
+
+<div style="background:#101013;padding:28px;border-radius:14px;border:1px solid #1f1f22;box-shadow:0 0 12px #0a0a0c;">
+
+<div style="color:#7ce5ff;font-family:monospace;font-size:17px;margin-bottom:14px;">▍ 🔐 Security</div>
 
 ### Best Practices
 
@@ -526,10 +551,13 @@ Images are automatically rebuilt weekly to include security patches:
 - **Strategy:** Overwrites last release version (e.g., `:1.1.1`) with updated packages
 - **Tags Updated:** Both `:latest` and version tags (e.g., `:1.1.1`)
 - **Auto-published:** To Docker Hub and GitHub Container Registry
+</div>
 
----
+<br>
 
-## 🌐 Resources
+<div style="background:#101013;padding:28px;border-radius:14px;border:1px solid #1f1f22;box-shadow:0 0 12px #0a0a0c;">
+
+<div style="color:#7ce5ff;font-family:monospace;font-size:17px;margin-bottom:14px;">▍ 🌐 Resources</div>
 
 ### Container Registries
 - 🐳 [Docker Hub Repository](https://hub.docker.com/r/r3bo0tbx1/onion-relay)
@@ -545,91 +573,117 @@ Images are automatically rebuilt weekly to include security patches:
 - 📖 [Documentation](docs/README.md)
 - 🐛 [Issue Tracker](https://github.com/r3bo0tbx1/tor-guard-relay/issues)
 - 💬 [Discussions](https://github.com/r3bo0tbx1/tor-guard-relay/discussions)
-- 📦 [Container Registry](https://github.com/r3bo0tbx1/tor-guard-relay/pkgs/container/onion-relay)
+- 📦 [Container Registry](https://github.com/r3bo0tbx1/tor-guard-relay/pkgs/container/onion-relay) 
 
----
+</div>
 
-## 📊 Project Status
+<br>
+
+<div style="background:#101013;padding:28px;border-radius:14px;border:1px solid #1f1f22;box-shadow:0 0 12px #0a0a0c;">
+
+<div style="color:#7ce5ff;font-family:monospace;font-size:17px;margin-bottom:14px;">▍ 📊 Project Status</div>
 
 <div align="center">
 
 ![Docker Hub Pulls](https://img.shields.io/docker/pulls/r3bo0tbx1/onion-relay?style=for-the-badge&logo=docker)
-![GitHub Stars](https://img.shields.io/github/stars/r3bo0tbx1/tor-guard-relay?style=for-the-badge)
+![GitHub Repo stars](https://img.shields.io/github/stars/r3bo0tbx1/tor-guard-relay?style=for-the-badge)
 ![GitHub Issues](https://img.shields.io/github/issues/r3bo0tbx1/tor-guard-relay?style=for-the-badge)
 
-**Current Version:** v1.1.1
-**Status:** Production Ready
-**Image Size:** ~20 MB (ultra-optimized)
-**Rebuild:** Weekly (Sundays 18:30 UTC)
-**Registries:** Docker Hub • GHCR
+**Current Version:** v1.1.1 • **Status:** Production Ready  
+**Image Size:** 17.1 MB • **Rebuild:** Weekly  
+**Registries:** Docker Hub • GHCR  
 
 </div>
 
----
+</div>
 
-## 📄 License
+<br>
 
-This project is licensed under the [MIT License](LICENSE.txt).
+<div style="background:#101013;padding:28px;border-radius:14px;border:1px solid #1f1f22;box-shadow:0 0 12px #0a0a0c;">
 
-Free to use, modify, and distribute. See license file for details.
+<div style="color:#7ce5ff;font-family:monospace;font-size:17px;margin-bottom:14px;">▍ 📄 License</div>
 
----
+Project is licensed under the MIT License.  
+See [License](LICENSE.txt) for full details.
 
-## 🙏 Acknowledgments
+</div>
 
-- **[The Tor Project](https://www.torproject.org/)** - Building the foundation of online privacy
-- **[Alpine Linux](https://alpinelinux.org/)** - Minimal, secure base image
-- **[azukaar](https://github.com/azukaar)** - Creator of [Cosmos Cloud](https://cosmos-cloud.io/)
-- **All relay operators** - Strengthening the Tor network worldwide
+<br>
 
----
+<div style="background:#101013;padding:28px;border-radius:14px;border:1px solid #1f1f22;box-shadow:0 0 12px #0a0a0c;">
 
-## 💖 Support the Project
+<div style="color:#7ce5ff;font-family:monospace;font-size:17px;margin-bottom:14px;">▍ 🙏 Acknowledgments</div>
 
-### Support Development
+- **The Tor Project** for maintaining the global privacy network  
+- **Alpine Linux** for a minimal and secure base image  
+- **azukaar** for Cosmos Cloud  
+- **All relay operators** supporting privacy worldwide  
 
-This project is free and open source. If it saved you time and you want to support future development:
+</div>
 
-**Bitcoin (BTC):**
+<br>
+
+<div style="background:#101013;padding:28px;border-radius:14px;border:1px solid #1f1f22;box-shadow:0 0 12px #0a0a0c;">
+
+<div style="color:#7ce5ff;font-family:monospace;font-size:17px;margin-bottom:14px;">▍ 💖 Support the Project</div>
+
+This project is open source. Your support helps sustainability and improvements.
+
+### Bitcoin (BTC)
 ```
 bc1qltkajaswmzx9jwets8hfz43nkvred5w92syyq4
 ```
 
 Or via **[AnonPay](https://trocador.app/anonpay?ticker_to=btc&network_to=Mainnet&address=bc1qltkajaswmzx9jwets8hfz43nkvred5w92syyq4&ref=sqKNYGZbRl&direct=True&name=rE-Bo0tbx1+%28r3bo0tbx1%29&description=Support+FOSS+Development&email=r3bo0tbx1%40brokenbotnet.com)** (convert any crypto)
 
-**Monero (XMR):**
+### Monero (XMR)
 ```
 45mNg5cG1S2B2C5dndJP65SSEXseHFVqFdv1N6paAraD1Jk9kQxQQArVcjfQmgCcmthrUF3jbNs74c5AbWqMwAAgAjDYzrZ
 ```
-
 Or via **[AnonPay](https://trocador.app/anonpay?ticker_to=xmr&network_to=Mainnet&address=85ft7ehMfcKSSp8Ve92Y9oARmqvDjYvEiKQkzdp3qiyzP9dpLeJXFahgHcoXUPeE9TacqDCUXWppNffE3YDC1Wu1NnQ71rT&ref=sqKNYGZbRl&direct=True&name=rE-Bo0tbx1+%28r3bo0tbx1%29&description=Support+FOSS+Development&email=r3bo0tbx1%40brokenbotnet.com)** (convert any crypto)
 
 ### Other Ways to Support
 
-- ⭐ **Star this repository**
-- 🐛 **Report bugs** and issues
-- 💡 **Suggest features** for future versions
-- 📖 **Improve documentation**
-- 🤝 **Contribute code** or configs
-- 🧅 **Run a relay** and help the network
-- 📢 **Share** with others who might benefit
+- ⭐ Star the repo  
+- 🐛 Report bugs  
+- 💡 Suggest features  
+- 📖 Improve documentation  
+- 🤝 Submit patches  
+- 🧅 Run a relay  
 
-Stars and feedback are just as valuable! 🙏
+</div>
 
----
+<br>
 
-## ⭐ Star History
+<div style="background:#101013;padding:28px;border-radius:14px;border:1px solid #1f1f22;box-shadow:0 0 12px #0a0a0c;">
 
-[![Star History Chart](https://api.star-history.com/svg?repos=r3bo0tbx1/tor-guard-relay&type=date&legend=top-left)](https://www.star-history.com/#r3bo0tbx1/tor-guard-relay&type=date&legend=top-left)
-
----
+<div style="color:#7ce5ff;font-family:monospace;font-size:17px;margin-bottom:14px;">▍ ⭐ Star History</div>
 
 <div align="center">
 
-**Made with 💜 for a freer, uncensored internet**
+<a href="https://www.star-history.com/#r3bo0tbx1/tor-guard-relay&type=date&legend=top-left">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=r3bo0tbx1/tor-guard-relay&type=date&theme=dark&legend=top-left" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=r3bo0tbx1/tor-guard-relay&type=date&legend=top-left" />
+   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=r3bo0tbx1/tor-guard-relay&type=date&legend=top-left" />
+ </picture>
+</a>
+
+</div>
+
+</div>
+
+<br>
+
+<div align="center" style="background:#0d0d0f;padding:40px;border-radius:14px;border:1px solid #1f1f22;box-shadow:0 0 22px #0a0a0c;">
+
+<div style="color:#7ce5ff;font-family:monospace;font-size:18px;margin-bottom:10px;">▍ Made with 💜 for a freer, uncensored internet</div>
 
 *Protecting privacy, one relay at a time* 🧅✨
 
-🌍 [Support Internet Freedom](https://donate.torproject.org/) • 📚 [Documentation](docs/README.md) • ⬆ [Back to top](#readme-top)
+🌍 [Support Internet Freedom](https://donate.torproject.org/)  
+📚 [Documentation](docs/README.md)  
+⬆ [Back to top](#readme-top)
 
 </div>
+
