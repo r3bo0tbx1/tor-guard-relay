@@ -121,7 +121,7 @@ docker run -d \
   -v $(pwd)/relay.conf:/etc/tor/torrc:ro \
   -v tor-guard-data:/var/lib/tor \
   -v tor-guard-logs:/var/log/tor \
-  r3bo0tbx1/onion-relay:latest
+  r3bo0tbx1/onion-relay:latest # or ghcr.io/r3bo0tbx1/onion-relay:latest
 ```
 
 ```yaml

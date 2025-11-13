@@ -64,11 +64,13 @@ representative at an online or offline event.
 Instances of abusive, harassing, or otherwise unacceptable behavior may be
 reported to the community leaders responsible for enforcement at
 r3bo0tbx1@brokenbotnet.com.
+
 All complaints will be reviewed and investigated promptly and fairly.
 
 All community leaders are obligated to respect the privacy and security of the
 reporter of any incident.
-Encrypted communication is available upon request for sensitive or high impact reports.
+
+Encrypted communication [0xB3BD6196E1CFBFB4 🔑](https://keys.openpgp.org/vks/v1/by-fingerprint/33727F5377D296C320AF704AB3BD6196E1CFBFB4) is available upon request for sensitive or high impact reports.
 
 ## Enforcement Guidelines
 

@@ -1,4 +1,4 @@
-MIT License
+MIT License 📜
 SPDX-License-Identifier: MIT
 
 Copyright (c) 2025 r3bo0tbx1

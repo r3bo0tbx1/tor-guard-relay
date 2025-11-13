@@ -31,7 +31,7 @@
 
 ### Why Choose This Project?
 
-- 🛡️ **Security-First** - Hardened Alpine Linux, non-root operation, ultra-minimal 17.1MB image
+- 🛡️ **Security-First** - Hardened Alpine Linux, non-root operation, ultra-minimal 17.1 MB image
 - 🎯 **Simple** - One command to deploy, minimal configuration needed
 - 📊 **Observable** - 4 busybox-only diagnostic tools with JSON health API
 - 🌉 **Multi-Mode** - Supports guard, exit, and bridge (obfs4) relays

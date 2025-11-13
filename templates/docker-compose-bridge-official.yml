@@ -10,7 +10,7 @@ version: "3.8"
 # - Weekly security rebuilds (Sundays 18:30 UTC)
 # - 4 diagnostic tools (status, health, fingerprint, bridge-line)
 # - JSON health API for monitoring integration
-# - Ultra-minimal 17.1MB Alpine Linux base
+# - Ultra-minimal 17.1 MB Alpine Linux base
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 services:
@@ -164,7 +164,7 @@ volumes:
 # 1. Stop the old container:
 #    docker-compose down
 #
-# 2. Update docker-compose.yml with this file (or change image to r3bo0tbx1/onion-relay:latest)
+# 2. Update docker-compose.yml with this file (or change image to r3bo0tbx1/onion-relay:latest or ghcr.io/r3bo0tbx1/onion-relay:latest)
 #
 # 3. Start with same volumes (preserves bridge keys):
 #    docker-compose -f docker-compose-bridge-official.yml up -d

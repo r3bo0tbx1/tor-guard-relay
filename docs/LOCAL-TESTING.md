@@ -279,7 +279,7 @@ After building locally:
 - [ ] Diagnostic tools produce correct output
 - [ ] Input validation catches invalid values
 - [ ] OBFS4V_* whitelist blocks dangerous options
-- [ ] Image size is ~17.1MB (`docker images localhost:5000/onion-relay:test`)
+- [ ] Image size is ~17.1 MB (`docker images localhost:5000/onion-relay:test`)
 
 ---
 

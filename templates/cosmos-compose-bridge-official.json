@@ -1,5 +1,5 @@
 {
-  "minVersion": "0.8.0",
+  "minVersion": "0.16.0",
   "services": {
     "obfs4-bridge": {
       "image": "r3bo0tbx1/onion-relay:latest",

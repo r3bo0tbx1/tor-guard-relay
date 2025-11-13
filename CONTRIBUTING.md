@@ -283,7 +283,7 @@ fi
 services:
   relay:
     # Service configuration
-    image: "r3bo0tbx1/onion-relay:latest"
+    image: "r3bo0tbx1/onion-relay:latest" # or ghcr.io/r3bo0tbx1/onion-relay:latest
 ```
 
 ---
