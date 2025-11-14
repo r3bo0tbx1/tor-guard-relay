@@ -2,7 +2,7 @@
 # ============================================================================
 # Tor Guard Relay - Ultra-optimized ~17.1 MB container
 # Base: Alpine 3.22.2 | Multi-arch: amd64, arm64
-# v1.1.1 - Busybox-only, 4 diagnostic tools, multi-mode support
+# v1.1.1 - Busybox-only, 4 diagnostic tools, AIO multi-mode support
 # ============================================================================
 
 FROM alpine:3.22.2
