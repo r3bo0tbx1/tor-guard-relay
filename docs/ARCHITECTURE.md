@@ -36,43 +36,44 @@ This container implements a production-ready Tor relay with three operational mo
 
 ```mermaid
 flowchart TD
-    Start([Container Start]) --> Tini[/Tini Init PID 1/]
-    Tini --> Entrypoint[docker-entrypoint.sh]
+    Start([🟢 Container Start]) --> Tini[/🔧 Tini Init PID 1/]
+    Tini --> Entrypoint[🚀 docker-entrypoint.sh]
 
-    Entrypoint --> Phase1[Phase 1: Directories]
-    Phase1 --> Phase2[Phase 2: Permissions]
-    Phase2 --> Phase3[Phase 3: Configuration]
-    Phase3 --> Phase4[Phase 4: Validation]
-    Phase4 --> Phase5[Phase 5: Build Info]
-    Phase5 --> Phase6[Phase 6: Diagnostics Info]
-    Phase6 --> TorStart[Launch Tor Process]
+    Entrypoint --> Phase1[📁 Phase 1: Directories]
+    Phase1 --> Phase2[🔐 Phase 2: Permissions]
+    Phase2 --> Phase3[⚙️ Phase 3: Configuration]
+    Phase3 --> Phase4[🧪 Phase 4: Validation]
+    Phase4 --> Phase5[📄 Phase 5: Build Info]
+    Phase5 --> Phase6[🩺 Phase 6: Diagnostics Info]
+    Phase6 --> TorStart[🚀 Launch Tor Process]
 
-    TorStart --> Running{Container Running}
-    Running -->|Signal: SIGTERM/SIGINT| Trap[Signal Handler]
+    TorStart --> Running{🟦 Container Running}
+
+    Running -->|Signal: SIGTERM or SIGINT| Trap[🧹 Signal Handler]
     Running -->|Tor Exits| Cleanup
-    Running -->|User Exec| DiagTools[Diagnostic Tools]
+    Running -->|User Exec| DiagTools[🛠️ Diagnostic Tools]
 
-    DiagTools -->|status| StatusTool[tools/status]
-    DiagTools -->|health| HealthTool[tools/health]
-    DiagTools -->|fingerprint| FingerprintTool[tools/fingerprint]
-    DiagTools -->|bridge-line| BridgeTool[tools/bridge-line]
+    DiagTools -->|status| StatusTool[📝 tools/status]
+    DiagTools -->|health| HealthTool[📊 tools/health]
+    DiagTools -->|fingerprint| FingerprintTool[🆔 tools/fingerprint]
+    DiagTools -->|bridge-line| BridgeTool[🌉 tools/bridge-line]
 
     StatusTool --> Running
     HealthTool --> Running
     FingerprintTool --> Running
     BridgeTool --> Running
 
-    Trap --> StopTail[Kill tail -F PID]
-    StopTail --> StopTor[Send SIGTERM to Tor]
-    StopTor --> Wait[Wait for Tor Exit]
-    Wait --> Cleanup[Cleanup & Exit]
-    Cleanup --> End([Container Stop])
+    Trap --> StopTail[🧽 Kill tail -F PID]
+    StopTail --> StopTor[📨 Send SIGTERM to Tor]
+    StopTor --> Wait[⏳ Wait for Tor Exit]
+    Wait --> Cleanup[🧹 Cleanup and Exit]
+    Cleanup --> End([🔴 Container Stop])
 
-    style Start fill:#90EE90
-    style End fill:#FFB6C1
-    style Running fill:#87CEEB
-    style TorStart fill:#FFD700
-    style Trap fill:#FFA500
+    style Start fill:#b2fab4
+    style End fill:#ffb3c6
+    style Running fill:#90caf9
+    style TorStart fill:#fff59d
+    style Trap fill:#ffcc80
 ```
 
 ---
@@ -83,37 +84,37 @@ The entrypoint script (`docker-entrypoint.sh`) executes **6 distinct phases** in
 
 ```mermaid
 flowchart TD
-    Banner[Startup Banner] --> P1
+    Banner[🎉 Startup Banner] --> P1
 
-    subgraph P1[Phase 1: Directory Structure]
-        P1_1[mkdir -p data/log/run/tmp] --> P1_2[Show disk space]
+    subgraph P1["📁 Phase 1: Directory Structure"]
+        P1_1[📂 mkdir -p data/log/run/tmp] --> P1_2[💽 Show disk space]
     end
 
-    subgraph P2[Phase 2: Permission Hardening]
-        P2_1[chmod 700 data dir] --> P2_2[chmod 755 log dir]
+    subgraph P2["🔐 Phase 2: Permission Hardening"]
+        P2_1[🔒 chmod 700 data dir] --> P2_2[📁 chmod 755 log dir]
     end
 
-    subgraph P3[Phase 3: Configuration Setup]
-        P3_1{Mounted config exists?} -->|Yes| P3_2[Use mounted file]
-        P3_1 -->|No| P3_3{ENV vars set?}
-        P3_3 -->|Yes| P3_4[Validate ENV] --> P3_5[Generate config]
-        P3_3 -->|No| P3_6[ERROR: No config]
+    subgraph P3["⚙️ Phase 3: Configuration Setup"]
+        P3_1{🧩 Mounted config exists?} -->|Yes| P3_2[📄 Use mounted file]
+        P3_1 -->|No| P3_3{🌐 ENV vars set?}
+        P3_3 -->|Yes| P3_4[🧪 Validate ENV] --> P3_5[📝 Generate config]
+        P3_3 -->|No| P3_6[❌ ERROR: No config]
     end
 
-    subgraph P4[Phase 4: Configuration Validation]
-        P4_1[Check Tor binary] --> P4_2[Get Tor version]
-        P4_2 --> P4_3[tor --verify-config]
-        P4_3 -->|Invalid| P4_4[ERROR: Bad config]
-        P4_3 -->|Valid| P4_5[Success]
+    subgraph P4["🧪 Phase 4: Configuration Validation"]
+        P4_1[🔍 Check Tor binary] --> P4_2[ℹ️ Get Tor version]
+        P4_2 --> P4_3[🧯 tor --verify-config]
+        P4_3 -->|Invalid| P4_4[❌ ERROR: Bad config]
+        P4_3 -->|Valid| P4_5[✅ Success]
     end
 
-    subgraph P5[Phase 5: Build Information]
-        P5_1[Read /build-info.txt] --> P5_2[Show version/arch]
-        P5_2 --> P5_3[Show relay mode & config source]
+    subgraph P5["📄 Phase 5: Build Information"]
+        P5_1[📘 Read /build-info.txt] --> P5_2[🖥️ Show version and arch]
+        P5_2 --> P5_3[📡 Show relay mode and config source]
     end
 
-    subgraph P6[Phase 6: Diagnostic Tools Info]
-        P6_1[List available tools] --> P6_2[Show usage examples]
+    subgraph P6["🛠️ Phase 6: Diagnostic Tools Info"]
+        P6_1[🔧 List available tools] --> P6_2[📚 Show usage examples]
     end
 
     P1 --> P2
@@ -121,11 +122,11 @@ flowchart TD
     P3 --> P4
     P4 --> P5
     P5 --> P6
-    P6 --> Launch[Launch Tor]
+    P6 --> Launch[🚀 Launch Tor]
 
-    style P3_6 fill:#FFB6C1
-    style P4_4 fill:#FFB6C1
-    style Launch fill:#FFD700
+    style P3_6 fill:#ffcdd2
+    style P4_4 fill:#ffcdd2
+    style Launch fill:#fff59d
 ```
 
 ### Phase Details
@@ -147,44 +148,53 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    Start([Configuration Needed]) --> Check1{File exists at /etc/tor/torrc?}
+    Start([🟢 Configuration Needed]) --> Check1{📄 File exists at /etc/tor/torrc?}
 
-    Check1 -->|Yes| Check2{File not empty?}
-    Check2 -->|Yes| UseMounted[Use Mounted Config]
+    Check1 -->|Yes| Check2{📏 File not empty?}
+    Check2 -->|Yes| UseMounted[📁 Use Mounted Config]
     Check2 -->|No| Check3
 
-    Check1 -->|No| Check3{ENV vars set? TOR_NICKNAME and TOR_CONTACT_INFO}
+    Check1 -->|No| Check3{🌐 ENV vars set? TOR_NICKNAME and TOR_CONTACT_INFO}
 
-    Check3 -->|Yes| Validate[Validate ENV Values]
-    Validate -->|Valid| Generate[Generate torrc from ENV]
-    Validate -->|Invalid| Error1[ERROR: Invalid ENV]
+    Check3 -->|Yes| Validate[🧪 Validate ENV Values]
+    Validate -->|Valid| Generate[✍️ Generate torrc from ENV]
+    Validate -->|Invalid| Error1[❌ ERROR: Invalid ENV]
 
-    Generate --> ModeCheck{TOR_RELAY_MODE?}
-    ModeCheck -->|guard/middle| GenGuard[Generate Guard Config]
-    ModeCheck -->|exit| GenExit[Generate Exit Config]
-    ModeCheck -->|bridge| GenBridge[Generate Bridge Config]
+    Generate --> ModeCheck{⚙️ TOR_RELAY_MODE?}
+    ModeCheck -->|guard/middle| GenGuard[🛡️ Generate Guard Config]
+    ModeCheck -->|exit| GenExit[🚪 Generate Exit Config]
+    ModeCheck -->|bridge| GenBridge[🌉 Generate Bridge Config]
 
-    GenBridge --> OBFS4Check{OBFS4_ENABLE_ADDITIONAL_VARIABLES?}
-    OBFS4Check -->|Yes| ProcessOBFS4V[Process OBFS4V_* vars]
+    GenBridge --> OBFS4Check{🔐 OBFS4_ENABLE_ADDITIONAL_VARIABLES?}
+    OBFS4Check -->|Yes| ProcessOBFS4V[🧩 Process OBFS4V_* vars]
     OBFS4Check -->|No| UseEnv
-    ProcessOBFS4V --> UseEnv[Use Generated Config]
+    ProcessOBFS4V --> UseEnv[🧾 Use Generated Config]
 
     GenGuard --> UseEnv
     GenExit --> UseEnv
 
-    Check3 -->|No| Error2[ERROR: No Config Found]
+    Check3 -->|No| Error2[❌ ERROR: No Config Found]
 
-    UseMounted --> Success([Config Ready])
+    UseMounted --> Success([✅ Config Ready])
     UseEnv --> Success
-    Error1 --> Failure([Container Exit])
+    Error1 --> Failure([⛔ Container Exit])
     Error2 --> Failure
 
-    style UseMounted fill:#90EE90
-    style UseEnv fill:#90EE90
-    style Success fill:#90EE90
-    style Error1 fill:#FFB6C1
-    style Error2 fill:#FFB6C1
-    style Failure fill:#FFB6C1
+    style Start fill:#c8e6c9
+    style UseMounted fill:#b2fab4
+    style UseEnv fill:#b2fab4
+    style Success fill:#b2fab4
+    style Error1 fill:#ffcdd2
+    style Error2 fill:#ffcdd2
+    style Failure fill:#ffcdd2
+    style Validate fill:#fff9c4
+    style Generate fill:#fff9c4
+    style ModeCheck fill:#e1f5fe
+    style GenGuard fill:#e3f2fd
+    style GenExit fill:#fce4ec
+    style GenBridge fill:#e8f5e9
+    style OBFS4Check fill:#f3e5f5
+    style ProcessOBFS4V fill:#ede7f6
 ```
 
 **Code Reference:** `docker-entrypoint.sh` lines 201-220 (phase_3_configuration)
@@ -195,47 +205,53 @@ All ENV variables are validated before config generation:
 
 ```mermaid
 flowchart TD
-    Start([ENV Validation]) --> V1{TOR_RELAY_MODE}
-    V1 --> V1_Check{Value in: guard/middle/exit/bridge?}
+    Start([🟢 ENV Validation]) --> V1{⚙️ TOR_RELAY_MODE}
+    V1 --> V1_Check{Value in: guard, middle, exit, bridge?}
     V1_Check -->|Yes| V2
-    V1_Check -->|No| V1_Fail[ERROR: Invalid mode]
+    V1_Check -->|No| V1_Fail[❌ ERROR: Invalid mode]
 
-    V2{TOR_NICKNAME} --> V2_1{Length 1-19?}
+    V2{🏷️ TOR_NICKNAME} --> V2_1{Length 1-19?}
     V2_1 -->|Yes| V2_2{Alphanumeric only?}
     V2_2 -->|Yes| V2_3{Not reserved name?}
     V2_3 -->|Yes| V3
-    V2_3 -->|No| V2_Fail[ERROR: Reserved name]
+    V2_3 -->|No| V2_Fail[❌ ERROR: Reserved name]
     V2_2 -->|No| V2_Fail
     V2_1 -->|No| V2_Fail
 
-    V3{TOR_CONTACT_INFO} --> V3_1{Length >= 3?}
+    V3{📨 TOR_CONTACT_INFO} --> V3_1{Length ≥ 3?}
     V3_1 -->|Yes| V3_2{No newlines?}
     V3_2 -->|Yes| V4
-    V3_2 -->|No| V3_Fail[ERROR: Contains newlines]
+    V3_2 -->|No| V3_Fail[❌ ERROR: Contains newlines]
     V3_1 -->|No| V3_Fail
 
-    V4{Ports: ORPORT/DIRPORT/OBFS4_PORT} --> V4_1{Valid integer?}
+    V4{🔌 Ports: ORPORT, DIRPORT, OBFS4_PORT} --> V4_1{Valid integer?}
     V4_1 -->|Yes| V4_2{Range 1-65535 or DirPort=0?}
     V4_2 -->|Yes| V4_3{Port less than 1024?}
-    V4_3 -->|Yes| V4_Warn[WARN: Privileged port]
+    V4_3 -->|Yes| V4_Warn[⚠️ WARN: Privileged port]
     V4_3 -->|No| V5
     V4_Warn --> V5
-    V4_2 -->|No| V4_Fail[ERROR: Out of range]
+    V4_2 -->|No| V4_Fail[❌ ERROR: Out of range]
     V4_1 -->|No| V4_Fail
 
-    V5{Bandwidth: RATE/BURST} --> V5_1{Valid format?}
-    V5_1 -->|Yes| Success([Validation Passed])
-    V5_1 -->|No| V5_Fail[ERROR: Invalid format]
+    V5{📶 Bandwidth: RATE, BURST} --> V5_1{Valid format?}
+    V5_1 -->|Yes| Success([✅ Validation Passed])
+    V5_1 -->|No| V5_Fail[❌ ERROR: Invalid format]
 
-    V1_Fail --> Failure([Container Exit])
+    V1_Fail --> Failure([⛔ Container Exit])
     V2_Fail --> Failure
     V3_Fail --> Failure
     V4_Fail --> Failure
     V5_Fail --> Failure
 
-    style Success fill:#90EE90
-    style Failure fill:#FFB6C1
-    style V4_Warn fill:#FFD700
+    style Success fill:#b2fab4
+    style Failure fill:#ffcdd2
+    style V4_Warn fill:#fff59d
+    style Start fill:#c8e6c9
+    style V1 fill:#e3f2fd
+    style V2 fill:#e3f2fd
+    style V3 fill:#e3f2fd
+    style V4 fill:#e3f2fd
+    style V5 fill:#e3f2fd
 ```
 
 **Code Reference:** `docker-entrypoint.sh` lines 115-198 (validate_relay_config)
@@ -248,15 +264,15 @@ The container supports **two naming conventions** for maximum compatibility:
 
 ```mermaid
 flowchart LR
-    subgraph Official["Official Tor Project Bridge Naming"]
-        NICKNAME["NICKNAME"]
-        EMAIL["EMAIL"]
-        OR_PORT["OR_PORT"]
-        PT_PORT["PT_PORT"]
-        OBFS4V["OBFS4V_*"]
+    subgraph Official["🌐 Official Tor Project Bridge Naming"]
+        NICKNAME["🏷️ NICKNAME"]
+        EMAIL["📨 EMAIL"]
+        OR_PORT["🔌 OR_PORT"]
+        PT_PORT["🎛️ PT_PORT"]
+        OBFS4V["🔐 OBFS4V_*"]
     end
 
-    subgraph Compat["Compatibility Layer (docker-entrypoint.sh:22-31)"]
+    subgraph Compat["🔀 Compatibility Layer (docker-entrypoint.sh:22-31)"]
         Map1["Map NICKNAME"]
         Map2["Map EMAIL"]
         Map3["Map OR_PORT"]
@@ -264,7 +280,7 @@ flowchart LR
         Auto["Auto-detect bridge mode"]
     end
 
-    subgraph Internal["Internal TOR_* Variables"]
+    subgraph Internal["⚙️ Internal TOR_* Variables"]
         TOR_NICKNAME["TOR_NICKNAME"]
         TOR_CONTACT["TOR_CONTACT_INFO"]
         TOR_ORPORT["TOR_ORPORT"]
@@ -279,16 +295,16 @@ flowchart LR
     PT_PORT --> Auto --> TOR_MODE
     OBFS4V -.->|Processed later if enabled| TOR_MODE
 
-    TOR_NICKNAME --> Config[Config Generation]
+    TOR_NICKNAME --> Config[📝 Config Generation]
     TOR_CONTACT --> Config
     TOR_ORPORT --> Config
     TOR_OBFS4 --> Config
     TOR_MODE --> Config
 
-    style Official fill:#E6F3FF
-    style Compat fill:#FFF4E6
-    style Internal fill:#E8F5E9
-    style Config fill:#FFD700
+    style Official fill:#e3f2fd
+    style Compat fill:#fff4e6
+    style Internal fill:#e8f5e9
+    style Config fill:#fff59d
 ```
 
 **Mapping Details:**
@@ -317,15 +333,15 @@ flowchart LR
 
 ```mermaid
 flowchart TD
-    Start([Generate Config]) --> Base[Write Base Config]
+    Start([🟢 Generate Config]) --> Base[📝 Write Base Config]
 
-    Base --> Mode{TOR_RELAY_MODE}
+    Base --> Mode{⚙️ TOR_RELAY_MODE}
 
-    Mode -->|guard/middle| Guard[Add Guard Config]
-    Mode -->|exit| Exit[Add Exit Config]
-    Mode -->|bridge| Bridge[Add Bridge Config]
+    Mode -->|guard/middle| Guard[🛡️ Add Guard Config]
+    Mode -->|exit| Exit[🚪 Add Exit Config]
+    Mode -->|bridge| Bridge[🌉 Add Bridge Config]
 
-    subgraph GuardConfig["Guard/Middle Config (lines 247-257)"]
+    subgraph GuardConfig["🛡️ Guard/Middle Config (lines 247-257)"]
         G1[DirPort TOR_DIRPORT] --> G2[ExitRelay 0]
         G2 --> G3[BridgeRelay 0]
         G3 --> G4{TOR_BANDWIDTH_RATE?}
@@ -337,7 +353,7 @@ flowchart TD
         G7 --> GuardDone([Guard Config Done])
     end
 
-    subgraph ExitConfig["Exit Config (lines 260-273)"]
+    subgraph ExitConfig["🚪 Exit Config (lines 260-273)"]
         E1[DirPort TOR_DIRPORT] --> E2[ExitRelay 1]
         E2 --> E3[BridgeRelay 0]
         E3 --> E4[Add Exit Policy]
@@ -350,7 +366,7 @@ flowchart TD
         E8 --> ExitDone([Exit Config Done])
     end
 
-    subgraph BridgeConfig["Bridge Config (lines 276-343)"]
+    subgraph BridgeConfig["🌉 Bridge Config (lines 276-343)"]
         B1[BridgeRelay 1] --> B2[PublishServerDescriptor bridge]
         B2 --> B3[ServerTransportPlugin obfs4]
         B3 --> B4[ServerTransportListenAddr obfs4]
@@ -371,11 +387,16 @@ flowchart TD
     Exit --> ExitConfig
     Bridge --> BridgeConfig
 
-    GuardDone --> Complete([Config Written])
+    GuardDone --> Complete([✅ Config Written])
     ExitDone --> Complete
     BridgeDone --> Complete
 
-    style Complete fill:#90EE90
+    style Complete fill:#b2fab4
+    style GuardConfig fill:#e3f2fd
+    style ExitConfig fill:#fce4ec
+    style BridgeConfig fill:#e8f5e9
+    style Mode fill:#fff9c4
+    style Base fill:#fff9c4
 ```
 
 **Base Config Includes:** Nickname, ContactInfo, ORPort, SocksPort 0, DataDirectory, Logging
@@ -388,24 +409,24 @@ Security-critical whitelisting to prevent injection attacks:
 
 ```mermaid
 flowchart TD
-    Start([OBFS4V Processing]) --> Enable{OBFS4_ENABLE_ADDITIONAL_VARIABLES?}
-    Enable -->|No| Skip([Skip OBFS4V Processing])
-    Enable -->|Yes| GetVars[env | grep '^OBFS4V_']
+    Start([🟢 OBFS4V Processing]) --> Enable{🔐 OBFS4_ENABLE_ADDITIONAL_VARIABLES?}
+    Enable -->|No| Skip([⏭️ Skip OBFS4V Processing])
+    Enable -->|Yes| GetVars[📥 env | grep '^OBFS4V_']
 
-    GetVars --> Loop{For each OBFS4V_* var}
+    GetVars --> Loop{🔁 For each OBFS4V_* var}
 
-    Loop --> Strip[Strip OBFS4V_ prefix]
-    Strip --> V1{Key valid? Alphanumeric only}
-    V1 -->|No| Warn1[WARN: Invalid name] --> Next
-    V1 -->|Yes| V2{Value has newlines?}
+    Loop --> Strip[✂️ Strip OBFS4V_ prefix]
+    Strip --> V1{🔤 Key valid? Alphanumeric only}
+    V1 -->|No| Warn1[⚠️ WARN: Invalid name] --> Next
+    V1 -->|Yes| V2{📄 Value has newlines?}
 
-    V2 -->|Yes| Warn2[WARN: Contains newlines] --> Next
-    V2 -->|No| V3{Value has control chars?}
+    V2 -->|Yes| Warn2[⚠️ WARN: Contains newlines] --> Next
+    V2 -->|No| V3{🧪 Value has control chars?}
 
-    V3 -->|Yes| Warn3[WARN: Control characters] --> Next
-    V3 -->|No| Whitelist{Key in whitelist?}
+    V3 -->|Yes| Warn3[⚠️ WARN: Control characters] --> Next
+    V3 -->|No| Whitelist{🛡️ Key in whitelist?}
 
-    subgraph WhitelistCheck["Whitelist (lines 325-331)"]
+    subgraph WhitelistCheck["🧾 Whitelist (lines 325-331)"]
         WL1[AccountingMax/Start]
         WL2[Address/AddressDisableIPv6]
         WL3[Bandwidth*/RelayBandwidth*]
@@ -415,20 +436,22 @@ flowchart TD
         WL7[ServerDNS*]
     end
 
-    Whitelist -->|Yes| Write[Write to torrc]
-    Whitelist -->|No| Warn4[WARN: Not in whitelist]
+    Whitelist -->|Yes| Write[📝 Write to torrc]
+    Whitelist -->|No| Warn4[⚠️ WARN: Not in whitelist]
 
     Write --> Next{More vars?}
     Warn4 --> Next
     Next -->|Yes| Loop
-    Next -->|No| Done([OBFS4V Processing Done])
+    Next -->|No| Done([✅ OBFS4V Processing Done])
 
-    style Write fill:#90EE90
-    style Done fill:#90EE90
-    style Warn1 fill:#FFD700
-    style Warn2 fill:#FFD700
-    style Warn3 fill:#FFD700
-    style Warn4 fill:#FFD700
+    style Write fill:#b2fab4
+    style Done fill:#b2fab4
+    style Warn1 fill:#fff59d
+    style Warn2 fill:#fff59d
+    style Warn3 fill:#fff59d
+    style Warn4 fill:#fff59d
+    style Start fill:#c8e6c9
+    style Enable fill:#e3f2fd
 ```
 
 **Security Features (v1.1.1 Fix):**
@@ -447,56 +470,56 @@ Four busybox-only diagnostic tools provide observability:
 
 ```mermaid
 flowchart TD
-    User([User: docker exec]) --> Choice{Which tool?}
+    User([👤 User: docker exec]) --> Choice{🛠️ Which tool?}
 
     Choice -->|status| StatusFlow
     Choice -->|health| HealthFlow
     Choice -->|fingerprint| FingerprintFlow
     Choice -->|bridge-line| BridgeFlow
 
-    subgraph StatusFlow["tools/status - Full Health Report"]
-        S1[Check Tor process running] --> S2[Read bootstrap %]
-        S2 --> S3[Read reachability status]
-        S3 --> S4[Show fingerprint]
-        S4 --> S5[Show recent logs]
-        S5 --> S6[Show resource usage]
-        S6 --> S7[Output with emoji formatting]
+    subgraph StatusFlow["📊 tools/status - Full Health Report"]
+        S1[🔍 Check Tor process running] --> S2[📈 Read bootstrap %]
+        S2 --> S3[🌐 Read reachability status]
+        S3 --> S4[🆔 Show fingerprint]
+        S4 --> S5[📝 Show recent logs]
+        S5 --> S6[💽 Show resource usage]
+        S6 --> S7[😁 Output with emoji formatting]
     end
 
-    subgraph HealthFlow["tools/health - JSON API"]
-        H1[Check Tor process] --> H2[Parse log for bootstrap]
-        H2 --> H3[Parse log for errors]
-        H3 --> H4[Get fingerprint if exists]
-        H4 --> H5[Output JSON]
+    subgraph HealthFlow["📡 tools/health - JSON API"]
+        H1[🔍 Check Tor process] --> H2[📈 Parse log for bootstrap]
+        H2 --> H3[⚠️ Parse log for errors]
+        H3 --> H4[🆔 Get fingerprint if exists]
+        H4 --> H5[📤 Output JSON]
     end
 
-    subgraph FingerprintFlow["tools/fingerprint - Show Identity"]
-        F1[Read /var/lib/tor/fingerprint] --> F2{File exists?}
-        F2 -->|Yes| F3[Parse fingerprint]
-        F3 --> F4[Output fingerprint]
-        F4 --> F5[Output Tor Metrics URL]
-        F2 -->|No| F6[Warn: Not ready yet]
+    subgraph FingerprintFlow["🆔 tools/fingerprint - Show Identity"]
+        F1[📄 Read /var/lib/tor/fingerprint] --> F2{File exists?}
+        F2 -->|Yes| F3[🔎 Parse fingerprint]
+        F3 --> F4[📤 Output fingerprint]
+        F4 --> F5[🔗 Output Tor Metrics URL]
+        F2 -->|No| F6[⚠️ Warn: Not ready yet]
     end
 
-    subgraph BridgeFlow["tools/bridge-line - Bridge Sharing"]
-        B1{Bridge mode?} -->|No| B2[Error: Not a bridge]
-        B1 -->|Yes| B3[Read pt_state/obfs4_state.json]
+    subgraph BridgeFlow["🌉 tools/bridge-line - Bridge Sharing"]
+        B1{Bridge mode?} -->|No| B2[❌ Error: Not a bridge]
+        B1 -->|Yes| B3[📄 Read pt_state/obfs4_state.json]
         B3 --> B4{File exists?}
-        B4 -->|Yes| B5[Parse cert/iat-mode]
-        B5 --> B6[Get public IP]
-        B6 --> B7[Output bridge line]
-        B4 -->|No| B8[Warn: Not ready yet]
+        B4 -->|Yes| B5[🔐 Parse cert and iat-mode]
+        B5 --> B6[🌍 Get public IP]
+        B6 --> B7[📤 Output bridge line]
+        B4 -->|No| B8[⚠️ Warn: Not ready yet]
     end
 
-    StatusFlow --> Output1([Human-readable output])
-    HealthFlow --> Output2([JSON output])
-    FingerprintFlow --> Output3([Fingerprint + URL])
-    BridgeFlow --> Output4([Bridge line or error])
+    StatusFlow --> Output1([🟢 Human-readable output])
+    HealthFlow --> Output2([🟢 JSON output])
+    FingerprintFlow --> Output3([🟢 Fingerprint + URL])
+    BridgeFlow --> Output4([🟢 Bridge line or error])
 
-    style Output1 fill:#90EE90
-    style Output2 fill:#90EE90
-    style Output3 fill:#90EE90
-    style Output4 fill:#90EE90
+    style Output1 fill:#b2fab4
+    style Output2 fill:#b2fab4
+    style Output3 fill:#b2fab4
+    style Output4 fill:#b2fab4
 ```
 
 **JSON Output Fields:** status, bootstrap_pct, reachable, errors, fingerprint, nickname, uptime_seconds
@@ -524,51 +547,51 @@ flowchart TD
 
 ```mermaid
 graph TD
-    Root[/ Container Root] --> Etc[/etc]
+    Root[/ 🗂️ Container Root ] --> Etc[/etc]
     Root --> Var[/var]
     Root --> Run[/run]
     Root --> Usr[/usr]
     Root --> Sbin[/sbin]
 
     Etc --> TorEtc[/etc/tor]
-    TorEtc --> TorRC[torrc]
+    TorEtc --> TorRC[📝 torrc]
     TorEtc -.->|Deleted at build| TorRCSample[torrc.sample]
 
     Var --> Lib[/var/lib]
     Lib --> TorData[/var/lib/tor - VOLUME]
-    TorData --> Keys[keys/]
-    TorData --> FingerprintFile[fingerprint]
-    TorData --> PTState[pt_state/]
+    TorData --> Keys[🔑 keys/]
+    TorData --> FingerprintFile[🆔 fingerprint]
+    TorData --> PTState[🔐 pt_state/]
 
     Var --> Log[/var/log]
     Log --> TorLog[/var/log/tor - VOLUME]
-    TorLog --> Notices[notices.log]
+    TorLog --> Notices[📄 notices.log]
 
     Run --> TorRun[/run/tor]
-    TorRun --> TorPID[tor.pid]
+    TorRun --> TorPID[📌 tor.pid]
 
     Usr --> UsrLocal[/usr/local]
     UsrLocal --> Bin[/usr/local/bin]
-    Bin --> Entrypoint[docker-entrypoint.sh]
-    Bin --> Healthcheck[healthcheck.sh]
-    Bin --> Status[status]
-    Bin --> Health[health]
-    Bin --> Fingerprint[fingerprint]
-    Bin --> BridgeLine[bridge-line]
+    Bin --> Entrypoint[🚀 docker-entrypoint.sh]
+    Bin --> Healthcheck[🩺 healthcheck.sh]
+    Bin --> Status[📊 status]
+    Bin --> Health[📡 health]
+    Bin --> Fingerprint[🆔 fingerprint]
+    Bin --> BridgeLine[🌉 bridge-line]
 
     Usr --> UsrBin[/usr/bin]
-    UsrBin --> TorBin[tor]
-    UsrBin --> Lyrebird[lyrebird]
+    UsrBin --> TorBin[🌀 tor]
+    UsrBin --> Lyrebird[🕊️ lyrebird]
 
     Sbin --> Tini[/sbin/tini]
 
     Root --> BuildInfo[/build-info.txt]
 
-    style TorData fill:#FFE6E6
-    style TorLog fill:#FFE6E6
-    style TorRC fill:#E6F3FF
-    style Entrypoint fill:#FFD700
-    style Tini fill:#90EE90
+    style TorData fill:#ffe6e6
+    style TorLog fill:#ffe6e6
+    style TorRC fill:#e6f3ff
+    style Entrypoint fill:#fff59d
+    style Tini fill:#b2fab4
 ```
 
 ### Ownership & Permissions
@@ -591,40 +614,40 @@ graph TD
 
 ```mermaid
 flowchart TD
-    subgraph Container["Container Security"]
-        NonRoot[Non-root Execution]
-        Tini[Tini Init]
-        Minimal[Minimal Image]
-        NoCaps[Minimal Capabilities]
-        NoPriv[no-new-privileges]
+    subgraph Container["🛡️ Container Security"]
+        NonRoot[👤 Non-root Execution]
+        Tini[🔧 Tini Init]
+        Minimal[📦 Minimal Image]
+        NoCaps[🚫 Minimal Capabilities]
+        NoPriv[🔒 no-new-privileges]
     end
 
-    subgraph CodeSec["Code Security"]
-        POSIX[POSIX sh Only]
-        SetE[set -e Exit on error]
-        Validation[Input Validation]
-        NoEval[No eval/exec]
-        Whitelist[OBFS4V Whitelist]
+    subgraph CodeSec["💻 Code Security"]
+        POSIX[📜 POSIX sh Only]
+        SetE[⚠️ set -e Exit on error]
+        Validation[🧪 Input Validation]
+        NoEval[🚫 No eval or exec]
+        Whitelist[🛡️ OBFS4V Whitelist]
     end
 
-    subgraph NetworkSec["Network Security"]
-        HostNet[--network host]
-        NoPorts[No Exposed Monitoring]
-        Configurable[Configurable Ports]
+    subgraph NetworkSec["🌐 Network Security"]
+        HostNet[🏠 --network host]
+        NoPorts[🔕 No Exposed Monitoring Ports]
+        Configurable[🧭 Configurable Ports]
     end
 
-    subgraph FileSec["File System Security"]
-        ReadOnly[Read-only torrc mount]
-        VolPerms[Volume Permissions]
-        NoSecrets[No Hardcoded Secrets]
+    subgraph FileSec["📁 File System Security"]
+        ReadOnly[📄 Read-only torrc mount]
+        VolPerms[🔐 Volume Permissions]
+        NoSecrets[🙅 No Hardcoded Secrets]
     end
 
-    Container --> Secure([Defense in Depth])
+    Container --> Secure([🟢 Defense in Depth])
     CodeSec --> Secure
     NetworkSec --> Secure
     FileSec --> Secure
 
-    style Secure fill:#90EE90
+    style Secure fill:#b2fab4
 ```
 
 ### Validation Points
@@ -648,12 +671,12 @@ Graceful shutdown ensures relay reputation is maintained:
 
 ```mermaid
 sequenceDiagram
-    participant User
-    participant Docker
-    participant Tini as Tini (PID 1)
-    participant Entrypoint as docker-entrypoint.sh
-    participant Tor as Tor Process
-    participant Tail as tail -F Process
+    participant User as 👤 User
+    participant Docker as 🐳 Docker
+    participant Tini as 🔧 Tini PID1
+    participant Entrypoint as 🚀 docker-entrypoint.sh
+    participant Tor as 🌀 Tor Process
+    participant Tail as 📄 tail -F Process
 
     User->>Docker: docker stop <container>
     Docker->>Tini: SIGTERM
@@ -666,15 +689,15 @@ sequenceDiagram
     Tail-->>Entrypoint: Process exits
 
     Entrypoint->>Tor: kill -TERM $TOR_PID
-    Note over Tor: Graceful shutdown - Close circuits, notify directory, save state
+    Note over Tor: 🔄 Graceful shutdown, close circuits, notify directory, save state
 
     Tor-->>Entrypoint: Process exits (wait)
-    Entrypoint->>Entrypoint: Success: Relay stopped cleanly
+    Entrypoint->>Entrypoint: ✅ Success, relay stopped cleanly
     Entrypoint-->>Tini: exit 0
     Tini-->>Docker: Container stopped
     Docker-->>User: Stopped
 
-    Note over User,Tail: Total time 5-10 seconds. Tor gets 10s before SIGKILL
+    Note over User,Tail: ⏱️ Total 5–10 seconds, Tor gets 10s before SIGKILL
 ```
 
 **Signal Flow:**
@@ -696,41 +719,41 @@ sequenceDiagram
 
 ```mermaid
 flowchart LR
-    subgraph Source["Source Files"]
-        Dockerfile[Dockerfile]
-        Scripts[Scripts]
-        Tools[Diagnostic Tools]
+    subgraph Source["📁 Source Files"]
+        Dockerfile[📄 Dockerfile]
+        Scripts[🧾 Scripts]
+        Tools[🛠️ Diagnostic Tools]
     end
 
-    subgraph Build["Docker Build"]
-        Alpine[Alpine 3.22.2]
-        Install[apk add packages]
-        Copy[Copy scripts & tools]
-        Perms[Set permissions]
-        User[Switch to USER tor]
+    subgraph Build["🏗️ Docker Build"]
+        Alpine[🐧 Alpine 3.22.2]
+        Install[📦 apk add packages]
+        Copy[📥 Copy scripts and tools]
+        Perms[🔒 Set permissions]
+        User[👤 Switch to USER tor]
     end
 
-    subgraph CI["CI/CD (GitHub Actions)"]
-        Trigger{Trigger Type?}
-        Trigger -->|Weekly| Weekly[Rebuild latest tag]
-        Trigger -->|Git Tag| Release[New release build]
-        Trigger -->|Manual| Manual[workflow_dispatch]
+    subgraph CI["⚙️ CI/CD (GitHub Actions)"]
+        Trigger{🚀 Trigger Type?}
+        Trigger -->|Weekly| Weekly[📆 Rebuild latest tag]
+        Trigger -->|Git Tag| Release[🏷️ New release build]
+        Trigger -->|Manual| Manual[🖐 workflow_dispatch]
 
-        Weekly --> MultiArch[Multi-arch build]
+        Weekly --> MultiArch[🌍 Multi-arch build]
         Release --> MultiArch
         Manual --> MultiArch
 
-        MultiArch --> Push[Push to registries]
-        Release --> GHRelease[Create GitHub Release]
+        MultiArch --> Push[📤 Push to registries]
+        Release --> GHRelease[📦 Create GitHub Release]
     end
 
     Source --> Build
-    Build --> Image[Container Image]
+    Build --> Image[🧱 Container Image]
     Image --> CI
 
-    style Image fill:#FFD700
-    style Push fill:#90EE90
-    style GHRelease fill:#90EE90
+    style Image fill:#fff59d
+    style Push fill:#b2fab4
+    style GHRelease fill:#b2fab4
 ```
 
 **Weekly Rebuild Strategy:**
@@ -749,35 +772,36 @@ Docker `HEALTHCHECK` runs every 10 minutes:
 
 ```mermaid
 flowchart TD
-    Start([Health Check Timer]) -->|Every 10 min| Script[/usr/local/bin/healthcheck.sh]
+    Start([⏱️ Health Check Timer]) -->|Every 10 min| Script[/usr/local/bin/healthcheck.sh]
 
-    Script --> Check1{Tor process running?}
-    Check1 -->|No| Unhealthy1[Exit 1: UNHEALTHY]
-    Check1 -->|Yes| Check2{Config file exists?}
+    Script --> Check1{🌀 Tor process running?}
+    Check1 -->|No| Unhealthy1[❌ Exit 1: UNHEALTHY]
+    Check1 -->|Yes| Check2{📄 Config file exists?}
 
-    Check2 -->|No| Unhealthy2[Exit 1: No config]
-    Check2 -->|Yes| Check3{Config readable?}
+    Check2 -->|No| Unhealthy2[❌ Exit 1: No config]
+    Check2 -->|Yes| Check3{🔍 Config readable?}
 
-    Check3 -->|No| Unhealthy3[Exit 1: Unreadable config]
-    Check3 -->|Yes| Check4{Bootstrap >= 75%?}
+    Check3 -->|No| Unhealthy3[❌ Exit 1: Unreadable config]
+    Check3 -->|Yes| Check4{📈 Bootstrap ≥ 75%?}
 
-    Check4 -->|Unknown| Healthy2[Exit 0: Can't determine]
-    Check4 -->|No| Unhealthy4[Exit 1: Bootstrap stuck]
-    Check4 -->|Yes| Healthy1[Exit 0: HEALTHY]
+    Check4 -->|Unknown| Healthy2[⚪ Exit 0: Can't determine]
+    Check4 -->|No| Unhealthy4[⚠️ Exit 1: Bootstrap stuck]
+    Check4 -->|Yes| Healthy1[✅ Exit 0: HEALTHY]
 
-    Healthy1 --> Status([Container: healthy])
+    Healthy1 --> Status([🟢 Container: healthy])
     Healthy2 --> Status
-    Unhealthy1 --> Status2([Container: unhealthy])
+    Unhealthy1 --> Status2([🔴 Container: unhealthy])
     Unhealthy2 --> Status2
     Unhealthy3 --> Status2
     Unhealthy4 --> Status2
 
-    style Healthy1 fill:#90EE90
-    style Healthy2 fill:#90EE90
-    style Unhealthy1 fill:#FFB6C1
-    style Unhealthy2 fill:#FFB6C1
-    style Unhealthy3 fill:#FFB6C1
-    style Unhealthy4 fill:#FFB6C1
+    style Healthy1 fill:#b2fab4
+    style Healthy2 fill:#b2fab4
+
+    style Unhealthy1 fill:#ffcdd2
+    style Unhealthy2 fill:#ffcdd2
+    style Unhealthy3 fill:#ffcdd2
+    style Unhealthy4 fill:#ffcdd2
 ```
 
 **Health Check Configuration:**
@@ -813,6 +837,6 @@ flowchart TD
 
 ---
 
-**Document Version:** 1.0.0
+**Document Version:** 1.0.1
 **Last Updated:** 2025-01-14
 **Container Version:** v1.1.1
