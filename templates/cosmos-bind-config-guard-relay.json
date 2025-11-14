@@ -1,0 +1,59 @@
+{
+  "minVersion": "0.8.0",
+  "services": {
+    "TorGuardRelay": {
+      "image": "r3bo0tbx1/onion-relay:latest",
+      "container_name": "TorGuardRelay",
+      "restart": "unless-stopped",
+      "environment": [
+        "TZ=Asia/Tokyo"
+      ],
+      "network_mode": "host",
+      "volumes": [
+        {
+          "type": "volume",
+          "source": "tor-guard-data",
+          "target": "/var/lib/tor"
+        },
+        {
+          "type": "volume",
+          "source": "tor-guard-logs",
+          "target": "/var/log/tor"
+        },
+        {
+          "type": "bind",
+          "source": "/home/<user>/relay.conf",
+          "target": "/etc/tor/torrc",
+          "read_only": true
+        }
+      ],
+      "security_opt": [
+        "no-new-privileges:true"
+      ],
+      "cap_add": [
+        "NET_BIND_SERVICE",
+        "CHOWN",
+        "SETUID",
+        "SETGID",
+        "DAC_OVERRIDE"
+      ],
+      "labels": {
+        "cosmos-auto-update": "true",
+        "cosmos-auto-update-type": "registry",
+        "cosmos-auto-update-notify": "true",
+        "cosmos-auto-update-restart": "true",
+        "cosmos-description": "🛡️ Tor Guard Relay",
+        "cosmos-force-network-secured": "false",
+        "cosmos-icon": "https://raw.githubusercontent.com/r3bo0tbx1/tor-guard-relay/refs/heads/main/src/onion.png",
+        "cosmos-stack": "TorGuardRelay",
+        "cosmos-stack-main": "TorGuardRelay",
+        "cosmos-version": "1.1.1",
+        "maintainer": "rE-Bo0t.bx1 <r3bo0tbx1@brokenbotnet.com>"
+      }
+    }
+  },
+  "volumes": {
+    "tor-guard-data": {},
+    "tor-guard-logs": {}
+  }
+}

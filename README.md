@@ -100,11 +100,11 @@ The script will:
 
 ### Manual Deployment
 
-**Step 1:** Create your relay configuration (or use our [example](examples/relay.conf)):
+**Step 1:** Create your relay configuration (or use our [example](examples/relay-guard.conf)):
 
 ```bash
 mkdir -p ~/tor-relay && cd ~/tor-relay
-curl -O https://raw.githubusercontent.com/r3bo0tbx1/tor-guard-relay/main/examples/relay.conf
+curl -o relay.conf https://raw.githubusercontent.com/r3bo0tbx1/tor-guard-relay/refs/heads/main/examples/relay-guard.conf
 nano relay.conf
 ```
 

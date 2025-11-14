@@ -413,8 +413,9 @@ echo "relay.conf" >> .gitignore
 
 ### Host Network Mode
 
-**What:** Container uses `--network host`
-**Why:** Enables Tor dual-stack (IPv4 + IPv6) support and eliminates NAT overhead
+**What‼️:** Container uses `--network host`
+
+**Why ⁉️:** Enables Tor dual-stack (IPv4 + IPv6) support and eliminates NAT overhead
 
 **Security Impact:**
 * ✅ Container runs as non-root user (`tor` UID 100)
