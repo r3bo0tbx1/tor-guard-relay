@@ -15,7 +15,7 @@
 
 **A hardened, production-ready Tor relay with built-in diagnostics and monitoring**
 
-[Quick Start](#-quick-start) • [Features](#-key-features) • [Documentation](#-documentation) • [Tools](#-diagnostic-tools) • [Contributing](#-contributing)
+[Quick Start](#-quick-start) • [Features](#-key-features) • [Documentation](#-documentation) • [FAQ](docs/FAQ.md) • [Architecture](docs/ARCHITECTURE.md) • [Tools](#-diagnostic-tools) • [Contributing](#-contributing)
 
 </div>
 
@@ -92,7 +92,24 @@ Minimal surface area, roughly 17.1 MB.
 - **No monitoring ports** - all diagnostics via `docker exec` commands only
 - Use `--network host` for best IPv6 support (Tor recommended practice)
 
-### Deploy in 30 Seconds
+### Interactive Quick Start (Recommended for Beginners)
+
+**🚀 Try our interactive setup script:**
+
+```bash
+# Download and run the quick-start script
+curl -fsSL https://raw.githubusercontent.com/r3bo0tbx1/tor-guard-relay/main/scripts/quick-start.sh -o quick-start.sh
+chmod +x quick-start.sh
+sh ./quick-start.sh
+```
+
+The script will:
+- ✅ Guide you through relay type selection (guard, exit, bridge)
+- ✅ Collect required information with validation
+- ✅ Generate deployment commands or docker-compose.yml
+- ✅ Provide next steps and monitoring guidance
+
+### Manual Deployment
 
 **Step 1:** Create your relay configuration (or use our [example](examples/relay.conf)):
 
@@ -292,10 +309,14 @@ STATUS=$(echo "$HEALTH" | jq -r '.status')
 **v1.1.1 includes comprehensive documentation** organized by topic:
 
 ### Getting Started
+- **[FAQ](docs/FAQ.md)** - ⭐ **NEW!** Frequently asked questions with factual answers
+- **[Quick Start Script](scripts/quick-start.sh)** - ⭐ **NEW!** Interactive relay deployment wizard
+- **[Migration Assistant](scripts/migration/migrate-from-official.sh)** - ⭐ **NEW!** Automated migration from thetorproject/obfs4-bridge
 - **[Deployment Guide](docs/DEPLOYMENT.md)** - Complete installation for Docker CLI, Compose, Cosmos Cloud, and Portainer
 - **[Migration Guide](docs/MIGRATION-V1.1.X.md)** - Upgrade to v1.1.1 or migrate from other Tor setups
 
-### Operations
+### Technical Reference
+- **[Architecture](docs/ARCHITECTURE.md)** - ⭐ **NEW!** Technical architecture with Mermaid diagrams
 - **[Tools Reference](docs/TOOLS.md)** - Complete guide to all 4 diagnostic tools
 - **[Monitoring Guide](docs/MONITORING.md)** - External monitoring integration, JSON health API, alerts, and observability
 - **[Backup Guide](docs/BACKUP.md)** - Data persistence, recovery, and disaster planning
@@ -311,8 +332,7 @@ STATUS=$(echo "$HEALTH" | jq -r '.status')
 - **[Code of Conduct](CODE_OF_CONDUCT.md)** - Community guidelines
 - **[Changelog](CHANGELOG.md)** - Version history and changes
 
-> 💡 **Tip:** Start with the [Documentation Index](docs/README.md) to find what you need quickly.
-</div>
+> 💡 **Tip:** Start with the [FAQ](docs/FAQ.md) for quick answers or [Documentation Index](docs/README.md) for complete navigation.
 
 <br>
 
@@ -439,14 +459,22 @@ docker exec tor-relay bridge-line
 
 <div style="color:#7ce5ff;font-family:monospace;font-size:17px;margin-bottom:14px;">▍ 🏢 Architecture and Design</div>
 
+> 📐 **NEW:** See the complete [Architecture Documentation](docs/ARCHITECTURE.md) for detailed technical design with Mermaid diagrams covering:
+> - Container lifecycle and initialization flow (6 phases)
+> - ENV compatibility layer and configuration priority
+> - Config generation for guard/exit/bridge modes
+> - OBFS4V security validation (v1.1.1 fix)
+> - Diagnostic tools architecture
+> - Signal handling and graceful shutdown
+
 ### Why Host Network Mode?
 
 This project uses `--network host` for important reasons:
 
-✅ **IPv6 Support** - Direct access to host's IPv6 stack  
-✅ **No NAT** - Tor binds directly to ports without translation  
-✅ **Better Performance** - Eliminates network overhead  
-✅ **Tor Recommended** - Follows Tor Project best practices  
+✅ **IPv6 Support** - Direct access to host's IPv6 stack
+✅ **No NAT** - Tor binds directly to ports without translation
+✅ **Better Performance** - Eliminates network overhead
+✅ **Tor Recommended** - Follows Tor Project best practices
 
 **Security:** The container still runs as non-root with restricted permissions. Host networking is standard for Tor relays.
 

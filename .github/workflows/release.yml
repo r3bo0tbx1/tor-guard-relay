@@ -244,6 +244,69 @@ jobs:
             org.opencontainers.image.created=${{ needs.determine-version.outputs.build_date }}
             org.opencontainers.image.revision=${{ github.sha }}
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+          # Generate SBOM (Software Bill of Materials)
+          sbom: true
+          provenance: true
+
+      - name: 📋 Generate SBOM (CycloneDX & SPDX)
+        if: needs.determine-version.outputs.is_release == 'true'
+        run: |
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "📋 Generating Software Bill of Materials (SBOM)"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo ""
+
+          # Install syft for SBOM generation
+          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
+
+          VERSION="${{ needs.determine-version.outputs.version }}"
+          IMAGE="${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION}"
+
+          echo "📦 Generating SBOM for image: ${IMAGE}"
+          echo ""
+
+          # Generate CycloneDX JSON
+          echo "📄 Generating CycloneDX JSON format..."
+          syft "${IMAGE}" -o cyclonedx-json > "sbom-cyclonedx-v${VERSION}.json"
+          echo "   ✅ sbom-cyclonedx-v${VERSION}.json"
+
+          # Generate CycloneDX XML
+          echo "📄 Generating CycloneDX XML format..."
+          syft "${IMAGE}" -o cyclonedx-xml > "sbom-cyclonedx-v${VERSION}.xml"
+          echo "   ✅ sbom-cyclonedx-v${VERSION}.xml"
+
+          # Generate SPDX JSON
+          echo "📄 Generating SPDX JSON format..."
+          syft "${IMAGE}" -o spdx-json > "sbom-spdx-v${VERSION}.json"
+          echo "   ✅ sbom-spdx-v${VERSION}.json"
+
+          # Generate SPDX tag-value
+          echo "📄 Generating SPDX tag-value format..."
+          syft "${IMAGE}" -o spdx-tag-value > "sbom-spdx-v${VERSION}.spdx"
+          echo "   ✅ sbom-spdx-v${VERSION}.spdx"
+
+          # Generate human-readable table
+          echo "📄 Generating human-readable table..."
+          syft "${IMAGE}" -o table > "sbom-table-v${VERSION}.txt"
+          echo "   ✅ sbom-table-v${VERSION}.txt"
+
+          echo ""
+          echo "✅ SBOM generation complete"
+          echo ""
+          echo "📊 Package Statistics:"
+          jq '.components | length' "sbom-cyclonedx-v${VERSION}.json" | xargs echo "   Total packages:"
+
+      - name: 📤 Upload SBOM Artifacts
+        if: needs.determine-version.outputs.is_release == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-v${{ needs.determine-version.outputs.version }}
+          path: |
+            sbom-*.json
+            sbom-*.xml
+            sbom-*.spdx
+            sbom-*.txt
+          retention-days: 90
 
   release-notes:
     name: 📝 Generate Release Notes
@@ -263,14 +326,19 @@ jobs:
           GHCR_IMAGE="${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}"
           DOCKERHUB_IMAGE="${{ env.DOCKERHUB_IMAGE_NAME }}"
 
-          echo "## 🧅 Tor Guard Relay v${VERSION} Release Notes" > release_notes.md
-          echo "" >> release_notes.md
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "📝 Generating Release Notes for v${VERSION}"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo ""
+
+          # Try to extract from CHANGELOG.md first
+          CHANGELOG_FOUND=0
 
           if [ -f CHANGELOG.md ]; then
-            echo "🔍 Extracting changelog section for v${VERSION}..."
+            echo "🔍 Checking CHANGELOG.md for v${VERSION}..."
 
             awk -v version="${VERSION}" '
-              $0 ~ "^##[[:space:]]*(\\[v?" version "\\]|v" version ")([[:space:]]*-.*)?$" {p=1; print; next}
+              $0 ~ "^##[[:space:]]*(\\[v?" version "\\]|v" version ")([[:space:]]*-.*)?$" {p=1; next}
               p && /^##[[:space:]]*\[/ && !($0 ~ version) {p=0}
               p
             ' CHANGELOG.md > tmp_notes.txt
@@ -278,21 +346,48 @@ jobs:
             sed -i '/^$/N;/^\n$/D' tmp_notes.txt 2>/dev/null || true
 
             if [ -s tmp_notes.txt ]; then
-              echo "✅ Extracted changelog for v${VERSION}"
+              echo "✅ Found changelog section for v${VERSION} in CHANGELOG.md"
+              CHANGELOG_FOUND=1
+
+              echo "## 🧅 Tor Guard Relay v${VERSION}" > release_notes.md
+              echo "" >> release_notes.md
               cat tmp_notes.txt >> release_notes.md
             else
-              echo "⚠️ No changelog section found for v${VERSION}" >> release_notes.md
-              echo "ℹ️ Header may use '[${VERSION}] - YYYY-MM-DD' or 'v${VERSION}'" >> release_notes.md
+              echo "⚠️ No changelog section found for v${VERSION} in CHANGELOG.md"
             fi
           else
-            echo "⚠️ CHANGELOG.md not found. Using commit history instead." >> release_notes.md
-            echo "See [commit history](https://github.com/${{ github.repository }}/commits/v${VERSION}) for details." >> release_notes.md
+            echo "⚠️ CHANGELOG.md not found"
           fi
 
+          # Fall back to auto-generated notes from commits
+          if [ "$CHANGELOG_FOUND" = "0" ]; then
+            echo "📋 Auto-generating release notes from commits..."
+
+            if [ -x scripts/release/generate-release-notes.sh ]; then
+              # Use auto-generation script
+              chmod +x scripts/release/generate-release-notes.sh
+              ./scripts/release/generate-release-notes.sh --format github "${VERSION}" > release_notes.md
+              echo "✅ Auto-generated release notes from conventional commits"
+            else
+              # Simple fallback
+              echo "## 🧅 Tor Guard Relay v${VERSION}" > release_notes.md
+              echo "" >> release_notes.md
+              echo "### Changes" >> release_notes.md
+              echo "" >> release_notes.md
+              git log --pretty=format:"- %s (\`%h\`) by %an" "$(git describe --tags --abbrev=0)..HEAD" >> release_notes.md || echo "- Initial release" >> release_notes.md
+              echo "" >> release_notes.md
+              echo "⚠️ **Note:** Release notes were auto-generated from commit history." >> release_notes.md
+              echo "For detailed changes, see the commit history below." >> release_notes.md
+              echo "✅ Generated basic release notes from commit history"
+            fi
+          fi
+
+          # Append Docker images and SBOM info
           echo "" >> release_notes.md
           echo "---" >> release_notes.md
           echo "" >> release_notes.md
           echo "### 🐳 Docker Images" >> release_notes.md
+          echo "" >> release_notes.md
           echo "\`\`\`bash" >> release_notes.md
           echo "# From GitHub Container Registry (GHCR)" >> release_notes.md
           echo "docker pull ${GHCR_IMAGE}:${VERSION}" >> release_notes.md
@@ -301,8 +396,28 @@ jobs:
           echo "docker pull ${DOCKERHUB_IMAGE}:${VERSION}" >> release_notes.md
           echo "\`\`\`" >> release_notes.md
           echo "" >> release_notes.md
-          echo "🔗 [View full changelog](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md)" >> release_notes.md
-          echo "🔗 [View this release on GitHub](https://github.com/${{ github.repository }}/releases/tag/v${VERSION})" >> release_notes.md
+          echo "### 📋 Software Bill of Materials (SBOM)" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "This release includes comprehensive SBOM files for supply chain security:" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "- **CycloneDX**: JSON and XML formats" >> release_notes.md
+          echo "- **SPDX**: JSON and tag-value formats" >> release_notes.md
+          echo "- **Human-readable**: Table format" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "Download SBOM files from the release assets below." >> release_notes.md
+          echo "" >> release_notes.md
+          echo "---" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "**Full Changelog**: https://github.com/${{ github.repository }}/compare/$(git describe --tags --abbrev=0 2>/dev/null || echo 'v1.0.0')...v${VERSION}" >> release_notes.md
+
+          echo ""
+          echo "✅ Release notes generation complete"
+
+      - name: 📦 Download SBOM Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: sbom-v${{ needs.determine-version.outputs.version }}
+          path: ./sbom
 
       - name: 🏷️ Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -310,5 +425,10 @@ jobs:
           tag_name: v${{ needs.determine-version.outputs.version }}
           name: "🧅 Tor Guard Relay v${{ needs.determine-version.outputs.version }}"
           body_path: release_notes.md
+          files: |
+            sbom/*.json
+            sbom/*.xml
+            sbom/*.spdx
+            sbom/*.txt
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

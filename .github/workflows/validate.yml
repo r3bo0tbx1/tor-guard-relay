@@ -421,6 +421,7 @@ jobs:
     permissions:
       contents: read
       security-events: write
+      actions: read  # Required for workflow run information
 
     steps:
       - name: 📥 Checkout Repository
@@ -435,29 +436,122 @@ jobs:
       - name: 📦 Load Docker Image
         run: docker load -i /tmp/tor-relay-test.tar
 
-      - name: 🔒 Trivy Security Scan
+      - name: 🔒 Trivy - Comprehensive Vulnerability Scan
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: 'tor-relay:test'
           format: 'sarif'
           output: 'trivy-results.sarif'
-          severity: 'CRITICAL,HIGH'
+          severity: 'CRITICAL,HIGH,MEDIUM'
+          vuln-type: 'os,library'
+          ignore-unfixed: false
+          scanners: 'vuln,secret,config'
 
-      - name: ⬆️ Upload Trivy Results
+      - name: ⬆️ Upload Trivy Results to GitHub Security
+        id: upload-sarif
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: 'trivy-results.sarif'
         continue-on-error: true
+        # Note: SARIF upload requires GitHub Advanced Security for private repos
+        # If upload fails, security results are still available in:
+        # - Human-readable table output (next step)
+        # - JSON artifact (uploaded at end of job)
 
-      - name: 📊 Trivy Vulnerability Report
+      - name: 📝 SARIF Upload Status
+        if: always()
+        run: |
+          if [ "${{ steps.upload-sarif.outcome }}" = "success" ]; then
+            echo "✅ SARIF results successfully uploaded to GitHub Security tab"
+            echo "   View at: ${{ github.server_url }}/${{ github.repository }}/security/code-scanning"
+          else
+            echo "⚠️  SARIF upload skipped or failed (this is non-blocking)"
+            echo ""
+            echo "Possible reasons:"
+            echo "  • Private repository without GitHub Advanced Security"
+            echo "  • Insufficient permissions"
+            echo "  • GitHub API rate limiting"
+            echo ""
+            echo "Security scan results are still available in:"
+            echo "  ✅ Human-readable table output (see steps below)"
+            echo "  ✅ JSON artifact (trivy-security-report)"
+          fi
+
+      - name: 📊 Trivy - Human Readable Report (Critical & High)
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: 'tor-relay:test'
           format: 'table'
           severity: 'CRITICAL,HIGH'
+          vuln-type: 'os,library'
+          ignore-unfixed: false
+
+      - name: 🔍 Trivy - Full Vulnerability List (All Severities)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'tor-relay:test'
+          format: 'json'
+          output: 'trivy-full-report.json'
+          severity: 'UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL'
+          vuln-type: 'os,library'
+        continue-on-error: true
+
+      - name: 🔐 Trivy - Secret Scanning
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'tor-relay:test'
+          scanners: 'secret'
+          format: 'table'
+        continue-on-error: true
+
+      - name: ⚙️ Trivy - Configuration Audit
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'tor-relay:test'
+          scanners: 'config'
+          format: 'table'
+        continue-on-error: true
+
+      - name: 🗂️ Trivy - Filesystem Scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'table'
+          severity: 'CRITICAL,HIGH'
+          scanners: 'vuln,secret,config,license'
+          skip-dirs: '.git,docs,examples,templates'
+        continue-on-error: true
+
+      - name: ⬆️ Upload Full Report Artifact
+        uses: actions/upload-artifact@v5
+        with:
+          name: trivy-security-report
+          path: trivy-full-report.json
+          retention-days: 30
+        continue-on-error: true
+
+      - name: 📋 Generate Security Summary
+        run: |
+          echo "## 🛡️ Security Scan Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Scans Performed:" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Image vulnerability scan (OS packages & libraries)" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Secret scanning (API keys, tokens, credentials)" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Configuration audit (Dockerfile, security best practices)" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Filesystem scan (source code vulnerabilities)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Report Locations:" >> $GITHUB_STEP_SUMMARY
+          echo "- **GitHub Security Tab:** Detailed SARIF results uploaded" >> $GITHUB_STEP_SUMMARY
+          echo "- **Artifacts:** Full JSON report available for download" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Scan Coverage:" >> $GITHUB_STEP_SUMMARY
+          echo "- **Severity Levels:** CRITICAL, HIGH, MEDIUM, LOW" >> $GITHUB_STEP_SUMMARY
+          echo "- **Scan Types:** Vulnerabilities, Secrets, Configs, Licenses" >> $GITHUB_STEP_SUMMARY
+          echo "- **Databases:** Alpine, NVD, GitHub Advisory" >> $GITHUB_STEP_SUMMARY
 
       - name: ✅ Security Scan Complete
-        run: echo "🎉 Security scan completed"
+        run: echo "🎉 Security scan completed - check GitHub Security tab for detailed results"
 
   test-matrix:
     name: 🧪 Test Matrix
