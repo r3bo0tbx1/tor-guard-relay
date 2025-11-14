@@ -411,7 +411,7 @@ Security-critical whitelisting to prevent injection attacks:
 flowchart TD
     Start([🟢 OBFS4V Processing]) --> Enable{🔐 OBFS4_ENABLE_ADDITIONAL_VARIABLES?}
     Enable -->|No| Skip([⏭️ Skip OBFS4V Processing])
-    Enable -->|Yes| GetVars[📥 env | grep '^OBFS4V_']
+    Enable -->|Yes| GetVars["📥 env | grep '^OBFS4V_'"]
 
     GetVars --> Loop{🔁 For each OBFS4V_* var}
 
@@ -547,41 +547,41 @@ flowchart TD
 
 ```mermaid
 graph TD
-    Root[/ 🗂️ Container Root ] --> Etc[/etc]
+    Root["🗂️ Container Root"] --> Etc[/etc]
     Root --> Var[/var]
     Root --> Run[/run]
     Root --> Usr[/usr]
     Root --> Sbin[/sbin]
 
     Etc --> TorEtc[/etc/tor]
-    TorEtc --> TorRC[📝 torrc]
+    TorEtc --> TorRC["📝 torrc"]
     TorEtc -.->|Deleted at build| TorRCSample[torrc.sample]
 
     Var --> Lib[/var/lib]
-    Lib --> TorData[/var/lib/tor - VOLUME]
-    TorData --> Keys[🔑 keys/]
-    TorData --> FingerprintFile[🆔 fingerprint]
-    TorData --> PTState[🔐 pt_state/]
+    Lib --> TorData["/var/lib/tor - VOLUME"]
+    TorData --> Keys["🔑 keys/"]
+    TorData --> FingerprintFile["🆔 fingerprint"]
+    TorData --> PTState["🔐 pt_state/"]
 
     Var --> Log[/var/log]
-    Log --> TorLog[/var/log/tor - VOLUME]
-    TorLog --> Notices[📄 notices.log]
+    Log --> TorLog["/var/log/tor - VOLUME"]
+    TorLog --> Notices["📄 notices.log"]
 
     Run --> TorRun[/run/tor]
-    TorRun --> TorPID[📌 tor.pid]
+    TorRun --> TorPID["📌 tor.pid"]
 
     Usr --> UsrLocal[/usr/local]
     UsrLocal --> Bin[/usr/local/bin]
-    Bin --> Entrypoint[🚀 docker-entrypoint.sh]
-    Bin --> Healthcheck[🩺 healthcheck.sh]
-    Bin --> Status[📊 status]
-    Bin --> Health[📡 health]
-    Bin --> Fingerprint[🆔 fingerprint]
-    Bin --> BridgeLine[🌉 bridge-line]
+    Bin --> Entrypoint["🚀 docker-entrypoint.sh"]
+    Bin --> Healthcheck["🩺 healthcheck.sh"]
+    Bin --> Status["📊 status"]
+    Bin --> Health["📡 health"]
+    Bin --> Fingerprint["🆔 fingerprint"]
+    Bin --> BridgeLine["🌉 bridge-line"]
 
     Usr --> UsrBin[/usr/bin]
-    UsrBin --> TorBin[🌀 tor]
-    UsrBin --> Lyrebird[🕊️ lyrebird]
+    UsrBin --> TorBin["🌀 tor"]
+    UsrBin --> Lyrebird["🕊️ lyrebird"]
 
     Sbin --> Tini[/sbin/tini]
 
@@ -772,7 +772,7 @@ Docker `HEALTHCHECK` runs every 10 minutes:
 
 ```mermaid
 flowchart TD
-    Start([⏱️ Health Check Timer]) -->|Every 10 min| Script[/usr/local/bin/healthcheck.sh]
+    Start([⏱️ Health Check Timer]) -->|Every 10 min| Script["usr/local/bin/healthcheck.sh"]
 
     Script --> Check1{🌀 Tor process running?}
     Check1 -->|No| Unhealthy1[❌ Exit 1: UNHEALTHY]
@@ -837,6 +837,6 @@ flowchart TD
 
 ---
 
-**Document Version:** 1.0.1
+**Document Version:** 1.0.2
 **Last Updated:** 2025-01-14
 **Container Version:** v1.1.1
