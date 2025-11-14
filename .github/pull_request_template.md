@@ -1,8 +1,3 @@
-<!--
-🧅 Tor Guard Relay - Pull Request
-v1.1.1 Configuration Enhancements & Documentation Updates
--->
-
 ## 📋 PR Type
 
 - [x] 📚 **Documentation** (changes to documentation only)
@@ -195,16 +190,15 @@ docker run -d \
 
 **relay-exit.conf & relay-guard.conf:**
 ```conf
-# Option 1: Relay-specific bandwidth (recommended for exit relays)
+Option 1: Relay-specific bandwidth (recommended for exit relays)
 RelayBandwidthRate 50 MBytes
 RelayBandwidthBurst 100 MBytes
 
-# Option 2: Global bandwidth limits (applies to all Tor traffic)
-# BandwidthRate 50 MBytes
-# BandwidthBurst 100 MBytes
+Option 2: Global bandwidth limits (applies to all Tor traffic)
+BandwidthRate 50 MBytes
+BandwidthBurst 100 MBytes
 
-# Note: Use RelayBandwidthRate/Burst for exit relays to avoid limiting
-# directory and other non-relay traffic.
+Note: Use RelayBandwidthRate/Burst for exit relays to avoid limiting directory and other non-relay traffic.
 ```
 
 </details>

@@ -18,8 +18,6 @@ on:
     tags:
       - 'v*.*.*'
 
-# SECURITY: Global permissions set to read-only (principle of least privilege)
-# Individual jobs grant additional permissions as needed
 permissions:
   contents: read
 
@@ -33,7 +31,7 @@ jobs:
     name: 🏷️ Determine Version and Build Type
     runs-on: ubuntu-latest
     permissions:
-      contents: read  # Only needs to read repo for version detection
+      contents: read
     outputs:
       version: ${{ steps.version.outputs.version }}
       build_type: ${{ steps.version.outputs.build_type }}
@@ -94,8 +92,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: determine-version
     permissions:
-      contents: read      # Read repository code
-      packages: write     # Push to GHCR
+      contents: read
+      packages: write
     if: |
       github.event_name != 'workflow_run' ||
       github.event.workflow_run.conclusion == 'success'
@@ -244,7 +242,6 @@ jobs:
             org.opencontainers.image.created=${{ needs.determine-version.outputs.build_date }}
             org.opencontainers.image.revision=${{ github.sha }}
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
-          # Generate SBOM (Software Bill of Materials)
           sbom: true
           provenance: true
 
@@ -313,7 +310,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [determine-version, build-and-push]
     permissions:
-      contents: write     # Create GitHub releases
+      contents: write
     if: needs.determine-version.outputs.is_release == 'true'
 
     steps:

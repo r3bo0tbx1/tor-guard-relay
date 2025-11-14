@@ -11,27 +11,16 @@ on:
       - main
       - develop
     paths:
-      # 🐳 Core build and runtime logic
       - 'Dockerfile'
       - 'docker-entrypoint.sh'
-
-      # 🧩 Tools and validation scripts (no .sh extension)
       - 'tools/*'
-
-      # ⚙️ CI/CD workflows
       - '.github/workflows/release.yml'
       - '.github/workflows/validate.yml'
-
-      # 🧱 Template and config files
       - 'templates/**'
       - 'compose*.yml'
       - 'docker-compose*.yml'
-
-      # 🔒 Security or metadata configs
       - '.github/dependabot.yml'
       - '.github/renovate.json'
-
-      # 🧹 Excluded documentation or text files
       - '!**/*.md'
       - '!**/*.txt'
       - '!docs/**'
@@ -421,7 +410,7 @@ jobs:
     permissions:
       contents: read
       security-events: write
-      actions: read  # Required for workflow run information
+      actions: read
 
     steps:
       - name: 📥 Checkout Repository
@@ -453,10 +442,6 @@ jobs:
         with:
           sarif_file: 'trivy-results.sarif'
         continue-on-error: true
-        # Note: SARIF upload requires GitHub Advanced Security for private repos
-        # If upload fails, security results are still available in:
-        # - Human-readable table output (next step)
-        # - JSON artifact (uploaded at end of job)
 
       - name: 📝 SARIF Upload Status
         if: always()
