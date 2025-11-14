@@ -25,7 +25,7 @@ This container implements a production-ready Tor relay with three operational mo
 
 **Design Principles:**
 - POSIX sh compatibility (busybox ash, no bash)
-- Minimal dependencies (~20 MB total image)
+- Minimal dependencies (~17.1 MB total image)
 - Security-first (non-root, minimal capabilities, strict validation)
 - Multi-architecture (AMD64, ARM64)
 - Production-ready (graceful shutdown, health checks, observability)

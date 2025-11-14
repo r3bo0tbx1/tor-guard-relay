@@ -8,7 +8,6 @@
 [![Release](https://img.shields.io/github/v/release/r3bo0tbx1/tor-guard-relay?color=blue&label=version&labelColor=0a0a0a)](https://github.com/r3bo0tbx1/tor-guard-relay/releases/latest)
 ![Platforms](https://img.shields.io/badge/platforms-amd64%20%7C%20arm64-2ea44f?logo=docker&labelColor=0a0a0a)
 [![Docker Hub](https://img.shields.io/docker/pulls/r3bo0tbx1/onion-relay?logo=docker&label=Docker%20Hub&labelColor=0a0a0a)](https://hub.docker.com/r/r3bo0tbx1/onion-relay)
-[![GHCR](https://img.shields.io/badge/GHCR-ghcr.io%2Fr3bo0tbx1%2Fonion--relay-blue?logo=github&labelColor=0a0a0a)](https://github.com/r3bo0tbx1/tor-guard-relay/pkgs/container/onion-relay)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?labelColor=0a0a0a)](LICENSE.txt)
 
 <img src="src/onion.png" alt="Onion diagram" width="400"/>
@@ -426,6 +425,129 @@ docker exec tor-relay bridge-line
 > - Diagnostic tools architecture
 > - Signal handling and graceful shutdown
 
+<div style="color:#7ce5ff;font-family:monospace;font-size:17px;margin-bottom:14px;">▍ 📊 Flowchart</div>
+
+```mermaid
+flowchart TB
+    Start([🐳 docker run]) --> Init
+
+    subgraph Init["⚙️ INITIALIZATION"]
+        direction TB
+        Check{"📄 Config File
+        at /etc/tor/torrc?"}
+        
+        Check -->|✅ Mounted| Mount["📁 Use Mounted Config
+        Full Tor Control"]
+        Check -->|❌ No File| Env{"🌐 ENV Variables?
+        NICKNAME + CONTACT_INFO"}
+        
+        Env -->|✅ Set| Generate["⚙️ Auto-Generate torrc
+        from ENV Variables"]
+        Env -->|❌ Missing| Error["❌ ERROR
+        No Configuration Found"]
+        
+        Mount --> Validate
+        Generate --> Validate
+        Validate["🧪 Validate Config
+        tor --verify-config"]
+        Validate -->|❌ Invalid| Error
+    end
+
+    Init -->|✅ Valid Config| ModeSelect
+
+    subgraph ModeSelect["🎯 RELAY MODE SELECTION"]
+        direction LR
+        Mode{TOR_RELAY_MODE}
+        
+        Mode -->|guard| Guard["🛡️ GUARD/MIDDLE
+        ━━━━━━━━━━
+        Routes Traffic
+        ExitRelay 0
+        DirPort Enabled"]
+        Mode -->|exit| Exit["🚪 EXIT RELAY
+        ━━━━━━━━━━
+        Last Hop to Internet
+        ExitRelay 1
+        Custom Exit Policy"]
+        Mode -->|bridge| Bridge["🌉 BRIDGE + obfs4
+        ━━━━━━━━━━
+        Censorship Resistant
+        BridgeRelay 1
+        Lyrebird Transport"]
+    end
+
+    Guard --> Running
+    Exit --> Running
+    Bridge --> Running
+
+    Running(["🟢 TOR RELAY RUNNING"])
+    
+    Running --> Ops
+
+    subgraph Ops["🛠️ OPERATIONS"]
+        direction TB
+        Tools["🔧 Diagnostic Tools
+        via docker exec"]
+        
+        Tools --> Status["📊 status
+        ━━━━━━━━━━
+        Full Health Report
+        Bootstrap Progress
+        Reachability Status"]
+        Tools --> Health["💚 health
+        ━━━━━━━━━━
+        JSON Health API
+        For Monitoring Systems"]
+        Tools --> Finger["🆔 fingerprint
+        ━━━━━━━━━━
+        Show Relay Identity
+        Tor Metrics URL"]
+        Tools --> BLine["🌉 bridge-line
+        ━━━━━━━━━━
+        Get obfs4 Bridge Line
+        Share with Users"]
+    end
+
+    Running -->|docker stop SIGTERM| Shutdown
+
+    subgraph Shutdown["🧹 GRACEFUL SHUTDOWN"]
+        direction TB
+        Graceful["Close Circuits Cleanly
+        Notify Directory Authorities
+        Save State to Disk
+        Exit Gracefully"]
+    end
+
+    Error --> End([⛔ Container Exits])
+    Graceful --> End2([✅ Clean Stop])
+
+    style Start fill:#4FC3F7,stroke:#0288D1,stroke-width:3px,color:#000
+    style Running fill:#66BB6A,stroke:#388E3C,stroke-width:3px,color:#fff
+    
+    style Mount fill:#81C784,stroke:#388E3C,stroke-width:2px,color:#000
+    style Generate fill:#81C784,stroke:#388E3C,stroke-width:2px,color:#000
+    style Validate fill:#FFD54F,stroke:#F57C00,stroke-width:2px,color:#000
+    style Error fill:#E57373,stroke:#C62828,stroke-width:3px,color:#fff
+    
+    style Guard fill:#64B5F6,stroke:#1976D2,stroke-width:2px,color:#000
+    style Exit fill:#F06292,stroke:#C2185B,stroke-width:2px,color:#fff
+    style Bridge fill:#BA68C8,stroke:#7B1FA2,stroke-width:2px,color:#fff
+    
+    style Status fill:#4DD0E1,stroke:#0097A7,stroke-width:2px,color:#000
+    style Health fill:#4DD0E1,stroke:#0097A7,stroke-width:2px,color:#000
+    style Finger fill:#4DD0E1,stroke:#0097A7,stroke-width:2px,color:#000
+    style BLine fill:#4DD0E1,stroke:#0097A7,stroke-width:2px,color:#000
+    
+    style Graceful fill:#FFB74D,stroke:#F57C00,stroke-width:2px,color:#000
+    style End fill:#E57373,stroke:#C62828,stroke-width:2px,color:#fff
+    style End2 fill:#66BB6A,stroke:#388E3C,stroke-width:2px,color:#fff
+    
+    style Init fill:#FFF9C4,stroke:#F9A825,stroke-width:2px
+    style ModeSelect fill:#E1BEE7,stroke:#8E24AA,stroke-width:2px
+    style Ops fill:#B2EBF2,stroke:#00ACC1,stroke-width:2px
+    style Shutdown fill:#FFCCBC,stroke:#E64A19,stroke-width:2px
+```
+
 ### Why Host Network Mode?
 
 This project uses `--network host` for important reasons:
@@ -627,7 +749,9 @@ Or via **[AnonPay](https://trocador.app/anonpay?ticker_to=xmr&network_to=Mainnet
 
 <br>
 
-<div style="color:#7ce5ff;font-family:monospace;font-size:18px;margin-bottom:10px;">▍ Made with 💜 for a freer, uncensored internet</div>
+<div align="center">
+
+<div style="color:#7ce5ff;font-family:monospace;font-size:18px;margin-bottom:10px;">Made with 💜 for a freer, uncensored internet</div>
 
 *Protecting privacy, one relay at a time* 🧅✨
 
