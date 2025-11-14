@@ -547,51 +547,121 @@ flowchart TD
 
 ```mermaid
 graph TD
-    Root["🗂️ Container Root"] --> Etc[/etc]
-    Root --> Var[/var]
-    Root --> Run[/run]
-    Root --> Usr[/usr]
-    Root --> Sbin[/sbin]
+    %% Main directory structure
+    Root["📦 Container Root"] --> Etc["📁 /etc"]
+    Root --> Var["📁 /var"]
+    Root --> Run["📁 /run"]
+    Root --> Usr["📁 /usr"]
+    Root --> Sbin["📁 /sbin"]
+    Root --> BuildInfo["📄 /build-info.txt"]
 
-    Etc --> TorEtc[/etc/tor]
-    TorEtc --> TorRC["📝 torrc"]
-    TorEtc -.->|Deleted at build| TorRCSample[torrc.sample]
+    %% =============== /etc/tor ===============
+    subgraph etc_group["⚙️ Configuration Layer"]
+        direction TB
+        TorEtc["📁 /etc/tor"]
+        TorRC["⚙️ torrc"]
+        TorRCSample["🗑️ torrc.sample"]
+        
+        TorEtc --> TorRC
+        TorEtc -.->|Deleted at build| TorRCSample
+    end
+    Etc --> TorEtc
 
-    Var --> Lib[/var/lib]
-    Lib --> TorData["/var/lib/tor - VOLUME"]
-    TorData --> Keys["🔑 keys/"]
-    TorData --> FingerprintFile["🆔 fingerprint"]
-    TorData --> PTState["🔐 pt_state/"]
+    %% =============== /var/lib ===============
+    subgraph var_lib_group["💾 Persistent Data Volume"]
+        direction TB
+        Lib["📁 /var/lib"]
+        TorData["📦 /var/lib/tor VOLUME"]
+        Keys["🔑 keys/"]
+        FingerprintFile["🆔 fingerprint"]
+        PTState["🌀 pt_state/"]
+        
+        Lib --> TorData
+        TorData --> Keys
+        TorData --> FingerprintFile
+        TorData --> PTState
+    end
+    Var --> Lib
 
-    Var --> Log[/var/log]
-    Log --> TorLog["/var/log/tor - VOLUME"]
-    TorLog --> Notices["📄 notices.log"]
+    %% =============== /var/log ===============
+    subgraph var_log_group["📜 Log Volume"]
+        direction TB
+        Log["📁 /var/log"]
+        TorLog["📦 /var/log/tor VOLUME"]
+        Notices["📄 notices.log"]
+        
+        Log --> TorLog
+        TorLog --> Notices
+    end
+    Var --> Log
 
-    Run --> TorRun[/run/tor]
-    TorRun --> TorPID["📌 tor.pid"]
+    %% =============== /run/tor ===============
+    subgraph run_group["⚡ Runtime State"]
+        direction TB
+        TorRun["📁 /run/tor"]
+        TorPID["🧩 tor.pid"]
+        
+        TorRun --> TorPID
+    end
+    Run --> TorRun
 
-    Usr --> UsrLocal[/usr/local]
-    UsrLocal --> Bin[/usr/local/bin]
-    Bin --> Entrypoint["🚀 docker-entrypoint.sh"]
-    Bin --> Healthcheck["🩺 healthcheck.sh"]
-    Bin --> Status["📊 status"]
-    Bin --> Health["📡 health"]
-    Bin --> Fingerprint["🆔 fingerprint"]
-    Bin --> BridgeLine["🌉 bridge-line"]
+    %% =============== /usr/local/bin ===============
+    subgraph usr_local_group["🚀 Custom Scripts"]
+        direction TB
+        UsrLocal["📁 /usr/local"]
+        Bin["📁 /usr/local/bin"]
+        Entrypoint["🚀 docker-entrypoint.sh"]
+        Healthcheck["❤️ healthcheck.sh"]
+        Status["📡 status"]
+        Health["💚 health"]
+        Fingerprint["🧬 fingerprint"]
+        BridgeLine["🌉 bridge-line"]
+        
+        UsrLocal --> Bin
+        Bin --> Entrypoint
+        Bin --> Healthcheck
+        Bin --> Status
+        Bin --> Health
+        Bin --> Fingerprint
+        Bin --> BridgeLine
+    end
+    Usr --> UsrLocal
 
-    Usr --> UsrBin[/usr/bin]
-    UsrBin --> TorBin["🌀 tor"]
-    UsrBin --> Lyrebird["🕊️ lyrebird"]
+    %% =============== /usr/bin ===============
+    subgraph usr_bin_group["🎯 Binaries"]
+        direction TB
+        UsrBin["📁 /usr/bin"]
+        TorBin["🧅 tor"]
+        Lyrebird["🎶 lyrebird"]
+        
+        UsrBin --> TorBin
+        UsrBin --> Lyrebird
+    end
+    Usr --> UsrBin
 
-    Sbin --> Tini[/sbin/tini]
+    %% =============== /sbin ===============
+    subgraph sbin_group["🟢 Init System"]
+        direction TB
+        Tini["🟩 /sbin/tini"]
+    end
+    Sbin --> Tini
 
-    Root --> BuildInfo[/build-info.txt]
+    %% =============== Styling ===============
+    classDef volumeStyle fill:#ff9e9e,stroke:#d32f2f,stroke-width:2px,color:#000
+    classDef configStyle fill:#90caf9,stroke:#1976d2,stroke-width:2px,color:#000
+    classDef scriptStyle fill:#fff176,stroke:#f57f17,stroke-width:2px,color:#000
+    classDef binaryStyle fill:#a5d6a7,stroke:#388e3c,stroke-width:2px,color:#000
+    classDef runtimeStyle fill:#ffcc80,stroke:#f57c00,stroke-width:2px,color:#000
+    classDef deletedStyle fill:#e0e0e0,stroke:#9e9e9e,stroke-width:1px,color:#757575,stroke-dasharray: 5 5
+    classDef infoStyle fill:#e1bee7,stroke:#7b1fa2,stroke-width:1px,color:#000
 
-    style TorData fill:#ffe6e6
-    style TorLog fill:#ffe6e6
-    style TorRC fill:#e6f3ff
-    style Entrypoint fill:#fff59d
-    style Tini fill:#b2fab4
+    class TorData,TorLog volumeStyle
+    class TorRC configStyle
+    class Entrypoint,Healthcheck,Status,Health,Fingerprint,BridgeLine scriptStyle
+    class TorBin,Lyrebird,Tini binaryStyle
+    class TorPID runtimeStyle
+    class TorRCSample deletedStyle
+    class BuildInfo infoStyle
 ```
 
 ### Ownership & Permissions
@@ -836,7 +906,8 @@ flowchart TD
 - [Tini](https://github.com/krallin/tini) - Init system for containers
 
 ---
+<div align="center">
 
-**Document Version:** 1.0.2
-**Last Updated:** 2025-01-14
-**Container Version:** v1.1.1
+**Document Version:** 1.0.3 • **Last Updated:** 2025-11-14 • **Container Version:** v1.1.1
+
+</div>

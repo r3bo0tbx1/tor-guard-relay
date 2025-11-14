@@ -1,6 +1,6 @@
 
 <a id="readme-top"></a>
-<div align="center" style="background:#0d0d0f;padding:40px;border-radius:14px;border:1px solid #1f1f22;box-shadow:0 0 22px #0a0a0c;">
+<div align="center">
 
 # 🧅 Tor Guard Relay
 
@@ -21,8 +21,6 @@
 
 <br>
 
-<div style="background:#101013;padding:28px;border-radius:14px;border:1px solid #1f1f22;box-shadow:0 0 12px #0a0a0c;">
-
 <div style="color:#7ce5ff;font-family:monospace;font-size:17px;margin-bottom:14px;">▍ 🚀 What is This?</div>
 
 **Tor Guard Relay** is a production-ready, self-healing Tor relay container designed for privacy advocates who want to contribute to the Tor network securely and efficiently.
@@ -39,11 +37,7 @@
 - 📚 **Documented** - Comprehensive guides for deployment, monitoring, backup, and more
 - 🏗️ **Multi-Arch** - Native support for AMD64 and ARM64 (Raspberry Pi, AWS Graviton, etc.)
 
-</div>
-
 <br>
-
-<div style="background:#101013;padding:28px;border-radius:14px;border:1px solid #1f1f22;box-shadow:0 0 12px #0a0a0c;">
 
 <div style="color:#7ce5ff;font-family:monospace;font-size:17px;margin-bottom:14px;">▍ 🔒 Security Model</div>
 
@@ -63,11 +57,7 @@ Diagnostics are run only through `docker exec`, with no exposed monitoring ports
 
 Minimal surface area, roughly 17.1 MB.
 
-</div>
-
 <br>
-
-<div style="background:#101013;padding:28px;border-radius:14px;border:1px solid:#1f1f22;box-shadow:0 0 12px #0a0a0c;">
 
 <div style="color:#7ce5ff;font-family:monospace;font-size:17px;margin-bottom:14px;">▍ ⚡ Quick Start</div>
 
@@ -148,12 +138,7 @@ docker logs -f tor-relay
 
 > 📖 **Need more?** See our comprehensive [Deployment Guide](docs/DEPLOYMENT.md) for Docker Compose, Cosmos Cloud, Portainer, and advanced setups.
 
-</div>
-
-
 <br>
-
-<div style="background:#101013;padding:28px;border-radius:14px;border:1px solid #1f1f22;box-shadow:0 0 12px #0a0a0c;">
 
 <div style="color:#7ce5ff;font-family:monospace;font-size:17px;margin-bottom:14px;">▍ 🏗️ Deployment Methods</div>
 
@@ -177,11 +162,7 @@ Running multiple relays? We have templates for that:
 
 See [Deployment Guide](docs/DEPLOYMENT.md) for complete instructions.
 
-</div>
-
 <br>
-
-<div style="background:#101013;padding:28px;border-radius:14px;border:1px solid #1f1f22;box-shadow:0 0 12px #0a0a0c;">
 
 <div style="color:#7ce5ff;font-family:monospace;font-size:17px;margin-bottom:14px;">▍ 🔧 Diagnostic Tools</div>
 
@@ -216,11 +197,8 @@ Example JSON:
 ```
 
 > 📖 **Complete reference:** See [Tools Documentation](docs/TOOLS.md) for all 4 tools with examples, JSON schema, and integration guides.
-</div>
 
 <br>
-
-<div style="background:#101013;padding:28px;border-radius:14px;border:1px solid #1f1f22;box-shadow:0 0 12px #0a0a0c;">
 
 <div style="color:#7ce5ff;font-family:monospace;font-size:17px;margin-bottom:14px;">▍ 📊 Monitoring and Observability</div>
 
@@ -264,11 +242,8 @@ STATUS=$(echo "$HEALTH" | jq -r '.status')
 ```
 
 > 📖 **Complete guide:** See [Monitoring Documentation](docs/MONITORING.md) for Prometheus, Grafana, alert integration, and observability setup.
-</div>
 
 <br>
-
-<div style="background:#101013;padding:28px;border-radius:14px;border:1px solid #1f1f22;box-shadow:0 0 12px #0a0a0c;">
 
 <div style="color:#7ce5ff;font-family:monospace;font-size:17px;margin-bottom:14px;">▍ 🎯 Key Features</div>
 
@@ -298,11 +273,8 @@ STATUS=$(echo "$HEALTH" | jq -r '.status')
 - ✅ Automated dependency updates (Dependabot)
 - ✅ CI/CD validation and testing
 - ✅ Multi-arch support (same command, any platform)
-</div>
 
 <br>
-
-<div style="background:#101013;padding:28px;border-radius:14px;border:1px solid #1f1f22;box-shadow:0 0 12px #0a0a0c;">
 
 <div style="color:#7ce5ff;font-family:monospace;font-size:17px;margin-bottom:14px;">▍ 📚 Documentation</div>
 
@@ -335,8 +307,6 @@ STATUS=$(echo "$HEALTH" | jq -r '.status')
 > 💡 **Tip:** Start with the [FAQ](docs/FAQ.md) for quick answers or [Documentation Index](docs/README.md) for complete navigation.
 
 <br>
-
-<div style="background:#101013;padding:28px;border-radius:14px;border:1px solid #1f1f22;box-shadow:0 0 12px #0a0a0c;">
 
 <div style="color:#7ce5ff;font-family:monospace;font-size:17px;margin-bottom:14px;">▍ 🛠️ Configuration</div>
 
@@ -373,11 +343,7 @@ Examples are found in the [`examples/`](examples/) directory for complete, annot
 
 > 📖 **Configuration help:** See [Deployment Guide](docs/DEPLOYMENT.md#configuration) for complete reference.
 
-</div>
-
 <br>
-
-<div style="background:#101013;padding:28px;border-radius:14px;border:1px solid #1f1f22;box-shadow:0 0 12px #0a0a0c;">
 
 <div style="color:#7ce5ff;font-family:monospace;font-size:17px;margin-bottom:14px;">▍ 🔍 Monitoring Your Relay</div>
 
@@ -416,11 +382,8 @@ Search by:
 | Guard Flag | 8+ days | Trusted for entry connections |
 
 > 📖 **Detailed monitoring:** See [Monitoring Guide](docs/MONITORING.md) for complete observability setup with Prometheus and Grafana.
-</div>
 
 <br>
-
-<div style="background:#101013;padding:28px;border-radius:14px;border:1px solid #1f1f22;box-shadow:0 0 12px #0a0a0c;">
 
 <div style="color:#7ce5ff;font-family:monospace;font-size:17px;margin-bottom:14px;">▍ 🐛 Troubleshooting</div>
 
@@ -451,11 +414,7 @@ docker exec tor-relay bridge-line
 
 > 📖 **Full troubleshooting:** See [Tools Documentation](docs/TOOLS.md#troubleshooting) for detailed diagnostic procedures.
 
-</div>
-
 <br>
-
-<div style="background:#101013;padding:28px;border-radius:14px;border:1px solid #1f1f22;box-shadow:0 0 12px #0a0a0c;">
 
 <div style="color:#7ce5ff;font-family:monospace;font-size:17px;margin-bottom:14px;">▍ 🏢 Architecture and Design</div>
 
@@ -494,11 +453,8 @@ Verify what you got:
 ```bash
 docker exec tor-relay cat /build-info.txt | grep Architecture
 ```
-</div>
 
 <br>
-
-<div style="background:#101013;padding:28px;border-radius:14px;border:1px solid #1f1f22;box-shadow:0 0 12px #0a0a0c;">
 
 <div style="color:#7ce5ff;font-family:monospace;font-size:17px;margin-bottom:14px;">▍ 🤝 Contributing</div>
 
@@ -526,11 +482,8 @@ docker run --rm tor-relay:dev status
 ```
 
 See [Contributing Guide](CONTRIBUTING.md) for detailed instructions.
-</div>
 
 <br>
-
-<div style="background:#101013;padding:28px;border-radius:14px;border:1px solid #1f1f22;box-shadow:0 0 12px #0a0a0c;">
 
 <div style="color:#7ce5ff;font-family:monospace;font-size:17px;margin-bottom:14px;">▍ 📦 Templates and Examples</div>
 
@@ -550,11 +503,7 @@ See [Monitoring Guide](docs/MONITORING.md) for external monitoring integration e
 ### Configuration Examples
 See [`examples/`](examples/) directory for relay configurations.
 
-</div>
-
 <br>
-
-<div style="background:#101013;padding:28px;border-radius:14px;border:1px solid #1f1f22;box-shadow:0 0 12px #0a0a0c;">
 
 <div style="color:#7ce5ff;font-family:monospace;font-size:17px;margin-bottom:14px;">▍ 🔐 Security</div>
 
@@ -579,11 +528,8 @@ Images are automatically rebuilt weekly to include security patches:
 - **Strategy:** Overwrites last release version (e.g., `:1.1.1`) with updated packages
 - **Tags Updated:** Both `:latest` and version tags (e.g., `:1.1.1`)
 - **Auto-published:** To Docker Hub and GitHub Container Registry
-</div>
 
 <br>
-
-<div style="background:#101013;padding:28px;border-radius:14px;border:1px solid #1f1f22;box-shadow:0 0 12px #0a0a0c;">
 
 <div style="color:#7ce5ff;font-family:monospace;font-size:17px;margin-bottom:14px;">▍ 🌐 Resources</div>
 
@@ -603,11 +549,7 @@ Images are automatically rebuilt weekly to include security patches:
 - 💬 [Discussions](https://github.com/r3bo0tbx1/tor-guard-relay/discussions)
 - 📦 [Container Registry](https://github.com/r3bo0tbx1/tor-guard-relay/pkgs/container/onion-relay) 
 
-</div>
-
 <br>
-
-<div style="background:#101013;padding:28px;border-radius:14px;border:1px solid #1f1f22;box-shadow:0 0 12px #0a0a0c;">
 
 <div style="color:#7ce5ff;font-family:monospace;font-size:17px;margin-bottom:14px;">▍ 📊 Project Status</div>
 
@@ -623,22 +565,14 @@ Images are automatically rebuilt weekly to include security patches:
 
 </div>
 
-</div>
-
 <br>
-
-<div style="background:#101013;padding:28px;border-radius:14px;border:1px solid #1f1f22;box-shadow:0 0 12px #0a0a0c;">
 
 <div style="color:#7ce5ff;font-family:monospace;font-size:17px;margin-bottom:14px;">▍ 📄 License</div>
 
 Project is licensed under the MIT License.  
 See [License](LICENSE.txt) for full details.
 
-</div>
-
 <br>
-
-<div style="background:#101013;padding:28px;border-radius:14px;border:1px solid #1f1f22;box-shadow:0 0 12px #0a0a0c;">
 
 <div style="color:#7ce5ff;font-family:monospace;font-size:17px;margin-bottom:14px;">▍ 🙏 Acknowledgments</div>
 
@@ -647,11 +581,7 @@ See [License](LICENSE.txt) for full details.
 - **azukaar** for Cosmos Cloud  
 - **All relay operators** supporting privacy worldwide  
 
-</div>
-
 <br>
-
-<div style="background:#101013;padding:28px;border-radius:14px;border:1px solid #1f1f22;box-shadow:0 0 12px #0a0a0c;">
 
 <div style="color:#7ce5ff;font-family:monospace;font-size:17px;margin-bottom:14px;">▍ 💖 Support the Project</div>
 
@@ -679,11 +609,7 @@ Or via **[AnonPay](https://trocador.app/anonpay?ticker_to=xmr&network_to=Mainnet
 - 🤝 Submit patches  
 - 🧅 Run a relay  
 
-</div>
-
 <br>
-
-<div style="background:#101013;padding:28px;border-radius:14px;border:1px solid #1f1f22;box-shadow:0 0 12px #0a0a0c;">
 
 <div style="color:#7ce5ff;font-family:monospace;font-size:17px;margin-bottom:14px;">▍ ⭐ Star History</div>
 
@@ -699,11 +625,7 @@ Or via **[AnonPay](https://trocador.app/anonpay?ticker_to=xmr&network_to=Mainnet
 
 </div>
 
-</div>
-
 <br>
-
-<div align="center" style="background:#0d0d0f;padding:40px;border-radius:14px;border:1px solid #1f1f22;box-shadow:0 0 22px #0a0a0c;">
 
 <div style="color:#7ce5ff;font-family:monospace;font-size:18px;margin-bottom:10px;">▍ Made with 💜 for a freer, uncensored internet</div>
 
