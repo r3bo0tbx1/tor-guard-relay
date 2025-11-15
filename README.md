@@ -275,6 +275,17 @@ STATUS=$(echo "$HEALTH" | jq -r '.status')
 
 <br>
 
+<div style="color:#7ce5ff;font-family:monospace;font-size:17px;margin-bottom:14px;">▍ 🖼️ Gallery / Screenshots</div>
+
+| Cosmos Cloud Dashboard | Docker Logs (Bootstrapping) |
+|:-----------------------:|:---------------------------:|
+| ![Cosmos](src/screenshots/cosmos-dashboard.png) | ![Bootstrapping](src/screenshots/bootstrapping.png) |
+| Relay Status Tool | Obfs4 Bridge Line |
+| ![Relay](src/screenshots/relay-status.png) | ![Obfs4](src/screenshots/bridge-line.png) |
+
+
+<br>
+
 <div style="color:#7ce5ff;font-family:monospace;font-size:17px;margin-bottom:14px;">▍ 📚 Documentation</div>
 
 **v1.1.1 includes comprehensive documentation** organized by topic:
