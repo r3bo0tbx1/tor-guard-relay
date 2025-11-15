@@ -28,7 +28,8 @@
 
 ### Why Choose This Project?
 
-- 🛡️ **Security-First** - Hardened Alpine Linux, non-root operation, ultra-minimal 17.1 MB image
+- 🛡️ **Security-First** - Hardened Alpine Linux, non-root operation
+- 🪶 **Very light** - Ultra-minimal 17.1 MB image
 - 🎯 **Simple** - One command to deploy, minimal configuration needed
 - 📊 **Observable** - 4 busybox-only diagnostic tools with JSON health API
 - 🌉 **Multi-Mode** - Supports guard, exit, and bridge (obfs4) relays
@@ -563,10 +564,10 @@ flowchart TB
 
 This project uses `--network host` for important reasons:
 
-✅ **IPv6 Support** - Direct access to host's IPv6 stack
-✅ **No NAT** - Tor binds directly to ports without translation
-✅ **Better Performance** - Eliminates network overhead
-✅ **Tor Recommended** - Follows Tor Project best practices
+- ✅ **IPv6 Support** - Direct access to host's IPv6 stack
+- ✅ **No NAT** - Tor binds directly to ports without translation
+- ✅ **Better Performance** - Eliminates network overhead
+- ✅ **Tor Recommended** - Follows Tor Project best practices
 
 **Security:** The container still runs as non-root with restricted permissions. Host networking is standard for Tor relays.
 
