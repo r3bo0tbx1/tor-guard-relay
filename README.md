@@ -275,7 +275,7 @@ STATUS=$(echo "$HEALTH" | jq -r '.status')
 
 <br>
 
-<div style="color:#7ce5ff;font-family:monospace;font-size:17px;margin-bottom:14px;">▍ 🖼️ Gallery / Screenshots</div>
+<div style="color:#7ce5ff;font-family:monospace;font-size:17px;margin-bottom:14px;">▍ 🖼️ Gallery</div>
 
 | Cosmos Cloud Dashboard | Docker Logs (Bootstrapping) |
 |:-----------------------:|:---------------------------:|
