@@ -1,6 +1,6 @@
 #!/bin/sh
 # security-validation-tests.sh - Security validation for Tor Guard Relay v1.1.1
-# Tests security features of the ultra-optimized 20MB build
+# Tests security features of the ultra-optimized 17.1MB build
 
 set -e
 
@@ -273,8 +273,8 @@ echo "Test 7: Documentation"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
 if [ -f README.md ]; then
-  if grep -iq "20\s*MB\|~20MB" README.md; then
-    test_pass "README mentions 20MB size"
+  if grep -iq "20\s*MB\|~17.1MB" README.md; then
+    test_pass "README mentions 17.1MB size"
   else
     test_warn "README doesn't mention optimized size"
   fi

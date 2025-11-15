@@ -10,7 +10,7 @@
 [![Docker Hub](https://img.shields.io/docker/pulls/r3bo0tbx1/onion-relay?logo=docker&label=Docker%20Hub&labelColor=0a0a0a)](https://hub.docker.com/r/r3bo0tbx1/onion-relay)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?labelColor=0a0a0a)](LICENSE.txt)
 
-<img src="src/onion.png" alt="Onion diagram" width="400"/>
+<img src="src/logo.png" alt="Onion diagram" width="400"/>
 
 **A hardened, production-ready Tor relay with built-in diagnostics and monitoring**
 
@@ -281,7 +281,7 @@ STATUS=$(echo "$HEALTH" | jq -r '.status')
 
 ### Getting Started
 - **[FAQ](docs/FAQ.md)** - ⭐ **NEW!** Frequently asked questions with factual answers
-- **[Quick Start Script](scripts/quick-start.sh)** - ⭐ **NEW!** Interactive relay deployment wizard
+- **[Quick Start Script](scripts/utilities/quick-start.sh)** - ⭐ **NEW!** Interactive relay deployment wizard
 - **[Migration Assistant](scripts/migration/migrate-from-official.sh)** - ⭐ **NEW!** Automated migration from thetorproject/obfs4-bridge
 - **[Deployment Guide](docs/DEPLOYMENT.md)** - Complete installation for Docker CLI, Compose, Cosmos Cloud, and Portainer
 - **[Migration Guide](docs/MIGRATION-V1.1.X.md)** - Upgrade to v1.1.1 or migrate from other Tor setups
@@ -337,7 +337,7 @@ ORPort [::]:9001
 
 Examples are found in the [`examples/`](examples/) directory for complete, annotated configuration files:
 
-- **[relay.conf](examples/relay.conf)** - Recommended production config
+- **[relay-guard.conf](examples/relay-guard.conf)** - Recommended production config
 - Additional examples for specific use cases
 
 > 📖 **Configuration help:** See [Deployment Guide](docs/DEPLOYMENT.md#configuration) for complete reference.
