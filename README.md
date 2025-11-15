@@ -713,7 +713,7 @@ See [License](LICENSE.txt) for full details.
 - **The Tor Project** for maintaining the global privacy network  
 - **Alpine Linux** for a minimal and secure base image  
 - **azukaar** for Cosmos Cloud  
-- **All relay operators** supporting privacy worldwide  
+- **All relay operators** supporting privacy and anti-censorship worldwide
 
 <br>
 
@@ -733,6 +733,10 @@ Or via **[AnonPay](https://trocador.app/anonpay?ticker_to=btc&network_to=Mainnet
 45mNg5cG1S2B2C5dndJP65SSEXseHFVqFdv1N6paAraD1Jk9kQxQQArVcjfQmgCcmthrUF3jbNs74c5AbWqMwAAgAjDYzrZ
 ```
 Or via **[AnonPay](https://trocador.app/anonpay?ticker_to=xmr&network_to=Mainnet&address=85ft7ehMfcKSSp8Ve92Y9oARmqvDjYvEiKQkzdp3qiyzP9dpLeJXFahgHcoXUPeE9TacqDCUXWppNffE3YDC1Wu1NnQ71rT&ref=sqKNYGZbRl&direct=True&name=rE-Bo0tbx1+%28r3bo0tbx1%29&description=Support+FOSS+Development&email=r3bo0tbx1%40brokenbotnet.com)** (convert any crypto)
+
+<!--
+I use Arch btw 🐧
+!-->
 
 ### Other Ways to Support
 
@@ -765,7 +769,7 @@ Or via **[AnonPay](https://trocador.app/anonpay?ticker_to=xmr&network_to=Mainnet
 
 <div style="color:#7ce5ff;font-family:monospace;font-size:18px;margin-bottom:10px;">Made with 💜 for a freer, uncensored internet</div>
 
-*Protecting privacy, one relay at a time* 🧅✨
+*Protecting privacy, one relay at a time* 🔁🧅✨
 
 🌍 [Support Internet Freedom](https://donate.torproject.org/)  
 📚 [Documentation](docs/README.md)  
