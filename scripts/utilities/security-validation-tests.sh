@@ -1,6 +1,6 @@
 #!/bin/sh
 # security-validation-tests.sh - Security validation for Tor Guard Relay v1.1.1
-# Tests security features of the ultra-optimized 17.1MB build
+# Tests security features of the ultra-optimized 17.1 MB build
 
 set -e
 

@@ -158,16 +158,16 @@ OBFS4V_NumCPUs=4
 ### What ports need to be publicly accessible?
 
 **Guard/Middle Relay:**
-- `TOR_ORPORT` (default: 9001) - **PUBLIC**
-- `TOR_DIRPORT` (default: 9030) - **PUBLIC** (optional, set to 0 to disable)
+- `TOR_ORPORT` (default: 9001) - **PUBLIC 🌐**
+- `TOR_DIRPORT` (default: 9030) - **PUBLIC 🌐** (optional, set to 0 to disable)
 
 **Exit Relay:**
-- `TOR_ORPORT` (default: 9001) - **PUBLIC**
-- `TOR_DIRPORT` (default: 9030) - **PUBLIC**
+- `TOR_ORPORT` (default: 9001) - **PUBLIC 🌐**
+- `TOR_DIRPORT` (default: 9030) - **PUBLIC 🌐**
 
 **Bridge Relay:**
-- `TOR_ORPORT` (default: 9001) - **PUBLIC**
-- `TOR_OBFS4_PORT` (default: 9002) - **PUBLIC**
+- `TOR_ORPORT` (default: 9001) - **PUBLIC 🌐**
+- `TOR_OBFS4_PORT` (default: 9002) - **PUBLIC 🌐**
 
 **No monitoring ports exposed** - all diagnostics via `docker exec` only (security by design).
 

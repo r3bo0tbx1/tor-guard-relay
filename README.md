@@ -10,7 +10,7 @@
 [![Docker Hub](https://img.shields.io/docker/pulls/r3bo0tbx1/onion-relay?logo=docker&label=Docker%20Hub&labelColor=0a0a0a)](https://hub.docker.com/r/r3bo0tbx1/onion-relay)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?labelColor=0a0a0a)](LICENSE.txt)
 
-<img src="src/logo.png" alt="Onion diagram" width="400"/>
+<img src="src/logo.png" alt="Onion Bridge/Middle/Guard/Exit Relay" width="400"/>
 
 **A hardened, production-ready Tor relay with built-in diagnostics and monitoring**
 
