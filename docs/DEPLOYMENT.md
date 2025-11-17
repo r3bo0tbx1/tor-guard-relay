@@ -1,4 +1,4 @@
-# 🚀 Deployment Guide - Tor Guard Relay v1.1.1
+# 🚀 Deployment Guide - Tor Guard Relay >=v1.1.1
 
 Complete deployment instructions for guard, exit, and bridge relays across various hosting environments.
 

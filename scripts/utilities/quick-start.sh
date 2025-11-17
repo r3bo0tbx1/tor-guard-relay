@@ -391,7 +391,7 @@ EOF
     cat >> /tmp/tor-relay-run.sh << EOF
   -v tor-${RELAY_MODE}-data:/var/lib/tor \\
   -v tor-${RELAY_MODE}-logs:/var/log/tor \\
-  r3bo0tbx1/onion-relay:latest
+  ghcr.io/r3bo0tbx1/onion-relay:latest
 
 # Wait for container to start
 sleep 5
@@ -441,7 +441,7 @@ version: '3.8'
 
 services:
   tor-${RELAY_MODE}:
-    image: r3bo0tbx1/onion-relay:latest
+    image: ghcr.io/r3bo0tbx1/onion-relay:latest
     container_name: tor-${RELAY_MODE}
     restart: unless-stopped
     network_mode: host

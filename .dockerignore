@@ -43,6 +43,7 @@ __pycache__/
 
 # Keep only files needed for building and running the image
 !Dockerfile
+!Dockerfile.edge
 !tools/
 !docker-entrypoint.sh
 !healthcheck.sh

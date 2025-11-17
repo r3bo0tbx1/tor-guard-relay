@@ -140,6 +140,65 @@ docker logs -f tor-relay
 
 <br>
 
+<div style="color:#7ce5ff;font-family:monospace;font-size:17px;margin-bottom:14px;">▍ 🎯 Choosing a Variant</div>
+
+We offer **two build variants** to match your risk tolerance and requirements:
+
+### Stable Variant (Recommended)
+
+**Base:** Alpine 3.22.2 | **Recommended for:** Production relays
+
+- ✅ Battle-tested Alpine stable release
+- ✅ Weekly automated rebuilds with latest security patches
+- ✅ Proven stability for long-running relays
+- ✅ Available on both **Docker Hub** and **GHCR**
+
+```bash
+# Pull from Docker Hub (easiest)
+docker pull r3bo0tbx1/onion-relay:latest
+docker pull r3bo0tbx1/onion-relay:1.1.2
+
+# Pull from GHCR
+docker pull ghcr.io/r3bo0tbx1/onion-relay:latest
+docker pull ghcr.io/r3bo0tbx1/onion-relay:stable
+```
+
+### Edge Variant (Testing Only)
+
+**Base:** Alpine edge | **Recommended for:** Testing, security research
+
+- ⚡ Bleeding-edge Alpine packages (faster security updates)
+- ⚡ Latest Tor and obfs4 versions as soon as available
+- ⚠️ **NOT recommended for production** - less stable, potential breaking changes
+- ⚠️ Available **only on GHCR** (not Docker Hub)
+
+```bash
+# Pull from GHCR only
+docker pull ghcr.io/r3bo0tbx1/onion-relay:edge
+docker pull ghcr.io/r3bo0tbx1/onion-relay:1.1.2-edge
+```
+
+**When to use edge:**
+- 🔬 Testing new Tor features before stable release
+- 🛡️ Security research requiring latest packages
+- 🧪 Non-production test environments
+- 🚀 Early adopters willing to accept potential breakage
+
+**Stability comparison:**
+
+| Feature | Stable | Edge |
+|---------|--------|------|
+| Production ready | ✅ Yes | ❌ No |
+| Breaking changes | ❌ Rare | ⚠️ Possible |
+| Security updates | Weekly | Weekly (newer packages) |
+| Package versions | Proven | Bleeding edge |
+| Docker Hub | ✅ Yes | ❌ No |
+| GHCR | ✅ Yes | ✅ Yes |
+
+> 💡 **Our recommendation:** Use **stable** for production relays, **edge** only for testing or when you specifically need the latest package versions.
+
+<br>
+
 <div style="color:#7ce5ff;font-family:monospace;font-size:17px;margin-bottom:14px;">▍ 🏗️ Deployment Methods</div>
 
 Choose the method that fits your workflow.
@@ -166,7 +225,7 @@ See [Deployment Guide](docs/DEPLOYMENT.md) for complete instructions.
 
 <div style="color:#7ce5ff;font-family:monospace;font-size:17px;margin-bottom:14px;">▍ 🔧 Diagnostic Tools</div>
 
-Version 1.1.1 includes four busybox-only tools.
+Version >=v1.1.1 includes four busybox-only tools.
 
 | Tool | Purpose | Usage |
 |------|---------|--------|
@@ -202,7 +261,7 @@ Example JSON:
 
 <div style="color:#7ce5ff;font-family:monospace;font-size:17px;margin-bottom:14px;">▍ 📊 Monitoring and Observability</div>
 
-**v1.1.1 uses external monitoring** for minimal image size and maximum security.
+**>=v1.1.1 uses external monitoring** for minimal image size and maximum security.
 
 ### JSON Health API
 
@@ -289,7 +348,7 @@ STATUS=$(echo "$HEALTH" | jq -r '.status')
 
 <div style="color:#7ce5ff;font-family:monospace;font-size:17px;margin-bottom:14px;">▍ 📚 Documentation</div>
 
-**v1.1.1 includes comprehensive documentation** organized by topic:
+**>=v1.1.1 includes comprehensive documentation** organized by topic:
 
 ### Getting Started
 - **[FAQ](docs/FAQ.md)** - ⭐ **NEW!** Frequently asked questions with factual answers
@@ -659,8 +718,8 @@ Found a vulnerability? See our [Security Policy](SECURITY.md) for responsible di
 Images are automatically rebuilt weekly to include security patches:
 - **Schedule:** Every Sunday at 18:30 UTC
 - **Includes:** Latest Tor + Alpine updates
-- **Strategy:** Overwrites last release version (e.g., `:1.1.1`) with updated packages
-- **Tags Updated:** Both `:latest` and version tags (e.g., `:1.1.1`)
+- **Strategy:** Overwrites last release version (e.g., `:1.1.2`) with updated packages
+- **Tags Updated:** Both `:latest` and version tags (e.g., `:1.1.2`)
 - **Auto-published:** To Docker Hub and GitHub Container Registry
 
 <br>
@@ -693,7 +752,7 @@ Images are automatically rebuilt weekly to include security patches:
 ![GitHub Repo stars](https://img.shields.io/github/stars/r3bo0tbx1/tor-guard-relay?style=for-the-badge)
 ![GitHub Issues](https://img.shields.io/github/issues/r3bo0tbx1/tor-guard-relay?style=for-the-badge)
 
-**Current Version:** v1.1.1 • **Status:** Production Ready  
+**Current Version:** v1.1.2 • **Status:** Production Ready  
 **Image Size:** 17.1 MB • **Rebuild:** Weekly  
 **Registries:** Docker Hub • GHCR  
 
@@ -770,6 +829,8 @@ I use Arch btw 🐧
 <div style="color:#7ce5ff;font-family:monospace;font-size:18px;margin-bottom:10px;">Made with 💜 for a freer, uncensored internet</div>
 
 *Protecting privacy, one relay at a time* 🔁🧅✨
+
+⭐ Star this repo if you find it useful!
 
 🌍 [Support Internet Freedom](https://donate.torproject.org/)  
 📚 [Documentation](docs/README.md)  

@@ -88,7 +88,7 @@ jobs:
           echo "  🔑 SHA: ${{ steps.version.outputs.short_sha }}"
 
   build-and-push:
-    name: 🏗️ Multi-Arch Build and Push
+    name: 🏗️ Multi-Arch Build and Push (${{ matrix.variant.name }})
     runs-on: ubuntu-latest
     needs: determine-version
     permissions:
@@ -97,6 +97,22 @@ jobs:
     if: |
       github.event_name != 'workflow_run' ||
       github.event.workflow_run.conclusion == 'success'
+    strategy:
+      fail-fast: false
+      matrix:
+        variant:
+          - name: stable
+            dockerfile: Dockerfile
+            suffix: ""
+            is_latest: "true"
+            base: "Alpine 3.22.2"
+            push_dockerhub: "true"
+          - name: edge
+            dockerfile: Dockerfile.edge
+            suffix: "-edge"
+            is_latest: "false"
+            base: "Alpine edge"
+            push_dockerhub: "false"
 
     steps:
       - name: 📥 Checkout Repository
@@ -144,7 +160,7 @@ jobs:
           sudo apt-get update -qq && sudo apt-get install -y dos2unix
 
           echo "📄 Processing main scripts..."
-          for script in docker-entrypoint.sh healthcheck.sh Dockerfile; do
+          for script in docker-entrypoint.sh healthcheck.sh Dockerfile Dockerfile.edge; do
             if [ -f "$script" ]; then
               dos2unix "$script" 2>/dev/null || true
               echo "   ✅ Normalized: $script"
@@ -169,6 +185,7 @@ jobs:
           echo "🎉 Normalization complete"
 
       - name: 🐳 Login to Docker Hub
+        if: matrix.variant.push_dockerhub == 'true'
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -194,51 +211,86 @@ jobs:
         run: |
           VERSION="${{ needs.determine-version.outputs.version }}"
           BUILD_TYPE="${{ needs.determine-version.outputs.build_type }}"
-          SHORT_SHA="${{ needs.determine-version.outputs.short_sha }}"
+          VARIANT_NAME="${{ matrix.variant.name }}"
+          SUFFIX="${{ matrix.variant.suffix }}"
+          IS_LATEST="${{ matrix.variant.is_latest }}"
+          PUSH_DOCKERHUB="${{ matrix.variant.push_dockerhub }}"
+
+          echo "🏷️ Generating tags for variant: ${VARIANT_NAME}"
+          echo "   Version: ${VERSION}${SUFFIX}"
+          echo "   Build Type: ${BUILD_TYPE}"
+          echo "   Is Latest: ${IS_LATEST}"
+          echo "   Push to Docker Hub: ${PUSH_DOCKERHUB}"
+          echo ""
 
           TAGS=()
 
+          # Always add GHCR versioned tag
+          TAGS+=("${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION}${SUFFIX}")
+
           if [ "$BUILD_TYPE" = "release" ]; then
-            # New release: Update both :latest and version tags
-            TAGS+=("${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:latest")
-            TAGS+=("${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION}")
-            TAGS+=("${{ env.DOCKERHUB_IMAGE_NAME }}:latest")
-            TAGS+=("${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}")
+            # New release: Add special tags
+            if [ "$IS_LATEST" = "true" ]; then
+              # Stable variant gets :latest and :stable
+              TAGS+=("${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:latest")
+              TAGS+=("${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:stable")
+            else
+              # Edge variant gets :edge only
+              TAGS+=("${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:edge")
+            fi
+
+            # Add Docker Hub tags only for stable variant
+            if [ "$PUSH_DOCKERHUB" = "true" ]; then
+              TAGS+=("${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}")
+              TAGS+=("${{ env.DOCKERHUB_IMAGE_NAME }}:latest")
+              TAGS+=("${{ env.DOCKERHUB_IMAGE_NAME }}:stable")
+            fi
           elif [ "$BUILD_TYPE" = "weekly" ]; then
-            # Weekly rebuild: Update version tag with fresh packages, keep :latest pointing to last release
-            TAGS+=("${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION}")
-            TAGS+=("${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}")
-            TAGS+=("${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:latest")
-            TAGS+=("${{ env.DOCKERHUB_IMAGE_NAME }}:latest")
-          elif [ "$BUILD_TYPE" = "validated" ]; then
-            TAGS+=("${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION}-validated")
-            TAGS+=("${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}-validated")
+            # Weekly rebuild: Update version tag with fresh packages
+            if [ "$IS_LATEST" = "true" ]; then
+              TAGS+=("${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:latest")
+              TAGS+=("${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:stable")
+            else
+              TAGS+=("${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:edge")
+            fi
+
+            if [ "$PUSH_DOCKERHUB" = "true" ]; then
+              TAGS+=("${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}")
+              TAGS+=("${{ env.DOCKERHUB_IMAGE_NAME }}:latest")
+              TAGS+=("${{ env.DOCKERHUB_IMAGE_NAME }}:stable")
+            fi
           else
-            # Manual builds: version tag only
-            TAGS+=("${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION}")
-            TAGS+=("${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}")
+            # Manual/validated builds: version tag only
+            if [ "$PUSH_DOCKERHUB" = "true" ]; then
+              TAGS+=("${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}${SUFFIX}")
+            fi
           fi
 
           TAGS_STR=$(IFS=','; echo "${TAGS[*]}")
           echo "tags=${TAGS_STR}" >> "$GITHUB_OUTPUT"
 
+          echo "📋 Generated tags:"
+          for tag in "${TAGS[@]}"; do
+            echo "   - ${tag}"
+          done
+
       - name: 🚀 Build and Push Multi-Arch Image
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: ./Dockerfile
+          file: ./${{ matrix.variant.dockerfile }}
           platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.tags.outputs.tags }}
           build-args: |
             BUILD_DATE=${{ needs.determine-version.outputs.build_date }}
             BUILD_VERSION=${{ needs.determine-version.outputs.version }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=${{ matrix.variant.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.variant.name }}
           labels: |
-            org.opencontainers.image.title=Tor Guard Relay
-            org.opencontainers.image.description=Hardened Tor Guard Relay
-            org.opencontainers.image.version=${{ needs.determine-version.outputs.version }}
+            org.opencontainers.image.title=Tor Guard Relay (${{ matrix.variant.name }})
+            org.opencontainers.image.description=Hardened Tor Guard Relay (${{ matrix.variant.base }})
+            org.opencontainers.image.version=${{ needs.determine-version.outputs.version }}${{ matrix.variant.suffix }}
             org.opencontainers.image.created=${{ needs.determine-version.outputs.build_date }}
             org.opencontainers.image.revision=${{ github.sha }}
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
@@ -257,52 +309,55 @@ jobs:
           curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
 
           VERSION="${{ needs.determine-version.outputs.version }}"
-          IMAGE="${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION}"
+          SUFFIX="${{ matrix.variant.suffix }}"
+          VARIANT="${{ matrix.variant.name }}"
+          IMAGE="${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION}${SUFFIX}"
 
-          echo "📦 Generating SBOM for image: ${IMAGE}"
+          echo "📦 Generating SBOM for ${VARIANT} variant"
+          echo "   Image: ${IMAGE}"
           echo ""
 
           # Generate CycloneDX JSON
           echo "📄 Generating CycloneDX JSON format..."
-          syft "${IMAGE}" -o cyclonedx-json > "sbom-cyclonedx-v${VERSION}.json"
-          echo "   ✅ sbom-cyclonedx-v${VERSION}.json"
+          syft "${IMAGE}" -o cyclonedx-json > "sbom-${VARIANT}-cyclonedx-v${VERSION}.json"
+          echo "   ✅ sbom-${VARIANT}-cyclonedx-v${VERSION}.json"
 
           # Generate CycloneDX XML
           echo "📄 Generating CycloneDX XML format..."
-          syft "${IMAGE}" -o cyclonedx-xml > "sbom-cyclonedx-v${VERSION}.xml"
-          echo "   ✅ sbom-cyclonedx-v${VERSION}.xml"
+          syft "${IMAGE}" -o cyclonedx-xml > "sbom-${VARIANT}-cyclonedx-v${VERSION}.xml"
+          echo "   ✅ sbom-${VARIANT}-cyclonedx-v${VERSION}.xml"
 
           # Generate SPDX JSON
           echo "📄 Generating SPDX JSON format..."
-          syft "${IMAGE}" -o spdx-json > "sbom-spdx-v${VERSION}.json"
-          echo "   ✅ sbom-spdx-v${VERSION}.json"
+          syft "${IMAGE}" -o spdx-json > "sbom-${VARIANT}-spdx-v${VERSION}.json"
+          echo "   ✅ sbom-${VARIANT}-spdx-v${VERSION}.json"
 
           # Generate SPDX tag-value
           echo "📄 Generating SPDX tag-value format..."
-          syft "${IMAGE}" -o spdx-tag-value > "sbom-spdx-v${VERSION}.spdx"
-          echo "   ✅ sbom-spdx-v${VERSION}.spdx"
+          syft "${IMAGE}" -o spdx-tag-value > "sbom-${VARIANT}-spdx-v${VERSION}.spdx"
+          echo "   ✅ sbom-${VARIANT}-spdx-v${VERSION}.spdx"
 
           # Generate human-readable table
           echo "📄 Generating human-readable table..."
-          syft "${IMAGE}" -o table > "sbom-table-v${VERSION}.txt"
-          echo "   ✅ sbom-table-v${VERSION}.txt"
+          syft "${IMAGE}" -o table > "sbom-${VARIANT}-table-v${VERSION}.txt"
+          echo "   ✅ sbom-${VARIANT}-table-v${VERSION}.txt"
 
           echo ""
-          echo "✅ SBOM generation complete"
+          echo "✅ SBOM generation complete for ${VARIANT} variant"
           echo ""
           echo "📊 Package Statistics:"
-          jq '.components | length' "sbom-cyclonedx-v${VERSION}.json" | xargs echo "   Total packages:"
+          jq '.components | length' "sbom-${VARIANT}-cyclonedx-v${VERSION}.json" | xargs echo "   Total packages:"
 
       - name: 📤 Upload SBOM Artifacts
         if: needs.determine-version.outputs.is_release == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: sbom-v${{ needs.determine-version.outputs.version }}
+          name: sbom-${{ matrix.variant.name }}-v${{ needs.determine-version.outputs.version }}
           path: |
-            sbom-*.json
-            sbom-*.xml
-            sbom-*.spdx
-            sbom-*.txt
+            sbom-${{ matrix.variant.name }}-*.json
+            sbom-${{ matrix.variant.name }}-*.xml
+            sbom-${{ matrix.variant.name }}-*.spdx
+            sbom-${{ matrix.variant.name }}-*.txt
           retention-days: 90
 
   release-notes:
@@ -385,23 +440,42 @@ jobs:
           echo "" >> release_notes.md
           echo "### 🐳 Docker Images" >> release_notes.md
           echo "" >> release_notes.md
+          echo "**Stable Variant (Recommended for Production)**" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "- Base: Alpine 3.22.2" >> release_notes.md
+          echo "- Proven stability with weekly security updates" >> release_notes.md
+          echo "" >> release_notes.md
           echo "\`\`\`bash" >> release_notes.md
           echo "# From GitHub Container Registry (GHCR)" >> release_notes.md
           echo "docker pull ${GHCR_IMAGE}:${VERSION}" >> release_notes.md
+          echo "docker pull ${GHCR_IMAGE}:latest" >> release_notes.md
           echo "" >> release_notes.md
           echo "# From Docker Hub" >> release_notes.md
           echo "docker pull ${DOCKERHUB_IMAGE}:${VERSION}" >> release_notes.md
+          echo "docker pull ${DOCKERHUB_IMAGE}:latest" >> release_notes.md
+          echo "\`\`\`" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "**Edge Variant (Testing Only)**" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "- Base: Alpine edge (bleeding edge)" >> release_notes.md
+          echo "- ⚠️ **NOT recommended for production** - faster updates, less stable" >> release_notes.md
+          echo "- Available on GHCR only" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "\`\`\`bash" >> release_notes.md
+          echo "# From GitHub Container Registry (GHCR)" >> release_notes.md
+          echo "docker pull ${GHCR_IMAGE}:${VERSION}-edge" >> release_notes.md
+          echo "docker pull ${GHCR_IMAGE}:edge" >> release_notes.md
           echo "\`\`\`" >> release_notes.md
           echo "" >> release_notes.md
           echo "### 📋 Software Bill of Materials (SBOM)" >> release_notes.md
           echo "" >> release_notes.md
-          echo "This release includes comprehensive SBOM files for supply chain security:" >> release_notes.md
+          echo "This release includes comprehensive SBOM files for **both variants** for supply chain security:" >> release_notes.md
           echo "" >> release_notes.md
-          echo "- **CycloneDX**: JSON and XML formats" >> release_notes.md
-          echo "- **SPDX**: JSON and tag-value formats" >> release_notes.md
-          echo "- **Human-readable**: Table format" >> release_notes.md
+          echo "- **CycloneDX**: JSON and XML formats (stable + edge)" >> release_notes.md
+          echo "- **SPDX**: JSON and tag-value formats (stable + edge)" >> release_notes.md
+          echo "- **Human-readable**: Table format (stable + edge)" >> release_notes.md
           echo "" >> release_notes.md
-          echo "Download SBOM files from the release assets below." >> release_notes.md
+          echo "Download SBOM files from the release assets below (prefixed with \`stable-\` or \`edge-\`)." >> release_notes.md
           echo "" >> release_notes.md
           echo "---" >> release_notes.md
           echo "" >> release_notes.md
@@ -410,10 +484,16 @@ jobs:
           echo ""
           echo "✅ Release notes generation complete"
 
-      - name: 📦 Download SBOM Artifacts
+      - name: 📦 Download SBOM Artifacts (Stable)
         uses: actions/download-artifact@v4
         with:
-          name: sbom-v${{ needs.determine-version.outputs.version }}
+          name: sbom-stable-v${{ needs.determine-version.outputs.version }}
+          path: ./sbom
+
+      - name: 📦 Download SBOM Artifacts (Edge)
+        uses: actions/download-artifact@v4
+        with:
+          name: sbom-edge-v${{ needs.determine-version.outputs.version }}
           path: ./sbom
 
       - name: 🏷️ Create GitHub Release

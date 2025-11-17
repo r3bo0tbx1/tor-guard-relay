@@ -16,6 +16,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.2] - 2025-11-17
+
+Add Alpine edge variant with dual-track build strategy 🏗️✅ - 🟢/⚠️
+
+### ✨ Features
+
+- Add Dockerfile.edge for bleeding-edge Alpine builds
+- Implement dual-track CI/CD strategy (stable + edge variants)
+- Configure GHCR-only deployment for edge variant (prevents production use)
+- Add separate SBOM generation for both variants
+- Skip Docker Hub login for edge builds to optimize workflow
+
+### 📚 Documentation
+
+- Enhance comprehensive testing scripts documentation
+  - Document quick-test.sh for ENV compatibility validation
+  - Add test-build-v1.1.2.sh for local registry testing
+  - Document security-validation-tests.sh usage
+- Add project screenshots (bootstrapping, bridge-line, relay-status, Cosmos dashboard)
+- Add project logo (src/logo.png)
+- Update FAQ.md with edge variant information
+- Refine PR template with security considerations
+- Update workflows documentation for dual-track strategy
+
+### 🔁 CI/CD Improvements
+
+- Extend release.yml with matrix strategy for stable/edge builds
+- Add variant-specific tagging (:edge, :1.1.2-edge)
+- Remove dependabot.yml (manual dependency management preferred)
+- Enhance validate.yml with Trivy SARIF upload
+
+### 🏗️ Build Variants
+
+🟢 Stable (Production):
+- Base: Alpine 3.22.2
+- Tags: :latest, :stable, :1.1.2
+- Registries: Docker Hub + GHCR
+- Recommended for production relays
+
+⚠️ Edge (Testing):
+- Base: Alpine edge (bleeding edge)
+- Tags: :edge, :1.1.2-edge  
+- Registries: GHCR only
+- Latest Tor/obfs4 packages, NOT recommended for production
+
+BREAKING CHANGES: None
+
+---
+
 ## [1.1.1] - 2025-11-14
 
 ### 🚀 Major Release: Ultra-Optimized Build + Security Hardening + Configuration Enhancement
@@ -323,7 +372,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## 📊 Release Information
 
 * **🎉 First Release:** v1.0.0 (November 1, 2025)
-* **📦 Current Stable:** v1.1.1 (November 13, 2025)
+* **📦 Current Stable:** v1.1.2 (November 17, 2025)
 * **🔗 Latest Release:** [GitHub Releases](https://github.com/r3bo0tbx1/tor-guard-relay/releases/latest)
 * **🐳 Docker Images:**
 
@@ -336,15 +385,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Version   | Status                | Support Level                               |
 | --------- | --------------------- | ------------------------------------------- |
-| **1.1.1** | 🟢 🛡️ **Active**     | Full support (current stable)               |
-| **1.1.0** | 🟡 🔧 **Maintenance** | Security + critical fixes only              |
-| **1.0.9** | 🟠 ⚠️ **Legacy**      | Security patches only – upgrade recommended |
-| **1.0.8** | 🔴 ❌ **EOL**          | No support – upgrade immediately            |
+| **1.1.2** | 🟢 🛡️ **Active**     | Full support (current stable)               |
+| **1.1.1** | 🟡 🔧 **Maintenance** | Security + critical fixes only              |
+| **1.0.8** | 🟠 ⚠️ **Legacy**      | Security patches only – upgrade recommended |
+| **1.0.9** | 🔴 ❌ **EOL**          | No support – upgrade immediately            |
 
 ---
 
 ## 🔗 Release Links
 
+[1.1.2]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.1.2
 [1.1.1]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.1.1
 [1.1.0]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.1.0
 [1.0.9]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.0.9
