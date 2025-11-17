@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [1.1.2] - 2025-11-17
+## [1.1.2] - 2025-11-18
 
 Add Alpine edge variant with dual-track build strategy 🏗️✅ - 🟢/⚠️
 
@@ -372,7 +372,7 @@ BREAKING CHANGES: None
 ## 📊 Release Information
 
 * **🎉 First Release:** v1.0.0 (November 1, 2025)
-* **📦 Current Stable:** v1.1.2 (November 17, 2025)
+* **📦 Current Stable:** v1.1.2 (November 18, 2025)
 * **🔗 Latest Release:** [GitHub Releases](https://github.com/r3bo0tbx1/tor-guard-relay/releases/latest)
 * **🐳 Docker Images:**
 

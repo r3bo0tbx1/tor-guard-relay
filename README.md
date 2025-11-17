@@ -160,7 +160,7 @@ docker pull r3bo0tbx1/onion-relay:1.1.2
 
 # Pull from GHCR
 docker pull ghcr.io/r3bo0tbx1/onion-relay:latest
-docker pull ghcr.io/r3bo0tbx1/onion-relay:stable
+docker pull ghcr.io/r3bo0tbx1/onion-relay:1.1.2
 ```
 
 ### Edge Variant (Testing Only)
@@ -170,10 +170,13 @@ docker pull ghcr.io/r3bo0tbx1/onion-relay:stable
 - ⚡ Bleeding-edge Alpine packages (faster security updates)
 - ⚡ Latest Tor and obfs4 versions as soon as available
 - ⚠️ **NOT recommended for production** - less stable, potential breaking changes
-- ⚠️ Available **only on GHCR** (not Docker Hub)
+- 📦 Available on both Docker Hub and GHCR
 
 ```bash
-# Pull from GHCR only
+# Pull from Docker Hub
+docker pull r3bo0tbx1/onion-relay:edge
+
+# Pull from GHCR
 docker pull ghcr.io/r3bo0tbx1/onion-relay:edge
 docker pull ghcr.io/r3bo0tbx1/onion-relay:1.1.2-edge
 ```
@@ -192,7 +195,7 @@ docker pull ghcr.io/r3bo0tbx1/onion-relay:1.1.2-edge
 | Breaking changes | ❌ Rare | ⚠️ Possible |
 | Security updates | Weekly | Weekly (newer packages) |
 | Package versions | Proven | Bleeding edge |
-| Docker Hub | ✅ Yes | ❌ No |
+| Docker Hub | ✅ Yes | ✅ Yes |
 | GHCR | ✅ Yes | ✅ Yes |
 
 > 💡 **Our recommendation:** Use **stable** for production relays, **edge** only for testing or when you specifically need the latest package versions.

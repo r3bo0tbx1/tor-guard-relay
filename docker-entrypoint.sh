@@ -1,6 +1,6 @@
 #!/bin/sh
 # docker-entrypoint.sh - Tor Guard Relay initialization and process management
-# 🆕 v1.1.1 - Ultra-optimized 17.1 MB build with multi-mode support
+# 🆕 v1.1.2 - Ultra-optimized 17.1 MB build with multi-mode support
 
 set -e
 
@@ -76,7 +76,7 @@ cleanup_and_exit() {
 # Startup banner
 startup_banner() {
   log "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-  log "🧅 Tor Guard Relay v1.1.1 - Initialization"
+  log "🧅 Tor Guard Relay v1.1.2 - Initialization"
   log "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
   log ""
 }

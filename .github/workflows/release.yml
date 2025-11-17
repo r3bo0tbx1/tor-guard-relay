@@ -112,7 +112,7 @@ jobs:
             suffix: "-edge"
             is_latest: "false"
             base: "Alpine edge"
-            push_dockerhub: "false"
+            push_dockerhub: "true"
 
     steps:
       - name: 📥 Checkout Repository
@@ -231,38 +231,51 @@ jobs:
           if [ "$BUILD_TYPE" = "release" ]; then
             # New release: Add special tags
             if [ "$IS_LATEST" = "true" ]; then
-              # Stable variant gets :latest and :stable
+              # Stable variant gets :latest
               TAGS+=("${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:latest")
-              TAGS+=("${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:stable")
             else
-              # Edge variant gets :edge only
+              # Edge variant gets :edge
               TAGS+=("${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:edge")
             fi
 
-            # Add Docker Hub tags only for stable variant
+            # Add Docker Hub tags
             if [ "$PUSH_DOCKERHUB" = "true" ]; then
-              TAGS+=("${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}")
-              TAGS+=("${{ env.DOCKERHUB_IMAGE_NAME }}:latest")
-              TAGS+=("${{ env.DOCKERHUB_IMAGE_NAME }}:stable")
+              if [ "$IS_LATEST" = "true" ]; then
+                # Stable: versioned tag + :latest
+                TAGS+=("${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}")
+                TAGS+=("${{ env.DOCKERHUB_IMAGE_NAME }}:latest")
+              else
+                # Edge: only :edge (no versioned tag for Docker Hub)
+                TAGS+=("${{ env.DOCKERHUB_IMAGE_NAME }}:edge")
+              fi
             fi
           elif [ "$BUILD_TYPE" = "weekly" ]; then
             # Weekly rebuild: Update version tag with fresh packages
             if [ "$IS_LATEST" = "true" ]; then
               TAGS+=("${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:latest")
-              TAGS+=("${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:stable")
             else
               TAGS+=("${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:edge")
             fi
 
             if [ "$PUSH_DOCKERHUB" = "true" ]; then
-              TAGS+=("${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}")
-              TAGS+=("${{ env.DOCKERHUB_IMAGE_NAME }}:latest")
-              TAGS+=("${{ env.DOCKERHUB_IMAGE_NAME }}:stable")
+              if [ "$IS_LATEST" = "true" ]; then
+                # Stable: versioned tag + :latest
+                TAGS+=("${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}")
+                TAGS+=("${{ env.DOCKERHUB_IMAGE_NAME }}:latest")
+              else
+                # Edge: only :edge (no versioned tag for Docker Hub)
+                TAGS+=("${{ env.DOCKERHUB_IMAGE_NAME }}:edge")
+              fi
             fi
           else
             # Manual/validated builds: version tag only
             if [ "$PUSH_DOCKERHUB" = "true" ]; then
-              TAGS+=("${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}${SUFFIX}")
+              if [ "$IS_LATEST" = "true" ]; then
+                TAGS+=("${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}")
+              else
+                # Edge manual builds: only :edge for Docker Hub
+                TAGS+=("${{ env.DOCKERHUB_IMAGE_NAME }}:edge")
+              fi
             fi
           fi
 
@@ -459,12 +472,14 @@ jobs:
           echo "" >> release_notes.md
           echo "- Base: Alpine edge (bleeding edge)" >> release_notes.md
           echo "- ⚠️ **NOT recommended for production** - faster updates, less stable" >> release_notes.md
-          echo "- Available on GHCR only" >> release_notes.md
           echo "" >> release_notes.md
           echo "\`\`\`bash" >> release_notes.md
-          echo "# From GitHub Container Registry (GHCR)" >> release_notes.md
+          echo "# From GitHub Container Registry (GHCR) - versioned + simple tags" >> release_notes.md
           echo "docker pull ${GHCR_IMAGE}:${VERSION}-edge" >> release_notes.md
           echo "docker pull ${GHCR_IMAGE}:edge" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "# From Docker Hub - simple tag only" >> release_notes.md
+          echo "docker pull ${DOCKERHUB_IMAGE}:edge" >> release_notes.md
           echo "\`\`\`" >> release_notes.md
           echo "" >> release_notes.md
           echo "### 📋 Software Bill of Materials (SBOM)" >> release_notes.md
