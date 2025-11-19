@@ -293,6 +293,6 @@ If you still see this error after updating to v1.1.1:
 
 ---
 
-**Version:** 1.1.1
-**Last Updated:** 2025-11-13
+**Version:** 1.1.2
+**Last Updated:** 2025-11-18
 **Maintainer:** rE-Bo0t.bx1 <r3bo0tbx1@brokenbotnet.com>

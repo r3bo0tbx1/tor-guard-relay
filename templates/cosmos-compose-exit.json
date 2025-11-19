@@ -40,11 +40,11 @@
       "labels": {
         "cosmos-stack": "TorExitRelay",
         "cosmos-stack-main": "tor-exit-relay",
-        "cosmos-description": "⚠️ Tor Exit Relay v1.1.1 - Reduced exit policy (HTTP/HTTPS only) | ENV-based config | Weekly security updates",
+        "cosmos-description": "⚠️ Tor Exit Relay v1.1.2 - Reduced exit policy (HTTP/HTTPS only) | ENV-based config | Weekly security updates",
         "cosmos-icon": "https://raw.githubusercontent.com/r3bo0tbx1/tor-guard-relay/refs/heads/main/src/exit.png",
         "cosmos-auto-update": "true",
         "cosmos-force-network-secured": "false",
-        "cosmos-version": "1.1.1"
+        "cosmos-version": "1.1.2"
       }
     }
   },
@@ -54,7 +54,7 @@
   },
   "metadata": {
     "description": "⚠️ Tor Exit Relay - Requires dedicated IP, abuse handling, and legal preparation",
-    "version": "1.1.1",
+    "version": "1.1.2",
     "author": "r3bo0tbx1",
     "tags": ["tor", "relay", "exit", "privacy", "requires-legal-preparation"],
     "configuration_method": "environment_variables",

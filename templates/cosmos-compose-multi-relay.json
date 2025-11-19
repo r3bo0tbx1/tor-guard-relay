@@ -40,14 +40,14 @@
       "labels": {
         "cosmos-stack": "TorMultiRelay",
         "cosmos-stack-main": "TorRelay1",
-        "cosmos-description": "🧅 Hardened Tor Guard Relay v1.1.1 with diagnostics & auto-healing",
+        "cosmos-description": "🧅 Hardened Tor Guard Relay v1.1.2 with diagnostics & auto-healing",
         "cosmos-icon": "https://raw.githubusercontent.com/r3bo0tbx1/tor-guard-relay/main/src/onion.png",
         "cosmos-auto-update": "true",
         "cosmos-auto-update-type": "registry",
         "cosmos-force-network-secured": "false",
         "cosmos-auto-update-notify": "true",
         "cosmos-auto-update-restart": "true",
-        "cosmos-version": "1.1.1",
+        "cosmos-version": "1.1.2",
         "maintainer": "rE-Bo0t.bx1 <r3bo0tbx1@brokenbotnet.com>"
       }
     },
@@ -89,14 +89,14 @@
       ],
       "labels": {
         "cosmos-stack": "TorMultiRelay",
-        "cosmos-description": "🧅 Hardened Tor Guard Relay v1.1.1 with diagnostics & auto-healing",
+        "cosmos-description": "🧅 Hardened Tor Guard Relay v1.1.2 with diagnostics & auto-healing",
         "cosmos-icon": "https://raw.githubusercontent.com/r3bo0tbx1/tor-guard-relay/main/src/onion.png",
         "cosmos-auto-update": "true",
         "cosmos-auto-update-type": "registry",
         "cosmos-force-network-secured": "false",
         "cosmos-auto-update-notify": "true",
         "cosmos-auto-update-restart": "true",
-        "cosmos-version": "1.1.1",
+        "cosmos-version": "1.1.2",
         "maintainer": "rE-Bo0t.bx1 <r3bo0tbx1@brokenbotnet.com>"
       }
     },
@@ -138,14 +138,14 @@
       ],
       "labels": {
         "cosmos-stack": "TorMultiRelay",
-        "cosmos-description": "🧅 Hardened Tor Guard Relay v1.1.1 with diagnostics & auto-healing",
+        "cosmos-description": "🧅 Hardened Tor Guard Relay v1.1.2 with diagnostics & auto-healing",
         "cosmos-icon": "https://raw.githubusercontent.com/r3bo0tbx1/tor-guard-relay/main/src/onion.png",
         "cosmos-auto-update": "true",
         "cosmos-auto-update-type": "registry",
         "cosmos-force-network-secured": "false",
         "cosmos-auto-update-notify": "true",
         "cosmos-auto-update-restart": "true",
-        "cosmos-version": "1.1.1",
+        "cosmos-version": "1.1.2",
         "maintainer": "rE-Bo0t.bx1 <r3bo0tbx1@brokenbotnet.com>"
       }
     }
@@ -160,7 +160,7 @@
   },
   "metadata": {
     "description": "🧅 Tor Guard Multi-Relay Stack - 3 relays with ultra-optimized 17.1 MB containers",
-    "version": "1.1.1",
+    "version": "1.1.2",
     "author": "r3bo0tbx1",
     "tags": ["tor", "relay", "privacy", "multi-relay"]
   }

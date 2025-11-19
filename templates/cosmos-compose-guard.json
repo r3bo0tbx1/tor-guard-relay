@@ -39,11 +39,11 @@
       "labels": {
         "cosmos-stack": "TorGuardRelay",
         "cosmos-stack-main": "tor-guard-relay",
-        "cosmos-description": "🧅 Tor Guard Relay v1.1.1 - High-bandwidth guard/middle node | ENV-based config | Weekly security updates",
+        "cosmos-description": "🧅 Tor Guard Relay v1.1.2 - High-bandwidth guard/middle node | ENV-based config | Weekly security updates",
         "cosmos-icon": "https://raw.githubusercontent.com/r3bo0tbx1/tor-guard-relay/refs/heads/main/src/onion.png",
         "cosmos-auto-update": "true",
         "cosmos-force-network-secured": "false",
-        "cosmos-version": "1.1.1"
+        "cosmos-version": "1.1.2"
       }
     }
   },
@@ -53,7 +53,7 @@
   },
   "metadata": {
     "description": "🧅 Tor Guard Relay - High-bandwidth guard/middle node",
-    "version": "1.1.1",
+    "version": "1.1.2",
     "author": "r3bo0tbx1",
     "tags": ["tor", "relay", "guard", "middle", "privacy"],
     "configuration_method": "environment_variables",

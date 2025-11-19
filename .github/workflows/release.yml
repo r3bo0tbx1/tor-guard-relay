@@ -3,9 +3,26 @@ name: 🚀✨ Build
 on:
   workflow_dispatch:
     inputs:
-      release_type:
-        description: 'Release type'
+      build_mode:
+        description: 'Build mode'
         required: true
+        default: 'rebuild'
+        type: choice
+        options:
+          - rebuild
+          - version_bump
+      variants:
+        description: 'Which variants to build'
+        required: true
+        default: 'both'
+        type: choice
+        options:
+          - both
+          - latest
+          - edge
+      release_type:
+        description: 'Release type (only for version_bump mode)'
+        required: false
         default: 'patch'
         type: choice
         options:
@@ -13,7 +30,8 @@ on:
           - minor
           - patch
   schedule:
-    - cron: '30 18 * * 0'
+    - cron: '30 18 * * 0'  # Weekly rebuild (stable only): Sundays at 18:30 UTC
+    - cron: '0 12 */3 * *'  # Edge-only rebuild: Every 3 days at 12:00 UTC
   push:
     tags:
       - 'v*.*.*'
@@ -38,6 +56,7 @@ jobs:
       is_release: ${{ steps.version.outputs.is_release }}
       build_date: ${{ steps.version.outputs.build_date }}
       short_sha: ${{ steps.version.outputs.short_sha }}
+      build_variants: ${{ steps.version.outputs.build_variants }}
 
     steps:
       - name: 📥 Checkout Repository
@@ -50,25 +69,60 @@ jobs:
         run: |
           set -e
           echo "🔍 Determining version context..."
+          BUILD_VARIANTS="both"  # Default: build both variants
+
           if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
             VERSION="${GITHUB_REF#refs/tags/v}"
             BUILD_TYPE="release"
             IS_RELEASE="true"
+            BUILD_VARIANTS="both"
             echo "🏷️ Release tag detected: v${VERSION}"
           elif [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+            BUILD_MODE="${{ github.event.inputs.build_mode }}"
+            BUILD_VARIANTS="${{ github.event.inputs.variants }}"
             LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v1.0.0")
-            VERSION="${LATEST_TAG#v}-manual-${GITHUB_RUN_NUMBER}"
-            BUILD_TYPE="manual"
-            IS_RELEASE="false"
-            echo "👤 Manual build version: ${VERSION}"
-          else
-            # Weekly rebuild: Use the last release version (no suffix)
-            # This rebuilds the image with updated Alpine packages
+
+            if [[ "${BUILD_MODE}" == "rebuild" ]]; then
+              # Rebuild mode: Use last release version (same as weekly)
+              VERSION="${LATEST_TAG#v}"
+              BUILD_TYPE="manual-rebuild"
+              IS_RELEASE="false"
+              echo "🔄 Manual rebuild of last release: ${VERSION} (with updated packages)"
+              echo "   Variants: ${BUILD_VARIANTS}"
+            else
+              # Version bump mode: Create new version with suffix
+              VERSION="${LATEST_TAG#v}-manual-${GITHUB_RUN_NUMBER}"
+              BUILD_TYPE="manual"
+              IS_RELEASE="false"
+              echo "👤 Manual build version: ${VERSION}"
+              echo "   Variants: ${BUILD_VARIANTS}"
+            fi
+          elif [[ "${GITHUB_EVENT_NAME}" == "schedule" ]]; then
+            # Scheduled rebuild: Determine which schedule based on time
             LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v1.0.0")
             VERSION="${LATEST_TAG#v}"
-            BUILD_TYPE="weekly"
             IS_RELEASE="false"
-            echo "📅 Weekly rebuild of last release: ${VERSION} (with updated packages)"
+
+            CURRENT_HOUR=$(date -u +%H)
+            if [[ "${CURRENT_HOUR}" == "18" ]]; then
+              # Weekly rebuild (Sundays 18:30 UTC): Build stable only
+              BUILD_TYPE="weekly"
+              BUILD_VARIANTS="latest"
+              echo "📅 Weekly rebuild of last release: ${VERSION} (stable variant with updated packages)"
+            else
+              # Edge-only rebuild (Every 3 days at 12:00 UTC): Build edge only
+              BUILD_TYPE="edge-rebuild"
+              BUILD_VARIANTS="edge"
+              echo "⚡ Edge-only rebuild of last release: ${VERSION} (edge variant with updated packages)"
+            fi
+          else
+            # Fallback (shouldn't happen)
+            LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v1.0.0")
+            VERSION="${LATEST_TAG#v}"
+            BUILD_TYPE="unknown"
+            IS_RELEASE="false"
+            BUILD_VARIANTS="both"
+            echo "⚠️ Unknown trigger: ${VERSION}"
           fi
           BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
           SHORT_SHA=$(git rev-parse --short HEAD)
@@ -77,6 +131,7 @@ jobs:
           echo "is_release=${IS_RELEASE}" >> "$GITHUB_OUTPUT"
           echo "build_date=${BUILD_DATE}" >> "$GITHUB_OUTPUT"
           echo "short_sha=${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+          echo "build_variants=${BUILD_VARIANTS}" >> "$GITHUB_OUTPUT"
 
       - name: 📋 Version Information
         run: |
@@ -95,8 +150,11 @@ jobs:
       contents: read
       packages: write
     if: |
-      github.event_name != 'workflow_run' ||
-      github.event.workflow_run.conclusion == 'success'
+      (github.event_name != 'workflow_run' ||
+      github.event.workflow_run.conclusion == 'success') &&
+      (needs.determine-version.outputs.build_variants == 'both' ||
+      (needs.determine-version.outputs.build_variants == 'latest' && matrix.variant.name == 'stable') ||
+      (needs.determine-version.outputs.build_variants == 'edge' && matrix.variant.name == 'edge'))
     strategy:
       fail-fast: false
       matrix:
@@ -249,8 +307,8 @@ jobs:
                 TAGS+=("${{ env.DOCKERHUB_IMAGE_NAME }}:edge")
               fi
             fi
-          elif [ "$BUILD_TYPE" = "weekly" ]; then
-            # Weekly rebuild: Update version tag with fresh packages
+          elif [ "$BUILD_TYPE" = "weekly" ] || [ "$BUILD_TYPE" = "manual-rebuild" ] || [ "$BUILD_TYPE" = "edge-rebuild" ]; then
+            # Weekly rebuild, manual rebuild, or edge-only rebuild: Update version tag with fresh packages
             if [ "$IS_LATEST" = "true" ]; then
               TAGS+=("${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:latest")
             else

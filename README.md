@@ -169,6 +169,7 @@ docker pull ghcr.io/r3bo0tbx1/onion-relay:1.1.2
 
 - ⚡ Bleeding-edge Alpine packages (faster security updates)
 - ⚡ Latest Tor and obfs4 versions as soon as available
+- ⚡ **More frequent rebuilds** - Every 3 days + weekly (~2-3x faster updates than stable)
 - ⚠️ **NOT recommended for production** - less stable, potential breaking changes
 - 📦 Available on both Docker Hub and GHCR
 
@@ -718,12 +719,22 @@ Found a vulnerability? See our [Security Policy](SECURITY.md) for responsible di
 
 ### Updates
 
-Images are automatically rebuilt weekly to include security patches:
+Images are automatically rebuilt on separate schedules to include security patches:
+
+**Stable Variant** (`:latest`)
 - **Schedule:** Every Sunday at 18:30 UTC
-- **Includes:** Latest Tor + Alpine updates
+- **Includes:** Latest Tor + Alpine 3.22.2 updates
 - **Strategy:** Overwrites last release version (e.g., `:1.1.2`) with updated packages
-- **Tags Updated:** Both `:latest` and version tags (e.g., `:1.1.2`)
-- **Auto-published:** To Docker Hub and GitHub Container Registry
+- **Tags Updated:** `:latest` and version tags (e.g., `:1.1.2`)
+
+**Edge Variant** (`:edge`)
+- **Schedule:** Every 3 days at 12:00 UTC (independent schedule)
+- **Includes:** Latest Tor + Alpine edge (bleeding-edge) updates
+- **Strategy:** Overwrites last release version (e.g., `:1.1.2-edge`) with updated packages
+- **Tags Updated:** `:edge` and version tags (e.g., `:1.1.2-edge`)
+- **Frequency:** ~2-3x more frequent updates than stable
+
+All images auto-published to Docker Hub and GitHub Container Registry
 
 <br>
 
