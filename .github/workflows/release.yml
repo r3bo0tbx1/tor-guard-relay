@@ -150,11 +150,8 @@ jobs:
       contents: read
       packages: write
     if: |
-      (github.event_name != 'workflow_run' ||
-      github.event.workflow_run.conclusion == 'success') &&
-      (needs.determine-version.outputs.build_variants == 'both' ||
-      (needs.determine-version.outputs.build_variants == 'latest' && matrix.variant.name == 'stable') ||
-      (needs.determine-version.outputs.build_variants == 'edge' && matrix.variant.name == 'edge'))
+      github.event_name != 'workflow_run' ||
+      github.event.workflow_run.conclusion == 'success'
     strategy:
       fail-fast: false
       matrix:
@@ -176,7 +173,28 @@ jobs:
       - name: 📥 Checkout Repository
         uses: actions/checkout@v5
 
+      - name: 🎯 Check if variant should be built
+        id: should_build
+        run: |
+          BUILD_VARIANTS="${{ needs.determine-version.outputs.build_variants }}"
+          VARIANT_NAME="${{ matrix.variant.name }}"
+
+          # Determine if this variant should be built
+          SHOULD_BUILD="false"
+
+          if [ "$BUILD_VARIANTS" = "both" ]; then
+            SHOULD_BUILD="true"
+          elif [ "$BUILD_VARIANTS" = "latest" ] && [ "$VARIANT_NAME" = "stable" ]; then
+            SHOULD_BUILD="true"
+          elif [ "$BUILD_VARIANTS" = "edge" ] && [ "$VARIANT_NAME" = "edge" ]; then
+            SHOULD_BUILD="true"
+          fi
+
+          echo "should_build=${SHOULD_BUILD}" >> "$GITHUB_OUTPUT"
+          echo "🔍 Variant: ${VARIANT_NAME}, Build Variants: ${BUILD_VARIANTS}, Should Build: ${SHOULD_BUILD}"
+
       - name: 🎯 Verify Tools Directory
+        if: steps.should_build.outputs.should_build == 'true'
         run: |
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo "📝 Pre-Build: Verifying Tools"
@@ -209,6 +227,7 @@ jobs:
           fi
 
       - name: 🔧 Normalize scripts before build
+        if: steps.should_build.outputs.should_build == 'true'
         run: |
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo "🔧 Normalizing Line Endings and Permissions"
@@ -243,13 +262,14 @@ jobs:
           echo "🎉 Normalization complete"
 
       - name: 🐳 Login to Docker Hub
-        if: matrix.variant.push_dockerhub == 'true'
+        if: steps.should_build.outputs.should_build == 'true' && matrix.variant.push_dockerhub == 'true'
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: 📦 Login to GitHub Container Registry
+        if: steps.should_build.outputs.should_build == 'true'
         uses: docker/login-action@v3
         with:
           registry: ${{ env.GHCR_REGISTRY }}
@@ -257,14 +277,17 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 🖥️ Set up QEMU
+        if: steps.should_build.outputs.should_build == 'true'
         uses: docker/setup-qemu-action@v3
         with:
           platforms: arm64,amd64
 
       - name: 🔨 Set up Docker Buildx
+        if: steps.should_build.outputs.should_build == 'true'
         uses: docker/setup-buildx-action@v3
 
       - name: 🏷️ Generate Docker Tags
+        if: steps.should_build.outputs.should_build == 'true'
         id: tags
         run: |
           VERSION="${{ needs.determine-version.outputs.version }}"
@@ -346,6 +369,7 @@ jobs:
           done
 
       - name: 🚀 Build and Push Multi-Arch Image
+        if: steps.should_build.outputs.should_build == 'true'
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -369,7 +393,7 @@ jobs:
           provenance: true
 
       - name: 📋 Generate SBOM (CycloneDX & SPDX)
-        if: needs.determine-version.outputs.is_release == 'true'
+        if: steps.should_build.outputs.should_build == 'true' && needs.determine-version.outputs.is_release == 'true'
         run: |
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo "📋 Generating Software Bill of Materials (SBOM)"
@@ -420,7 +444,7 @@ jobs:
           jq '.components | length' "sbom-${VARIANT}-cyclonedx-v${VERSION}.json" | xargs echo "   Total packages:"
 
       - name: 📤 Upload SBOM Artifacts
-        if: needs.determine-version.outputs.is_release == 'true'
+        if: steps.should_build.outputs.should_build == 'true' && needs.determine-version.outputs.is_release == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: sbom-${{ matrix.variant.name }}-v${{ needs.determine-version.outputs.version }}
