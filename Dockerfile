@@ -45,6 +45,8 @@ SHELL ["/bin/ash", "-eo", "pipefail", "-c"]
 RUN set -eux \
  && apk upgrade --no-cache \
  && apk add --no-cache \
+    musl \
+    openssl \
     tor \
     tini \
  && mkdir -p /var/lib/tor /var/log/tor /run/tor /etc/tor \
