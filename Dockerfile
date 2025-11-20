@@ -1,10 +1,24 @@
 # syntax=docker/dockerfile:1.20
 # ============================================================================
-# Tor Guard Relay - Ultra-optimized ~17.1 MB container
-# Base: Alpine 3.22.2 | Multi-arch: amd64, arm64
-# v1.1.1 - Busybox-only, 4 diagnostic tools, AIO multi-mode support
+# Builder Stage: Compile Lyrebird with latest Go to fix CVEs
 # ============================================================================
+FROM golang:1.24-alpine AS builder
 
+# Install git to fetch source
+RUN apk add --no-cache git
+
+# Build Lyrebird (obfs4) from official Tor Project repo
+# We use -ldflags="-s -w" to strip debug symbols and reduce binary size
+# We go get -u to update dependencies to fix CVEs in crypto/net/etc.
+WORKDIR /go/src/lyrebird
+RUN git clone https://gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/lyrebird.git . \
+ && go get -u ./... \
+ && go mod tidy \
+ && CGO_ENABLED=0 go build -ldflags="-s -w" -o /usr/bin/lyrebird ./cmd/lyrebird
+
+# ============================================================================
+# Final Stage: Tor Guard Relay - Ultra-optimized ~17.1 MB container
+# ============================================================================
 FROM alpine:3.22.2
 
 ARG BUILD_DATE
@@ -27,11 +41,11 @@ LABEL maintainer="rE-Bo0t.bx1 <r3bo0tbx1@brokenbotnet.com>" \
 
 SHELL ["/bin/ash", "-eo", "pipefail", "-c"]
 
+# Note: 'lyrebird' removed from apk add, we copy it from builder instead
 RUN set -eux \
  && apk add --no-cache \
     tor \
     tini \
-    lyrebird \
  && mkdir -p /var/lib/tor /var/log/tor /run/tor /etc/tor \
  && chown -R tor:tor /var/lib/tor /var/log/tor /run/tor /etc/tor \
  && chmod 700 /var/lib/tor \
@@ -40,6 +54,9 @@ RUN set -eux \
  && printf "Version: %s\nBuild Date: %s\nArchitecture: %s\n" \
     "${BUILD_VERSION:-unversioned}" "${BUILD_DATE:-unknown}" "${TARGETARCH:-amd64}" > /build-info.txt \
  && rm -rf /var/cache/apk/*
+
+# Copy compiled Lyrebird from builder stage
+COPY --from=builder /usr/bin/lyrebird /usr/bin/lyrebird
 
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 COPY healthcheck.sh /usr/local/bin/healthcheck.sh
