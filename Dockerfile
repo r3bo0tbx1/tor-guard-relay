@@ -41,8 +41,9 @@ LABEL maintainer="rE-Bo0t.bx1 <r3bo0tbx1@brokenbotnet.com>" \
 
 SHELL ["/bin/ash", "-eo", "pipefail", "-c"]
 
-# Note: 'lyrebird' removed from apk add, we copy it from builder instead
+# Note: 'lyrebird' removed from apk add, copying it from builder instead
 RUN set -eux \
+ && apk upgrade --no-cache
  && apk add --no-cache \
     tor \
     tini \
