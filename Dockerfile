@@ -43,7 +43,7 @@ SHELL ["/bin/ash", "-eo", "pipefail", "-c"]
 
 # Note: 'lyrebird' removed from apk add, copying it from builder instead
 RUN set -eux \
- && apk upgrade --no-cache
+ && apk upgrade --no-cache \
  && apk add --no-cache \
     tor \
     tini \
