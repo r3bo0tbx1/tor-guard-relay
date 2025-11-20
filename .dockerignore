@@ -1,4 +1,4 @@
-# 🧱 Version: optimized for Tor Guard Relay CI builds
+# 🧱 optimized for CI builds
 
 # Ignore Git and CI/CD metadata
 .git
