@@ -2,7 +2,7 @@
 # ============================================================================
 # Builder Stage: Compile Lyrebird with latest Go to fix CVEs
 # ============================================================================
-FROM golang:1.25-alpine AS builder
+FROM golang:1.24-alpine AS builder
 
 # Install git to fetch source
 RUN apk add --no-cache git
