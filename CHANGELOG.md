@@ -77,7 +77,7 @@ BREAKING CHANGES: None
 * 🌉 **Bridge relay with obfs4** - Integrated lyrebird for pluggable transport (drop-in replacement for `thetorproject/obfs4-bridge`)
 * 🔧 **ENV-based configuration** - Full relay setup via environment variables (TOR_*, official bridge naming compatible)
 * 📊 **Smart diagnostics** - 4 busybox-only tools: `status`, `health`, `fingerprint`, `bridge-line`
-* 📉 **Image size** - Reduced from ~45MB to ~16.8 MB (busybox-only, no bash/python/jq)
+* 📉 **Image size** - Reduced from ~45MB to ~17.1 MB (busybox-only, no bash/python/jq)
 * 🩺 **Smart healthcheck** - New `healthcheck.sh` works with both mounted configs and ENV variables
 * 🔄 **Weekly rebuilds** - Automated Sunday 18:30 UTC rebuilds with latest Alpine/Tor patches (same version tag, fresh packages)
 

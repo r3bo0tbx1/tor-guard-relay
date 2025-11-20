@@ -1,5 +1,5 @@
 #!/bin/sh
-# Enhanced status check (busybox only, with emojis)
+# Enhanced status check (busybox only)
 
 TOR_LOG="${TOR_LOG_DIR:-/var/log/tor}/notices.log"
 TOR_DATA="${TOR_DATA_DIR:-/var/lib/tor}"

@@ -1,5 +1,5 @@
 #!/bin/sh
-# healthcheck.sh - Docker HEALTHCHECK wrapper
+# healthcheck.sh - Docker HEALTHCHECK wrapper 🐋💚
 # Validates Tor configuration regardless of source (mounted file or ENV vars)
 
 set -e

@@ -1,5 +1,5 @@
 #!/bin/sh
-# Show relay fingerprint (enhanced with emojis)
+# Show relay fingerprint
 
 FINGERPRINT_FILE="${TOR_DATA_DIR:-/var/lib/tor}/fingerprint"
 

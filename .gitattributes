@@ -1,7 +1,7 @@
 # Auto detect text files and perform LF normalization
 * text=auto
 
-# Ensure shell scripts always use LF (Linux line endings)
+# Ensure shell scripts always use LF
 *.sh text eol=lf
 docker-entrypoint.sh text eol=lf
 healthcheck.sh text eol=lf

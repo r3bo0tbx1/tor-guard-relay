@@ -1,4 +1,4 @@
-# Act secrets file (GitHub Actions local testing)
+# Act secrets file
 .secrets
 
 # Docker volumes
