@@ -52,12 +52,7 @@ jobs:
       - name: 🔍 Validate Dockerfile Syntax
         run: |
           echo "🐳 Validating Dockerfile build context..."
-          docker build --no-cache -t tor-relay-test . 2>&1 | \
-            tee /tmp/docker-build.log || true
-          if grep -i "error" /tmp/docker-build.log; then
-            echo "❌ Dockerfile validation failed"
-            exit 1
-          fi
+          docker build --no-cache -t tor-relay-test .
           echo "✅ Dockerfile syntax valid"
 
       - name: 📝 Lint Shell Scripts

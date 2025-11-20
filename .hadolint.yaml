@@ -14,6 +14,12 @@ ignored:
   # latest security patches automatically.
   - DL3018
 
+  # DL3062: Ignore unpinned Go packages
+  # Rationale: We intentionally use 'go get -u' to fetch the latest security 
+  # patches for dependencies during our weekly rebuilds. Pinning versions
+  # would prevent automatic vulnerability remediation.
+  - DL3062
+
 # ============================================================================
 # Security & Quality Settings
 # ============================================================================
