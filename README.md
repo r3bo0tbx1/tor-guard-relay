@@ -29,7 +29,7 @@
 ### Why Choose This Project?
 
 - 🛡️ **Security-First** - Hardened Alpine Linux, non-root operation
-- 🪶 **Very light** - Ultra-minimal 17.1 MB image
+- 🪶 **Very light** - Ultra-minimal 16.8 MB image
 - 🎯 **Simple** - One command to deploy, minimal configuration needed
 - 📊 **Observable** - 4 busybox-only diagnostic tools with JSON health API
 - 🌉 **Multi-Mode** - Supports guard, exit, and bridge (obfs4) relays
@@ -55,7 +55,7 @@
 
 Diagnostics are run only through `docker exec`, with no exposed monitoring ports.
 
-Minimal surface area, roughly 17.1 MB.
+Minimal surface area, roughly 16.8 MB.
 
 <br>
 
@@ -312,7 +312,7 @@ STATUS=$(echo "$HEALTH" | jq -r '.status')
 
 ### Security & Reliability
 - ✅ Non-root execution (runs as `tor` user)
-- ✅ Ultra-minimal Alpine Linux base (**~17.1 MB**)
+- ✅ Ultra-minimal Alpine Linux base (**~16.8 MB**)
 - ✅ Busybox-only tools (no bash/python dependencies)
 - ✅ Automatic permission healing on startup
 - ✅ Configuration validation before start
@@ -767,7 +767,7 @@ All images auto-published to Docker Hub and GitHub Container Registry
 ![GitHub Issues](https://img.shields.io/github/issues/r3bo0tbx1/tor-guard-relay?style=for-the-badge)
 
 **Current Version:** v1.1.2 • **Status:** Production Ready  
-**Image Size:** 17.1 MB • **Rebuild:** Weekly  
+**Image Size:** 16.8 MB • **Rebuild:** Weekly  
 **Registries:** Docker Hub • GHCR  
 
 </div>

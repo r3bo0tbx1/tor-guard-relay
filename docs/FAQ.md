@@ -30,7 +30,7 @@ Built on Alpine Linux 3.22.2 with a minimal 20MB image size, busybox-only tools,
 
 | Feature | This Project | Official Images |
 |---------|--------------|-----------------|
-| **Image size** | ~17.1 MB | ~100+ MB |
+| **Image size** | ~16.8 MB | ~100+ MB |
 | **Base** | Alpine 3.22.2 | Debian |
 | **Diagnostics** | 4 busybox tools + JSON API | None |
 | **Multi-mode** | Guard/Exit/Bridge in one image | Separate images |
@@ -468,7 +468,7 @@ docker exec tor-relay fingerprint
 
 **Security features:**
 - ✅ Non-root execution (tor user, UID 100, GID 101)
-- ✅ Ultra-minimal image (~17.1 MB, Alpine 3.22.2)
+- ✅ Ultra-minimal image (~16.8 MB, Alpine 3.22.2)
 - ✅ Busybox-only (no bash, python, or unnecessary binaries)
 - ✅ No exposed monitoring ports (diagnostics via `docker exec` only)
 - ✅ Weekly automated security rebuilds (Sundays 18:30 UTC)

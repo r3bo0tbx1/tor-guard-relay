@@ -69,7 +69,7 @@ BREAKING CHANGES: None
 
 ### 🚀 Major Release: Ultra-Optimized Build + Security Hardening + Configuration Enhancement
 
-**This is a major architectural release** migrating from a dual-build structure (45MB) to a single ultra-optimized 17.1 MB build with busybox-only dependencies, comprehensive security hardening, simplified multi-mode operation, and enhanced configuration documentation.
+**This is a major architectural release** migrating from a dual-build structure (45MB) to a single ultra-optimized 16.8 MB build with busybox-only dependencies, comprehensive security hardening, simplified multi-mode operation, and enhanced configuration documentation.
 
 ### ✨ Core Features
 
@@ -77,7 +77,7 @@ BREAKING CHANGES: None
 * 🌉 **Bridge relay with obfs4** - Integrated lyrebird for pluggable transport (drop-in replacement for `thetorproject/obfs4-bridge`)
 * 🔧 **ENV-based configuration** - Full relay setup via environment variables (TOR_*, official bridge naming compatible)
 * 📊 **Smart diagnostics** - 4 busybox-only tools: `status`, `health`, `fingerprint`, `bridge-line`
-* 📉 **Image size** - Reduced from ~45MB to ~17.1 MB (busybox-only, no bash/python/jq)
+* 📉 **Image size** - Reduced from ~45MB to ~16.8 MB (busybox-only, no bash/python/jq)
 * 🩺 **Smart healthcheck** - New `healthcheck.sh` works with both mounted configs and ENV variables
 * 🔄 **Weekly rebuilds** - Automated Sunday 18:30 UTC rebuilds with latest Alpine/Tor patches (same version tag, fresh packages)
 
@@ -170,7 +170,7 @@ BREAKING CHANGES: None
 * **CRITICAL**: Fixed missing Tor bootstrap logs in container output (added `Log notice stdout`)
 * Fixed healthcheck failures on ENV-based deployments
 * Fixed version references across all scripts and documentation
-* Corrected image size documentation (~35MB → ~17.1 MB)
+* Corrected image size documentation (~35MB → ~16.8 MB)
 
 ### 🔄 Migration Path
 

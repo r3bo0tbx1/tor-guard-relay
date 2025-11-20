@@ -30,7 +30,7 @@ We actively support the following versions with security updates:
 - ✅ **NO monitoring HTTP endpoints** - Removed for maximum security
 - ✅ **NO exposed metrics ports** - All monitoring via `docker exec` only
 - ✅ **Only Tor protocol ports exposed** - ORPort, DirPort (configurable), obfs4 (bridge mode)
-- ✅ **~17.1 MB image** - Minimal attack surface
+- ✅ **~16.8 MB image** - Minimal attack surface
 
 ### Public Port Exposure (Configurable)
 
@@ -90,7 +90,7 @@ This project uses **host networking mode** (`--network host`) for best Tor perfo
 - ✅ Runs as non-root user (`tor` UID 100)
 - ✅ Drops all capabilities, adds only required ones
 - ✅ Uses `no-new-privileges:true`
-- ✅ Minimal Alpine Linux base (~17.1 MB)
+- ✅ Minimal Alpine Linux base (~16.8 MB)
 - ✅ No exposed monitoring ports
 - ✅ Automatic permission healing
 
@@ -429,7 +429,7 @@ echo "relay.conf" >> .gitignore
 * Drops all capabilities by default
 * Adds only NET_BIND_SERVICE, CHOWN, SETUID, SETGID, DAC_OVERRIDE
 * Uses `no-new-privileges:true`
-* Ultra-minimal Alpine base (~17.1 MB)
+* Ultra-minimal Alpine base (~16.8 MB)
 * NO monitoring HTTP endpoints to attack
 * Automatic permission healing
 * Configuration validation before start
@@ -473,7 +473,7 @@ chown tor:tor /var/lib/tor
 ### Built-in Protections
 
 * ✅ Non-root operation (user `tor` UID 100)
-* ✅ Minimal base image (Alpine Linux ~17.1 MB)
+* ✅ Minimal base image (Alpine Linux ~16.8 MB)
 * ✅ Drops all capabilities, adds only required ones
 * ✅ Read-only configuration mount
 * ✅ Automatic permission healing

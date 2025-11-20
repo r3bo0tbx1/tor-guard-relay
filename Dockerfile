@@ -17,7 +17,7 @@ RUN git clone https://gitlab.torproject.org/tpo/anti-censorship/pluggable-transp
  && CGO_ENABLED=0 go build -ldflags="-s -w" -o /usr/bin/lyrebird ./cmd/lyrebird
 
 # ============================================================================
-# Final Stage: Tor Guard Relay - Ultra-optimized ~17.1 MB container
+# Final Stage: Tor Guard Relay - Ultra-optimized ~16.8 MB container
 # ============================================================================
 FROM alpine:3.22.2
 
@@ -27,7 +27,7 @@ ARG TARGETARCH
 
 LABEL maintainer="rE-Bo0t.bx1 <r3bo0tbx1@brokenbotnet.com>" \
       org.opencontainers.image.title="Tor Guard Relay" \
-      org.opencontainers.image.description="🧅 Ultra-optimized Tor Guard/Exit/Bridge Relay AIO (~17.1 MB)" \
+      org.opencontainers.image.description="🧅 Ultra-optimized Tor Guard/Exit/Bridge Relay AIO (~16.8 MB)" \
       org.opencontainers.image.version="${BUILD_VERSION}" \
       org.opencontainers.image.created="${BUILD_DATE}" \
       org.opencontainers.image.source="https://github.com/r3bo0tbx1/tor-guard-relay" \
