@@ -4,21 +4,14 @@
 # ============================================================================
 FROM golang:1.25-alpine AS builder
 
-# Install git to fetch source
 RUN apk add --no-cache git
 
-# Build Lyrebird (obfs4) from official Tor Project repo
-# We use -ldflags="-s -w" to strip debug symbols and reduce binary size
-# We go get -u to update dependencies to fix CVEs in crypto/net/etc.
 WORKDIR /go/src/lyrebird
 RUN git clone https://gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/lyrebird.git . \
  && go get -u ./... \
  && go mod tidy \
  && CGO_ENABLED=0 go build -ldflags="-s -w" -o /usr/bin/lyrebird ./cmd/lyrebird
 
-# ============================================================================
-# Final Stage: Tor Guard Relay - Ultra-optimized ~16.8 MB container
-# ============================================================================
 FROM alpine:3.22.2
 
 ARG BUILD_DATE
@@ -43,6 +36,9 @@ SHELL ["/bin/ash", "-eo", "pipefail", "-c"]
 
 # Note: 'lyrebird' removed from apk add, copying it from builder instead
 RUN set -eux \
+ && deluser klogd || true \
+ && addgroup -g 101 -S tor \
+ && adduser -u 100 -S -D -H -h /var/lib/tor -G tor -s /sbin/nologin tor \
  && apk upgrade --no-cache \
  && apk add --no-cache \
     tor \
@@ -56,7 +52,6 @@ RUN set -eux \
     "${BUILD_VERSION:-unversioned}" "${BUILD_DATE:-unknown}" "${TARGETARCH:-amd64}" > /build-info.txt \
  && rm -rf /var/cache/apk/*
 
-# Copy compiled Lyrebird from builder stage
 COPY --from=builder /usr/bin/lyrebird /usr/bin/lyrebird
 
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh

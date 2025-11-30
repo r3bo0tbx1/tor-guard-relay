@@ -4,13 +4,8 @@
 # ============================================================================
 FROM golang:1.25-alpine AS builder
 
-# Install git to fetch source
 RUN apk add --no-cache git
 
-# Build Lyrebird (obfs4) from official Tor Project repo
-# 1. Clone official repo
-# 2. Update dependencies (go get -u) to fix crypto/net CVEs
-# 3. Build with stripped flags (-s -w) for minimal size
 WORKDIR /go/src/lyrebird
 RUN git clone https://gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/lyrebird.git . \
  && go get -u ./... \
@@ -48,6 +43,9 @@ SHELL ["/bin/ash", "-eo", "pipefail", "-c"]
 
 # NOTE: 'lyrebird' removed from apk add list (we copy it from builder instead)
 RUN set -eux \
+ && deluser klogd || true \
+ && addgroup -g 101 -S tor \
+ && adduser -u 100 -S -D -H -h /var/lib/tor -G tor -s /sbin/nologin tor \
  && apk upgrade --no-cache \
  && apk add --no-cache \
     tor \
@@ -61,7 +59,6 @@ RUN set -eux \
     "${BUILD_VERSION:-unversioned}" "${BUILD_DATE:-unknown}" "${TARGETARCH:-amd64}" > /build-info.txt \
  && rm -rf /var/cache/apk/*
 
-# Copy compiled, secure Lyrebird binary from builder stage
 COPY --from=builder /usr/bin/lyrebird /usr/bin/lyrebird
 
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
