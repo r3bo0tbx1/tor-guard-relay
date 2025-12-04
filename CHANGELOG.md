@@ -37,8 +37,6 @@ Focused on refining deployment templates, enhancing security defaults in Compose
 
 ---
 
----
-
 ## [1.1.2] - 2025-11-18
 
 Add Alpine edge variant with dual-track build strategy 🏗️✅ - 🟢/⚠️
