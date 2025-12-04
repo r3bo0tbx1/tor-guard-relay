@@ -31,7 +31,7 @@
 - 🛡️ **Security-First** - Hardened Alpine Linux, non-root operation
 - 🪶 **Very light** - Ultra-minimal 16.8 MB image
 - 🎯 **Simple** - One command to deploy, minimal configuration needed
-- 📊 **Observable** - 4 busybox-only diagnostic tools with JSON health API
+- 📊 **Observable** - 5 busybox-only diagnostic tools with JSON health API
 - 🌉 **Multi-Mode** - Supports guard, exit, and bridge (obfs4) relays
 - 🔄 **Automated** - Weekly security rebuilds, CI/CD ready
 - 📚 **Documented** - Comprehensive guides for deployment, monitoring, backup, and more
@@ -147,7 +147,7 @@ We offer **two build variants** to match your risk tolerance and requirements:
 
 ### Stable Variant (Recommended)
 
-**Base:** Alpine 3.22.2 | **Recommended for:** Production relays
+**Base:** Alpine 3.23.0 | **Recommended for:** Production relays
 
 - ✅ Battle-tested Alpine stable release
 - ✅ Weekly automated rebuilds with latest security patches
@@ -377,7 +377,7 @@ STATUS=$(echo "$HEALTH" | jq -r '.status')
 - **[Quick Start Script](scripts/utilities/quick-start.sh)** - ⭐ **NEW!** Interactive relay deployment wizard
 - **[Migration Assistant](scripts/migration/migrate-from-official.sh)** - ⭐ **NEW!** Automated migration from thetorproject/obfs4-bridge
 - **[Deployment Guide](docs/DEPLOYMENT.md)** - Complete installation for Docker CLI, Compose, Cosmos Cloud, and Portainer
-- **[Migration Guide](docs/MIGRATION-V1.1.X.md)** - Upgrade to v1.1.1 or migrate from other Tor setups
+- **[Migration Guide](docs/MIGRATION-V1.1.X.md)** - Upgrade to >=v1.1.1 or migrate from other Tor setups
 
 ### Technical Reference
 - **[Architecture](docs/ARCHITECTURE.md)** - ⭐ **NEW!** Technical architecture with Mermaid diagrams
