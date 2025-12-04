@@ -14,8 +14,8 @@ We actively support the following versions with security updates:
 
 | Version   | Status                | Support Level                               |
 | --------- | --------------------- | ------------------------------------------- |
-| **1.1.1** | 🟢 🛡️ **Active**     | Full support (current stable)               |
-| **1.1.0** | 🟡 🔧 **Maintenance** | Security + critical fixes only              |
+| **>=1.1.2** | 🟢 🛡️ **Active**     | Full support (current stable)               |
+| **1.1.1** | 🟡 🔧 **Maintenance** | Security + critical fixes only              |
 | **1.0.9** | 🟠 ⚠️ **Legacy**      | Security patches only – upgrade recommended |
 | **1.0.8** | 🔴 ❌ **EOL**          | No support – upgrade immediately            |
 
@@ -25,7 +25,7 @@ We actively support the following versions with security updates:
 
 ### Ultra-Minimal Port Exposure
 
-**v1.1.1 follows an ultra-minimal security architecture:**
+**>=v1.1.1 follows an ultra-minimal security architecture:**
 
 - ✅ **NO monitoring HTTP endpoints** - Removed for maximum security
 - ✅ **NO exposed metrics ports** - All monitoring via `docker exec` only
@@ -61,7 +61,7 @@ PUBLIC PORTS:
 
 ### No Monitoring Ports
 
-**v1.1.1 has ZERO exposed monitoring services:**
+**>=v1.1.1 has ZERO exposed monitoring services:**
 
 - ❌ No metrics HTTP endpoints
 - ❌ No health check HTTP APIs
@@ -74,6 +74,7 @@ docker exec tor-relay status        # Health report with emojis
 docker exec tor-relay health        # JSON health output
 docker exec tor-relay fingerprint   # Display fingerprint
 docker exec tor-relay bridge-line   # Get bridge line (bridge mode)
+docker exec tor-relay gen-auth      # Generate Control Port hash
 ```
 
 ### Network Architecture
@@ -117,6 +118,7 @@ This project uses **host networking mode** (`--network host`) for best Tor perfo
 docker run -d \
   --name tor-relay \
   --network host \
+  --security-opt no-new-privileges:true \
   --restart unless-stopped \
   -v $(pwd)/relay.conf:/etc/tor/torrc:ro \
   -v tor-guard-data:/var/lib/tor \
@@ -484,7 +486,7 @@ chown tor:tor /var/lib/tor
 * ✅ Input validation for all ENV variables
 * ✅ OBFS4V_* whitelist to prevent command injection
 
-### Multi-Mode Support (v1.1.1)
+### Multi-Mode Support (>=v1.1.1)
 
 The container supports three relay modes:
 
@@ -657,4 +659,4 @@ Security researchers who responsibly disclose vulnerabilities will be listed her
 
 ---
 
-*Last Updated: 2025-11-13 | Version: 1.1.1*
+*Last Updated: 2025-12-05 | Version: 1.1.3*

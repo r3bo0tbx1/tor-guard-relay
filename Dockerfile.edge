@@ -1,7 +1,4 @@
 # syntax=docker/dockerfile:1.20
-# ============================================================================
-# Builder Stage: Compile Lyrebird with latest Go to fix CVEs
-# ============================================================================
 FROM golang:1.25.5-alpine AS builder
 
 RUN apk add --no-cache git
@@ -11,13 +8,6 @@ RUN git clone https://gitlab.torproject.org/tpo/anti-censorship/pluggable-transp
  && go get -u ./... \
  && go mod tidy \
  && CGO_ENABLED=0 go build -ldflags="-s -w" -o /usr/bin/lyrebird ./cmd/lyrebird
-
-# ============================================================================
-# Tor Guard Relay - EDGE variant (Alpine edge - bleeding edge)
-# Base: Alpine edge | Multi-arch: amd64, arm64
-# ⚠️ WARNING: Uses Alpine edge - faster updates, less stable
-# ⚠️ NOT RECOMMENDED for production relays - use for testing only
-# ============================================================================
 
 FROM alpine:edge
 
@@ -41,7 +31,6 @@ LABEL maintainer="rE-Bo0t.bx1 <r3bo0tbx1@brokenbotnet.com>" \
 
 SHELL ["/bin/ash", "-eo", "pipefail", "-c"]
 
-# NOTE: 'lyrebird' removed from apk add list (we copy it from builder instead)
 RUN set -eux \
  && deluser klogd || true \
  && addgroup -g 101 -S tor \
@@ -67,6 +56,7 @@ COPY tools/status /usr/local/bin/status
 COPY tools/health /usr/local/bin/health
 COPY tools/fingerprint /usr/local/bin/fingerprint
 COPY tools/bridge-line /usr/local/bin/bridge-line
+COPY tools/auth-gen /usr/local/bin/auth-gen
 
 RUN set -eux \
  && chmod +x /usr/local/bin/docker-entrypoint.sh \
@@ -75,6 +65,7 @@ RUN set -eux \
               /usr/local/bin/health \
               /usr/local/bin/fingerprint \
               /usr/local/bin/bridge-line \
+              /usr/local/bin/auth-gen \              
  && echo "🧩 Registered diagnostic tools:" \
  && ls -lh /usr/local/bin/status /usr/local/bin/health /usr/local/bin/fingerprint /usr/local/bin/bridge-line
 

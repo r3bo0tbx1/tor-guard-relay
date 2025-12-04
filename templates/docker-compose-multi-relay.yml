@@ -1,14 +1,21 @@
 version: '3.8'
 
-# Tor Guard Relay - Multi-Instance Deployment
-# Clean YAML syntax, validated with yamllint
-
 services:
   tor-relay-1:
-    image: r3bo0tbx1/onion-relay:latest # or use ghcr.io/r3bo0tbx1/onion-relay:latest
+    image: r3bo0tbx1/onion-relay:latest
     container_name: guard-relay-1
     restart: unless-stopped
     network_mode: host
+    security_opt:
+      - no-new-privileges:true
+    cap_add:
+      - NET_BIND_SERVICE
+      - CHOWN
+      - SETUID
+      - SETGID
+      - DAC_OVERRIDE
+    cap_drop:
+      - ALL
     volumes:
       - ./relays/relay1.conf:/etc/tor/torrc:ro
       - tor-guard-data-1:/var/lib/tor
@@ -38,6 +45,16 @@ services:
     container_name: guard-relay-2
     restart: unless-stopped
     network_mode: host
+    security_opt:
+      - no-new-privileges:true
+    cap_add:
+      - NET_BIND_SERVICE
+      - CHOWN
+      - SETUID
+      - SETGID
+      - DAC_OVERRIDE
+    cap_drop:
+      - ALL
     volumes:
       - ./relays/relay2.conf:/etc/tor/torrc:ro
       - tor-guard-data-2:/var/lib/tor
@@ -67,6 +84,16 @@ services:
     container_name: guard-relay-3
     restart: unless-stopped
     network_mode: host
+    security_opt:
+      - no-new-privileges:true
+    cap_add:
+      - NET_BIND_SERVICE
+      - CHOWN
+      - SETUID
+      - SETGID
+      - DAC_OVERRIDE
+    cap_drop:
+      - ALL
     volumes:
       - ./relays/relay3.conf:/etc/tor/torrc:ro
       - tor-guard-data-3:/var/lib/tor
@@ -95,56 +122,18 @@ volumes:
   tor-guard-data-1:
     name: tor-guard-data-1
     driver: local
-  
   tor-guard-logs-1:
     name: tor-guard-logs-1
     driver: local
-  
   tor-guard-data-2:
     name: tor-guard-data-2
     driver: local
-  
   tor-guard-logs-2:
     name: tor-guard-logs-2
     driver: local
-  
   tor-guard-data-3:
     name: tor-guard-data-3
     driver: local
-  
   tor-guard-logs-3:
     name: tor-guard-logs-3
     driver: local
-
-# ============================================================================
-# Usage Instructions
-# ============================================================================
-#
-# 1. CREATE CONFIGS:
-#    Create relay1.conf, relay2.conf, relay3.conf in ./relays/ directory
-#    Each relay needs unique:
-#    - ORPort (e.g., 9001, 9011, 9021)
-#    - DirPort (e.g., 9030, 9040, 9050) or disable with 0
-#    - Nickname (e.g., MyRelay1, MyRelay2, MyRelay3)
-#    All ports are fully configurable - use 443 for better circumvention
-#
-# 2. DEPLOY:
-#    docker-compose -f docker-compose-multi-relay.yml up -d
-#
-# 3. VERIFY:
-#    docker exec guard-relay-1 status    # Check status
-#    docker exec guard-relay-1 health    # JSON health
-#    docker exec guard-relay-1 fingerprint  # Get fingerprint
-#    docker logs -f guard-relay-1        # Watch logs
-#
-# ============================================================================
-# Diagnostic Tools
-# ============================================================================
-#
-# 4 built-in tools available on each container:
-#   status       - Full relay status with emojis
-#   health       - JSON health check
-#   fingerprint  - Display relay fingerprint
-#   bridge-line  - Get bridge line (bridge mode only)
-#
-# ============================================================================

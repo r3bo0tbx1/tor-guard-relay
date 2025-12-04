@@ -2,7 +2,7 @@
 
 This document provides general migration guidance for Tor Guard Relay deployments.
 
-For **specific v1.1.0 → v1.1.1 migration**, see [`MIGRATION-V1.1.X.md`](MIGRATION-V1.1.X.md).
+For **specific v1.1.0 → >=v1.1.1 migration**, see [`MIGRATION-V1.1.X.md`](MIGRATION-V1.1.X.md).
 
 ---
 
@@ -362,10 +362,10 @@ docker exec <container> status
 
 | From | To | Guide |
 |------|-----|-------|
-| v1.1.0 | v1.1.1 | [MIGRATION-V1.1.X.md](MIGRATION-V1.1.X.md) |
+| v1.1.0 | >=v1.1.1 | [MIGRATION-V1.1.X.md](MIGRATION-V1.1.X.md) |
 | Official bridge | v1.1.1 | [MIGRATION-V1.1.X.md](MIGRATION-V1.1.X.md) - Path 2 |
 | Future | Future | This document + version-specific guide |
 
 ---
 
-*Last Updated: 2025-11-13*
+*Last Updated: 2025-12-05*

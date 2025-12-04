@@ -57,11 +57,13 @@ flowchart TD
     DiagTools -->|health| HealthTool[📊 tools/health]
     DiagTools -->|fingerprint| FingerprintTool[🆔 tools/fingerprint]
     DiagTools -->|bridge-line| BridgeTool[🌉 tools/bridge-line]
+    DiagTools -->|gen-auth| GenAuthTool[🔑 tools/gen-auth]
 
     StatusTool --> Running
     HealthTool --> Running
     FingerprintTool --> Running
     BridgeTool --> Running
+    GenAuthTool --> Running
 
     Trap --> StopTail[🧽 Kill tail -F PID]
     StopTail --> StopTor[📨 Send SIGTERM to Tor]
@@ -532,6 +534,7 @@ flowchart TD
 | **health** | Monitoring integration | JSON | busybox: pgrep, grep, awk |
 | **fingerprint** | Relay identity | Text + URL | busybox: cat, awk |
 | **bridge-line** | Bridge sharing | obfs4 bridge line | busybox: grep, sed, awk, wget |
+| **gen-auth** | Credential generation | Text (Pass + Hash) | busybox: head, tr, tor |
 
 **All tools:**
 - Use `#!/bin/sh` (POSIX sh, not bash)
@@ -616,6 +619,7 @@ graph TD
         Health["💚 health"]
         Fingerprint["🧬 fingerprint"]
         BridgeLine["🌉 bridge-line"]
+        GenAuth["🔑 gen-auth"]
         
         UsrLocal --> Bin
         Bin --> Entrypoint
@@ -796,7 +800,7 @@ flowchart LR
     end
 
     subgraph Build["🏗️ Docker Build"]
-        Alpine[🐧 Alpine 3.22.2]
+        Alpine[🐧 Alpine 3.23.0]
         Install[📦 apk add packages]
         Copy[📥 Copy scripts and tools]
         Perms[🔒 Set permissions]
@@ -897,6 +901,7 @@ flowchart TD
 | `tools/health` | JSON health API | ~100 |
 | `tools/fingerprint` | Show relay identity | ~50 |
 | `tools/bridge-line` | Generate bridge line | ~80 |
+| `tools/gen-auth` | Generate Control Port auth | ~30 |
 
 ### External Documentation
 
@@ -908,6 +913,6 @@ flowchart TD
 ---
 <div align="center">
 
-**Document Version:** 1.0.3 • **Last Updated:** 2025-11-14 • **Container Version:** v1.1.1
+**Document Version:** 1.0.4 • **Last Updated:** 2025-12-05 • **Container Version:** v1.1.3
 
 </div>

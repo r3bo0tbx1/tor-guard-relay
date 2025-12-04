@@ -1,6 +1,6 @@
 # 📊 Monitoring Guide
 
-Guide to monitoring your Tor Guard Relay with external tools. The v1.1.1 ultra-optimized build (~20 MB) does not include built-in Prometheus metrics endpoints, but provides multiple alternatives for monitoring.
+Guide to monitoring your Tor Guard Relay with external tools. The >=v1.1.1 ultra-optimized build (~20 MB) does not include built-in Prometheus metrics endpoints, but provides multiple alternatives for monitoring.
 
 ---
 
@@ -453,4 +453,4 @@ A:
 
 ---
 
-**Last Updated:** November 2025 | **Version:** 1.1.1
+**Last Updated:** December 2025 | **Version:** 1.1.3

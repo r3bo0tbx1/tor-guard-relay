@@ -74,6 +74,7 @@ docker pull r3bo0tbx1/onion-relay:latest
 docker run -d \
   --name tor-relay \
   --network host \
+  --security-opt no-new-privileges:true \
   -v ~/tor-relay/relay-guard.conf:/etc/tor/torrc:ro \
   -v tor-data:/var/lib/tor \
   -v tor-logs:/var/log/tor \

@@ -1,6 +1,6 @@
 # 🛠️ Tools Reference Guide
 
-**Tor Guard Relay v1.1.1** includes 4 essential diagnostic tools built directly into the ultra-optimized ~20 MB container. All tools are busybox-compatible, executable without file extensions, and designed for production use.
+**Tor Guard Relay 1.1.3** includes 5 essential diagnostic tools built directly into the ultra-optimized ~20 MB container. All tools are busybox-compatible, executable without file extensions, and designed for production use.
 
 ---
 
@@ -12,6 +12,7 @@
 | **health** | JSON health diagnostics | JSON | Machine-readable for monitoring |
 | **fingerprint** | Display relay fingerprint | Text | With Tor Metrics link |
 | **bridge-line** | Get obfs4 bridge line | Text | Bridge mode only |
+| gen-auth | Generate Control Port auth | Text | Password + Hash |
 
 ---
 
@@ -180,6 +181,49 @@ Bridge obfs4 203.0.113.42:9002 ABCD...WXYZ cert=abc123...xyz789 iat-mode=0
 
 ---
 
+### `gen-auth`
+
+**Purpose**: Generate a secure, random 32-character password and its associated hash for configuring the Tor Control Port (required for tools like Nyx).
+
+Usage:
+```bash
+docker exec tor-relay gen-auth
+```
+
+Output Example:
+```bash
+╔════════════════════════════════════════════════════════════╗
+║  Tor Control Port Authentication Generator                 ║
+╚════════════════════════════════════════════════════════════╝
+
+✓ Generated secure 32-character password
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. Save this password (use for Nyx authentication):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+   4xK8mP2qR9vL3nT6wY5sD1gH7jF0bN8c...
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2. Add this line to your torrc:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+   HashedControlPassword 16:A1B2C3D4E5F6...
+
+```
+
+Exit Codes:
+
+* `0` - Success
+* `1` - Error generating hash
+
+When to use:
+
+* When setting up external monitoring tools (Nyx, Prometheus).
+* Run once, copy the values, then update your relay.conf or torrc.
+
+---
+
 ## 🚀 Common Workflows
 
 ### 1. Quick Health Check
@@ -194,7 +238,21 @@ docker exec tor-relay health | jq .status
 docker exec tor-relay health | jq .bootstrap
 ```
 
-### 2. Find Your Relay on Tor Metrics
+### 2. Configure Nyx / Control Port
+
+```bash
+# Generate credentials
+docker exec tor-relay gen-auth
+
+# Add HashedControlPassword to your config
+# Restart relay
+docker restart tor-relay
+
+# Connect with Nyx
+nyx -i 127.0.0.1:9051
+```
+
+### 3. Find Your Relay on Tor Metrics
 ```bash
 # Get fingerprint and metrics link
 docker exec tor-relay fingerprint
@@ -203,7 +261,7 @@ docker exec tor-relay fingerprint
 # Click the Tor Metrics link or search manually
 ```
 
-### 3. Share Your Bridge
+### 4. Share Your Bridge
 ```bash
 # Get bridge line (bridge mode only)
 docker exec tor-bridge bridge-line
@@ -212,7 +270,7 @@ docker exec tor-bridge bridge-line
 # Share ONLY with trusted users, NOT publicly
 ```
 
-### 4. Automated Monitoring
+### 5. Automated Monitoring
 ```bash
 # Simple monitoring script
 while true; do
@@ -230,7 +288,7 @@ while true; do
 done
 ```
 
-### 5. Check Logs
+### 6. Check Logs
 ```bash
 # View recent logs
 docker logs --tail 100 tor-relay
@@ -264,7 +322,7 @@ docker logs tor-relay 2>&1 | grep -i warn
 # Verify tools exist
 docker exec tor-relay ls -la /usr/local/bin/
 
-# Should show: status, health, fingerprint, bridge-line
+# Should show: status, health, fingerprint, bridge-line, gen-auth
 
 # Check PATH
 docker exec tor-relay echo $PATH
@@ -343,18 +401,18 @@ docker logs tor-relay | grep -i obfs4
 
 ## ❓ FAQ
 
-**Q: Why only 4 tools instead of 9?**
-A: The v1.1.1 build prioritizes size optimization (~20 MB vs 45+ MB). These 4 tools cover all essential operations. For advanced monitoring, use external tools like Prometheus.
+**Q: Why only 5 tools instead of 9?**
+A: The v1.1.3 build remains ultra-light (~16.8 MB). These 5 tools cover all essential operations including health checks, identity, and authentication setup.
 
 **Q: Where are metrics/monitoring endpoints?**
 A: Removed to achieve ultra-small image size. Use `health` tool with external monitoring systems or check `/var/log/tor/notices.log` directly.
 
 **Q: Can I still use Prometheus?**
-A: Yes! Export logs or use `health` JSON output with a Prometheus exporter. See [MONITORING.md](./MONITORING.md) for alternatives.
+A: Yes! Use `gen-auth` to configure the Control Port, then run a separate `prometheus-tor-exporter` container alongside this one.
 
 **Q: What happened to the dashboard?**
 A: Removed (required Python/Flask). Use `status` tool for visual output or build your own dashboard using `health` JSON.
 
 ---
 
-**Last Updated:** November 2025 | **Version:** 1.1.1
+**Last Updated:** December 2025 | **Version:** 1.1.3

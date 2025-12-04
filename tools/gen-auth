@@ -1,0 +1,43 @@
+#!/bin/sh
+# Generate Tor Control Port authentication credentials
+
+set -e
+
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+YELLOW='\033[1;33m'
+CYAN='\033[0;36m'
+BOLD='\033[1m'
+NC='\033[0m'
+
+PASS=$(head -c 24 /dev/urandom | base64 | tr -d '\n')
+HASH=$(tor --hash-password "$PASS")
+
+echo ""
+echo "${CYAN}╔════════════════════════════════════════════════════════════╗${NC}"
+echo "${CYAN}║${NC}  ${BOLD}Tor Control Port Authentication Generator${NC}              ${CYAN}║${NC}"
+echo "${CYAN}╚════════════════════════════════════════════════════════════╝${NC}"
+echo ""
+echo "${GREEN}✓${NC} Generated secure 32-character password"
+echo ""
+echo "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo "${BOLD}1. Save this password (use for Nyx authentication):${NC}"
+echo "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo ""
+echo "   ${BLUE}${PASS}${NC}"
+echo ""
+echo "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo "${BOLD}2. Add this line to your torrc:${NC}"
+echo "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo ""
+echo "   ${GREEN}HashedControlPassword ${HASH}${NC}"
+echo ""
+echo "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo ""
+echo "${CYAN}📝 Next steps:${NC}"
+echo "   1. Edit your relay.conf and add the HashedControlPassword line above"
+echo "   2. Restart your container: ${BOLD}docker restart tor-relay${NC}"
+echo "   3. Connect with Nyx using the password shown above"
+echo ""
+echo "${CYAN}💡 Tip:${NC} Save the password in a secure password manager!"
+echo ""

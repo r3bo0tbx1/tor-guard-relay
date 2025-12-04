@@ -16,6 +16,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.3] - 2025-12-05
+
+### ⚡ Optimization & Tooling Update
+
+Focused on refining deployment templates, enhancing security defaults in Compose configurations, and updating core dependencies to the latest stable releases.
+
+### ✨ Features
+
+- **New Tool**: Introduced `gen-auth` utility to easily generate hashed passwords for Tor Control Port authentication.
+- **Healthchecks**: Added native Docker healthcheck definitions to all Compose templates for improved orchestration reliability.
+- **Dependencies**: Updated base images to **Alpine 3.23.0** and **Golang 1.25.5** for latest security patches and performance.
+
+### 🐳 Docker Compose Refactoring
+
+- **Standardization**: Unified security options and capabilities (dropping unnecessary privileges) across all templates.
+- **Cleanup**: Removed excessive comments and legacy instructions from Compose files for a cleaner, production-ready format.
+- **Volumes**: Enhanced volume management configurations to ensure robust data persistence across container recreations.
+- **Consistency**: Standardized environment variable definitions across Guard, Exit, and Bridge templates.
+
+---
+
+---
+
 ## [1.1.2] - 2025-11-18
 
 Add Alpine edge variant with dual-track build strategy 🏗️✅ - 🟢/⚠️
@@ -385,7 +408,7 @@ BREAKING CHANGES: None
 
 | Version   | Status                | Support Level                               |
 | --------- | --------------------- | ------------------------------------------- |
-| **1.1.2** | 🟢 🛡️ **Active**     | Full support (current stable)               |
+| **1.1.3** | 🟢 🛡️ **Active**     | Full support (current stable)               |
 | **1.1.1** | 🟡 🔧 **Maintenance** | Security + critical fixes only              |
 | **1.0.8** | 🟠 ⚠️ **Legacy**      | Security patches only – upgrade recommended |
 | **1.0.9** | 🔴 ❌ **EOL**          | No support – upgrade immediately            |
@@ -394,6 +417,7 @@ BREAKING CHANGES: None
 
 ## 🔗 Release Links
 
+[1.1.3]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.1.3
 [1.1.2]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.1.2
 [1.1.1]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.1.1
 [1.1.0]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.1.0
@@ -406,7 +430,7 @@ BREAKING CHANGES: None
 [1.0.3]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.0.3
 [1.0.2]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.0.2
 [1.0.1]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.0.1
-[Unreleased]: https://github.com/r3bo0tbx1/tor-guard-relay/compare/v1.1.1...HEAD
+[Unreleased]: https://github.com/r3bo0tbx1/tor-guard-relay/compare/v1.0.1...HEAD
 
 ---
 

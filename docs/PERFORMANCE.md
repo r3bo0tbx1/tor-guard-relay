@@ -346,7 +346,7 @@ time docker exec guard-relay tor --resolve example.com
 
 ## Monitoring & Metrics
 
-v1.1.1 uses **external monitoring** with the `health` JSON API for minimal image size and maximum security.
+>=v1.1.1 uses **external monitoring** with the `health` JSON API for minimal image size and maximum security.
 
 ### 1. JSON Health API
 

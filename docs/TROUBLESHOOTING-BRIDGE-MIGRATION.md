@@ -1,4 +1,4 @@
-# Troubleshooting Bridge Migration to v1.1.1
+# Troubleshooting Bridge Migration to >=v1.1.1
 
 This guide addresses the specific issue where migrating from `thetorproject/obfs4-bridge` to `r3bo0tbx1/onion-relay:1.1.1` results in configuration validation failures and changing fingerprints.
 

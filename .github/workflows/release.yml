@@ -30,8 +30,8 @@ on:
           - minor
           - patch
   schedule:
-    - cron: '30 18 * * 0'  # Weekly rebuild (stable only): Sundays at 18:30 UTC
-    - cron: '0 12 */3 * *'  # Edge-only rebuild: Every 3 days at 12:00 UTC
+    - cron: '30 18 * * 0'
+    - cron: '0 12 */3 * *'
   push:
     tags:
       - 'v*.*.*'

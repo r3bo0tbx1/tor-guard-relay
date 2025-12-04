@@ -1,7 +1,4 @@
 # syntax=docker/dockerfile:1.20
-# ============================================================================
-# Builder Stage: Compile Lyrebird with latest Go to fix CVEs
-# ============================================================================
 FROM golang:1.25.5-alpine AS builder
 
 RUN apk add --no-cache git
@@ -29,12 +26,11 @@ LABEL maintainer="rE-Bo0t.bx1 <r3bo0tbx1@brokenbotnet.com>" \
       org.opencontainers.image.vendor="r3bo0tbx1" \
       org.opencontainers.image.authors="rE-Bo0t.bx1 <r3bo0tbx1@brokenbotnet.com>" \
       org.opencontainers.image.url="https://github.com/r3bo0tbx1/tor-guard-relay" \
-      org.opencontainers.image.base.name="docker.io/library/alpine:3.22.2" \
+      org.opencontainers.image.base.name="docker.io/library/alpine:3.23.0" \
       org.opencontainers.image.revision="${TARGETARCH}"
 
 SHELL ["/bin/ash", "-eo", "pipefail", "-c"]
 
-# Note: 'lyrebird' removed from apk add, copying it from builder instead
 RUN set -eux \
  && deluser klogd || true \
  && addgroup -g 101 -S tor \
@@ -60,6 +56,7 @@ COPY tools/status /usr/local/bin/status
 COPY tools/health /usr/local/bin/health
 COPY tools/fingerprint /usr/local/bin/fingerprint
 COPY tools/bridge-line /usr/local/bin/bridge-line
+COPY tools/auth-gen /usr/local/bin/auth-gen
 
 RUN set -eux \
  && chmod +x /usr/local/bin/docker-entrypoint.sh \
@@ -68,6 +65,7 @@ RUN set -eux \
               /usr/local/bin/health \
               /usr/local/bin/fingerprint \
               /usr/local/bin/bridge-line \
+              /usr/local/bin/auth-gen \
  && echo "🧩 Registered diagnostic tools:" \
  && ls -lh /usr/local/bin/status /usr/local/bin/health /usr/local/bin/fingerprint /usr/local/bin/bridge-line
 

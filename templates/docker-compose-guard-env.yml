@@ -1,65 +1,38 @@
 version: '3.8'
 
-# ============================================================================
-# Tor Guard/Middle Relay - Docker Compose (Environment Variable Method)
-# Using dynamic configuration generation instead of mounting config file
-# ============================================================================
-
 services:
   tor-guard-relay:
-    image: r3bo0tbx1/onion-relay:latest # or use ghcr.io/r3bo0tbx1/onion-relay:latest
+    image: r3bo0tbx1/onion-relay:latest
     container_name: tor-guard-relay
     restart: unless-stopped
     network_mode: host
-
     environment:
-      # ──────────────────────────────────────────────────
-      # Relay Mode Configuration
-      # ──────────────────────────────────────────────────
-      TOR_RELAY_MODE: guard    # guard, exit, or bridge
-
-      # ──────────────────────────────────────────────────
-      # Required: Relay Identity
-      # ──────────────────────────────────────────────────
+      TOR_RELAY_MODE: guard
       TOR_NICKNAME: MyGuardRelay
       TOR_CONTACT_INFO: "your-email@example.com <0xYOUR_PGP_KEY>"
-
-      # ──────────────────────────────────────────────────
-      # Network Ports (defaults shown, fully configurable)
-      # Suggested: Use 443 for ORPort in censored regions
-      # ──────────────────────────────────────────────────
-      TOR_ORPORT: 9001      # Default: 9001, suggested: 443 or any port > 1024
-      TOR_DIRPORT: 9030     # Default: 9030, set to 0 to disable
-
-      # ──────────────────────────────────────────────────
-      # Bandwidth Limits (adjust for your connection)
-      # TOR_BANDWIDTH_RATE/BURST sets RelayBandwidthRate/Burst in torrc
-      # For mounted config, you can use either:
-      #   - RelayBandwidthRate/Burst (relay-specific, recommended)
-      #   - BandwidthRate/Burst (global, all Tor traffic)
-      # ──────────────────────────────────────────────────
+      TOR_ORPORT: 9001
+      TOR_DIRPORT: 9030
       TOR_BANDWIDTH_RATE: "50 MBytes"
       TOR_BANDWIDTH_BURST: "100 MBytes"
-
     volumes:
-      # Persistent data (keys, state, fingerprint)
       - tor-guard-data:/var/lib/tor
-
-      # Persistent logs
       - tor-guard-logs:/var/log/tor
-
-      # Note: No config file mount needed with env var method!
-      # Configuration is generated dynamically at startup
-
-    # Healthcheck
+    security_opt:
+      - no-new-privileges:true
+    cap_add:
+      - NET_BIND_SERVICE
+      - CHOWN
+      - SETUID
+      - SETGID
+      - DAC_OVERRIDE
+    cap_drop:
+      - ALL
     healthcheck:
       test: ["CMD-SHELL", "/usr/local/bin/healthcheck.sh"]
       interval: 10m
       timeout: 15s
       start_period: 30s
       retries: 3
-
-    # Resource limits (optional but recommended)
     deploy:
       resources:
         limits:
@@ -68,8 +41,6 @@ services:
         reservations:
           cpus: '0.5'
           memory: 512M
-
-    # Logging configuration
     logging:
       driver: json-file
       options:
@@ -81,107 +52,3 @@ volumes:
     driver: local
   tor-guard-logs:
     driver: local
-
-# ============================================================================
-# Usage Instructions
-# ============================================================================
-#
-# 1. CONFIGURE:
-#    Edit environment variables above:
-#    - TOR_NICKNAME: Your relay name (alphanumeric, 1-19 chars)
-#    - TOR_CONTACT_INFO: Your email (required)
-#    - TOR_BANDWIDTH_RATE/BURST: Adjust for your connection
-#
-# 2. DEPLOY:
-#    docker-compose -f docker-compose-guard-env.yml up -d
-#
-# 3. VERIFY:
-#    # Check status (pretty output with emojis)
-#    docker exec tor-guard-relay status
-#
-#    # View logs
-#    docker logs -f tor-guard-relay
-#
-#    # Get fingerprint
-#    docker exec tor-guard-relay fingerprint
-#
-# 4. MONITORING:
-#    # JSON health check (for automation/monitoring)
-#    docker exec tor-guard-relay health
-#
-# 5. FIND YOUR RELAY:
-#    After 1-2 hours, search for your relay on:
-#    https://metrics.torproject.org/rs.html
-#
-# ============================================================================
-# Environment Variable vs Config File Method
-# ============================================================================
-#
-# This template uses ENVIRONMENT VARIABLES for configuration.
-#
-# PROS:
-# ✓ No config file to maintain
-# ✓ Easy to change settings (just edit env vars)
-# ✓ Good for simple setups
-# ✓ Works well with orchestration tools
-# ✓ Configuration is generated dynamically at startup
-#
-# CONS:
-# ✗ Less flexible for advanced Tor options
-# ✗ Cannot set all possible Tor directives
-#
-# If you need advanced configuration, use the config file method instead:
-# See: templates/docker-compose.yml
-#
-# ============================================================================
-# Port Information
-# ============================================================================
-#
-# Using network_mode: host, all ports bind directly to the host:
-#
-# PUBLIC (must be accessible from internet):
-# - ORPort (default: 9001, configurable via TOR_ORPORT)
-# - DirPort (default: 9030, configurable via TOR_DIRPORT, can be disabled)
-#
-# All ports are fully configurable. Suggested alternatives:
-# - Use port 443 for ORPort in censored regions (appears as HTTPS)
-# - Use any port > 1024 for unprivileged operation
-#
-# ============================================================================
-# Firewall Configuration
-# ============================================================================
-#
-# Replace 9001/9030 with your actual ports if you changed them:
-#
-# UFW (Ubuntu/Debian):
-#   sudo ufw allow 9001/tcp
-#   sudo ufw allow 9030/tcp
-#
-# firewalld (RHEL/CentOS):
-#   sudo firewall-cmd --permanent --add-port=9001/tcp
-#   sudo firewall-cmd --permanent --add-port=9030/tcp
-#   sudo firewall-cmd --reload
-#
-# iptables:
-#   sudo iptables -A INPUT -p tcp --dport 9001 -j ACCEPT
-#   sudo iptables -A INPUT -p tcp --dport 9030 -j ACCEPT
-#
-# ============================================================================
-# Switching Modes
-# ============================================================================
-#
-# To switch relay modes, just change TOR_RELAY_MODE:
-#
-# Guard/Middle relay (default):
-#   TOR_RELAY_MODE: guard
-#
-# Exit relay (understand legal implications first!):
-#   TOR_RELAY_MODE: exit
-#   See: templates/docker-compose-exit.yml for full example
-#
-# obfs4 Bridge:
-#   TOR_RELAY_MODE: bridge
-#   TOR_OBFS4_PORT: 9002  # Add this
-#   See: templates/docker-compose-bridge.yml for full example
-#
-# ============================================================================

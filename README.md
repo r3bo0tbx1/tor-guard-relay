@@ -116,6 +116,7 @@ docker run -d \
   --name tor-relay \
   --restart unless-stopped \
   --network host \
+  --security-opt no-new-privileges:true \
   -v $(pwd)/relay.conf:/etc/tor/torrc:ro \
   -v tor-guard-data:/var/lib/tor \
   -v tor-guard-logs:/var/log/tor \
@@ -156,11 +157,11 @@ We offer **two build variants** to match your risk tolerance and requirements:
 ```bash
 # Pull from Docker Hub (easiest)
 docker pull r3bo0tbx1/onion-relay:latest
-docker pull r3bo0tbx1/onion-relay:1.1.2
+docker pull r3bo0tbx1/onion-relay:1.1.3
 
 # Pull from GHCR
 docker pull ghcr.io/r3bo0tbx1/onion-relay:latest
-docker pull ghcr.io/r3bo0tbx1/onion-relay:1.1.2
+docker pull ghcr.io/r3bo0tbx1/onion-relay:1.1.3
 ```
 
 ### Edge Variant (Testing Only)
@@ -179,7 +180,7 @@ docker pull r3bo0tbx1/onion-relay:edge
 
 # Pull from GHCR
 docker pull ghcr.io/r3bo0tbx1/onion-relay:edge
-docker pull ghcr.io/r3bo0tbx1/onion-relay:1.1.2-edge
+docker pull ghcr.io/r3bo0tbx1/onion-relay:1.1.3-edge
 ```
 
 **When to use edge:**
@@ -229,7 +230,7 @@ See [Deployment Guide](docs/DEPLOYMENT.md) for complete instructions.
 
 <div style="color:#7ce5ff;font-family:monospace;font-size:17px;margin-bottom:14px;">▍ 🔧 Diagnostic Tools</div>
 
-Version >=v1.1.1 includes four busybox-only tools.
+Version >=v1.1.1 includes five busybox-only tools.
 
 | Tool | Purpose | Usage |
 |------|---------|--------|
@@ -237,6 +238,7 @@ Version >=v1.1.1 includes four busybox-only tools.
 | health | JSON health | `docker exec tor-relay health` |
 | fingerprint | Show fingerprint | `docker exec tor-relay fingerprint` |
 | bridge-line | obfs4 line | `docker exec tor-relay bridge-line` |
+| gen-auth | Credentials for Nyx | `docker exec tor-relay gen-auth` |
 
 ```bash
 # Full health report with emojis
@@ -265,7 +267,23 @@ Example JSON:
 
 <div style="color:#7ce5ff;font-family:monospace;font-size:17px;margin-bottom:14px;">▍ 📊 Monitoring and Observability</div>
 
-**>=v1.1.1 uses external monitoring** for minimal image size and maximum security.
+<br>
+<div align="center">
+  <img src="src/screenshots/nyx.png" alt="Nyx Monitor Interface"/>
+</div>
+<br>
+
+**>=v1.1.2 supports both real-time CLI monitoring and external observability** for minimal image size and maximum security.
+
+### Real-Time Monitoring (Nyx)
+
+You can connect Nyx (formerly arm) to your relay securely using the Control Port.
+
+1. Generate credentials: docker exec tor-relay gen-auth
+2. Add the hash to your config.
+3. Connect via local socket or TCP.
+
+> 📖 Full Setup: See the [Control Port Guide](docs/CONTROL-PORT.md) for step-by-step Nyx configuration.
 
 ### JSON Health API
 
@@ -320,7 +338,7 @@ STATUS=$(echo "$HEALTH" | jq -r '.status')
 - ✅ Graceful shutdown with cleanup
 
 ### Operations & Automation
-- ✅ **4 busybox-only diagnostic tools** (status, health, fingerprint, bridge-line)
+- ✅ **5 busybox-only diagnostic tools** (status, health, fingerprint, bridge-line, gen-auth)
 - ✅ **JSON health API** for monitoring integration
 - ✅ **Multi-mode support** (guard, exit, bridge with obfs4)
 - ✅ **ENV-based config** (TOR_RELAY_MODE, TOR_NICKNAME, etc.)
@@ -365,6 +383,7 @@ STATUS=$(echo "$HEALTH" | jq -r '.status')
 - **[Architecture](docs/ARCHITECTURE.md)** - ⭐ **NEW!** Technical architecture with Mermaid diagrams
 - **[Tools Reference](docs/TOOLS.md)** - Complete guide to all 4 diagnostic tools
 - **[Monitoring Guide](docs/MONITORING.md)** - External monitoring integration, JSON health API, alerts, and observability
+- **[Control Port Guide](docs/CONTROL-PORT.md)** - ⭐ **NEW!** Authentication setup and Nyx integration
 - **[Backup Guide](docs/BACKUP.md)** - Data persistence, recovery, and disaster planning
 - **[Performance Guide](docs/PERFORMANCE.md)** - Optimization, tuning, and resource management
 
@@ -475,6 +494,9 @@ docker exec tor-relay fingerprint
 
 # For bridge mode: Get bridge line
 docker exec tor-relay bridge-line
+
+# Generate Control Port hash
+docker exec tor-relay gen-auth
 ```
 
 ### Common Issues
@@ -581,6 +603,10 @@ flowchart TB
         ━━━━━━━━━━
         Get obfs4 Bridge Line
         Share with Users"]
+        Tools --> GenAuth["🔑 gen-auth
+        ━━━━━━━━━━
+        Generate Control
+        Port Auth Data"]
     end
 
     Running -->|docker stop SIGTERM| Shutdown
@@ -612,6 +638,7 @@ flowchart TB
     style Health fill:#4DD0E1,stroke:#0097A7,stroke-width:2px,color:#000
     style Finger fill:#4DD0E1,stroke:#0097A7,stroke-width:2px,color:#000
     style BLine fill:#4DD0E1,stroke:#0097A7,stroke-width:2px,color:#000
+    style GenAuth fill:#4DD0E1,stroke:#0097A7,stroke-width:2px,color:#000
     
     style Graceful fill:#FFB74D,stroke:#F57C00,stroke-width:2px,color:#000
     style End fill:#E57373,stroke:#C62828,stroke-width:2px,color:#fff
@@ -724,14 +751,14 @@ Images are automatically rebuilt on separate schedules to include security patch
 **Stable Variant** (`:latest`)
 - **Schedule:** Every Sunday at 18:30 UTC
 - **Includes:** Latest Tor + Alpine 3.22.2 updates
-- **Strategy:** Overwrites last release version (e.g., `:1.1.2`) with updated packages
-- **Tags Updated:** `:latest` and version tags (e.g., `:1.1.2`)
+- **Strategy:** Overwrites last release version (e.g., `:1.1.3`) with updated packages
+- **Tags Updated:** `:latest` and version tags (e.g., `:1.1.3`)
 
 **Edge Variant** (`:edge`)
 - **Schedule:** Every 3 days at 12:00 UTC (independent schedule)
 - **Includes:** Latest Tor + Alpine edge (bleeding-edge) updates
-- **Strategy:** Overwrites last release version (e.g., `:1.1.2-edge`) with updated packages
-- **Tags Updated:** `:edge` and version tags (e.g., `:1.1.2-edge`)
+- **Strategy:** Overwrites last release version (e.g., `:1.1.3-edge`) with updated packages
+- **Tags Updated:** `:edge` and version tags (e.g., `:1.1.3-edge`)
 - **Frequency:** ~2-3x more frequent updates than stable
 
 All images auto-published to Docker Hub and GitHub Container Registry
@@ -766,7 +793,7 @@ All images auto-published to Docker Hub and GitHub Container Registry
 ![GitHub Repo stars](https://img.shields.io/github/stars/r3bo0tbx1/tor-guard-relay?style=for-the-badge)
 ![GitHub Issues](https://img.shields.io/github/issues/r3bo0tbx1/tor-guard-relay?style=for-the-badge)
 
-**Current Version:** v1.1.2 • **Status:** Production Ready  
+**Current Version:** v1.1.3 • **Status:** Production Ready  
 **Image Size:** 16.8 MB • **Rebuild:** Weekly  
 **Registries:** Docker Hub • GHCR  
 
@@ -806,10 +833,6 @@ Or via **[AnonPay](https://trocador.app/anonpay?ticker_to=btc&network_to=Mainnet
 45mNg5cG1S2B2C5dndJP65SSEXseHFVqFdv1N6paAraD1Jk9kQxQQArVcjfQmgCcmthrUF3jbNs74c5AbWqMwAAgAjDYzrZ
 ```
 Or via **[AnonPay](https://trocador.app/anonpay?ticker_to=xmr&network_to=Mainnet&address=85ft7ehMfcKSSp8Ve92Y9oARmqvDjYvEiKQkzdp3qiyzP9dpLeJXFahgHcoXUPeE9TacqDCUXWppNffE3YDC1Wu1NnQ71rT&ref=sqKNYGZbRl&direct=True&name=rE-Bo0tbx1+%28r3bo0tbx1%29&description=Support+FOSS+Development&email=r3bo0tbx1%40brokenbotnet.com)** (convert any crypto)
-
-<!--
-I use Arch btw 🐧
-!-->
 
 ### Other Ways to Support
 

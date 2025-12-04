@@ -24,15 +24,15 @@ Common questions about Tor Guard Relay deployment, configuration, and troublesho
 - **Exit relay** - Last hop (requires legal preparation)
 - **Bridge relay** - Helps users bypass censorship (obfs4 support)
 
-Built on Alpine Linux 3.22.2 with a minimal 20MB image size, busybox-only tools, and weekly automated security rebuilds.
+Built on Alpine Linux 3.23.0 with a minimal 20MB image size, busybox-only tools, and weekly automated security rebuilds.
 
 ### What makes this different from the official Tor images?
 
 | Feature | This Project | Official Images |
 |---------|--------------|-----------------|
 | **Image size** | ~16.8 MB | ~100+ MB |
-| **Base** | Alpine 3.22.2 | Debian |
-| **Diagnostics** | 4 busybox tools + JSON API | None |
+| **Base** | Alpine 3.23.0 | Debian |
+| **Diagnostics** | 5 busybox tools + JSON API | None |
 | **Multi-mode** | Guard/Exit/Bridge in one image | Separate images |
 | **Weekly rebuilds** | ✅ Automated | ❌ Manual |
 | **ENV configuration** | ✅ Full support | Limited |
@@ -40,8 +40,8 @@ Built on Alpine Linux 3.22.2 with a minimal 20MB image size, busybox-only tools,
 
 ### Is this production-ready?
 
-**Yes.** Current version is v1.1.1 (Active/Stable). Used in production with:
-- ✅ Security-hardened (32 vulnerabilities fixed in v1.1.1)
+**Yes.** Current version is v1.1.3 (Active/Stable). Used in production with:
+- ✅ Security-hardened (32 vulnerabilities fixed in >=v1.1.1)
 - ✅ Non-root execution (tor user, UID 100)
 - ✅ Weekly automated rebuilds with latest Tor + Alpine patches
 - ✅ Multi-architecture support (AMD64, ARM64)
@@ -409,7 +409,7 @@ docker exec obfs4-bridge fingerprint
 
 **See:** [MIGRATION.md](MIGRATION.md) for complete guide
 
-### How do I upgrade from v1.1.0 to v1.1.1?
+### How do I upgrade from v1.1.0 to >=v1.1.1?
 
 **Guard/Exit relays (no changes required):**
 ```bash
@@ -427,7 +427,7 @@ docker run -d --name tor-relay ...  # Same config
 **Verify upgrade:**
 ```bash
 docker exec tor-relay cat /build-info.txt
-# Should show: Version: 1.1.1
+# Should show: Version: 1.1.3
 
 docker exec tor-relay fingerprint
 # Verify fingerprint unchanged
@@ -538,5 +538,5 @@ See [CONTRIBUTING.md](../CONTRIBUTING.md) for guidelines.
 
 ---
 
-**Last Updated:** November 2025 (v1.1.1)
+**Last Updated:** December 2025 (v1.1.3)
 **Maintained by:** [@r3bo0tbx1](https://github.com/r3bo0tbx1)

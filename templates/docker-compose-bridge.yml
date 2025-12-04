@@ -1,203 +1,46 @@
 version: '3.8'
 
-# ============================================================================
-# Tor obfs4 Bridge - Docker Compose
-# Help censored users connect to the Tor network
-# ============================================================================
-
 services:
   tor-bridge:
-    image: r3bo0tbx1/onion-relay:latest # or use ghcr.io/r3bo0tbx1/onion-relay:latest
+    image: r3bo0tbx1/onion-relay:latest
     container_name: tor-bridge
     restart: unless-stopped
     network_mode: host
-
     environment:
-      # ──────────────────────────────────────────────────
-      # Relay Mode Configuration
-      # ──────────────────────────────────────────────────
       TOR_RELAY_MODE: bridge
-
-      # ──────────────────────────────────────────────────
-      # Required: Bridge Identity
-      # ──────────────────────────────────────────────────
       TOR_NICKNAME: MyTorBridge
       TOR_CONTACT_INFO: "your-email@example.com"
-
-      # ──────────────────────────────────────────────────
-      # Network Ports (defaults shown, fully configurable)
-      # Suggested: Use 443 for ORPort in censored regions
-      # ──────────────────────────────────────────────────
-      TOR_ORPORT: 9001           # Default: 9001, suggested: 443 or any port > 1024
-      TOR_OBFS4_PORT: 9002       # Default: 9002, can be any port > 1024
-
-      # ──────────────────────────────────────────────────
-      # Bandwidth Limits (bridges can run on lower bandwidth)
-      # ──────────────────────────────────────────────────
+      TOR_ORPORT: 9001
+      TOR_OBFS4_PORT: 9002
       TOR_BANDWIDTH_RATE: "10 MBytes"
       TOR_BANDWIDTH_BURST: "20 MBytes"
-
     volumes:
-      # Persistent data (keys, state, bridge credentials)
       - tor-bridge-data:/var/lib/tor
-
-      # Persistent logs
       - tor-bridge-logs:/var/log/tor
-
-      # Optional: Mount custom configuration instead of using env vars
-      # - ./relay-bridge.conf:/etc/tor/torrc:ro
-
-    # Healthcheck
+    security_opt:
+      - no-new-privileges:true
+    cap_add:
+      - NET_BIND_SERVICE
+      - CHOWN
+      - SETUID
+      - SETGID
+      - DAC_OVERRIDE
+    cap_drop:
+      - ALL
     healthcheck:
       test: ["CMD-SHELL", "/usr/local/bin/healthcheck.sh"]
       interval: 10m
       timeout: 15s
       start_period: 30s
       retries: 3
+    labels:
+      com.centurylinklabs.watchtower.enable: "true"
+      description: "Tor obfs4 Bridge"
+      version: "1.1.3"
+      maintainer: "rE-Bo0t.bx1 <r3bo0tbx1@brokenbotnet.com>"
 
 volumes:
   tor-bridge-data:
     driver: local
   tor-bridge-logs:
     driver: local
-
-# ============================================================================
-# Usage Instructions
-# ============================================================================
-#
-# 1. CONFIGURE:
-#    Edit environment variables above:
-#    - TOR_NICKNAME: Your bridge name
-#    - TOR_CONTACT_INFO: Your email
-#    - TOR_ORPORT: Tor connection port (default: 9001)
-#    - TOR_OBFS4_PORT: obfs4 transport port (default: 9002)
-#    - TOR_BANDWIDTH_RATE/BURST: Adjust for your connection
-#
-#    Alternative: Use official Tor Project naming (drop-in compatible)
-#    - NICKNAME instead of TOR_NICKNAME
-#    - EMAIL instead of TOR_CONTACT_INFO
-#    - OR_PORT instead of TOR_ORPORT
-#    - PT_PORT instead of TOR_OBFS4_PORT (auto-detects bridge mode)
-#    See docker-compose-bridge-official.yml for complete example
-#
-# 2. DEPLOY:
-#    docker-compose -f docker-compose-bridge.yml up -d
-#
-# 3. VERIFY:
-#    # Check status
-#    docker exec tor-bridge status
-#
-#    # View logs
-#    docker logs -f tor-bridge
-#
-#    # Get fingerprint
-#    docker exec tor-bridge fingerprint
-#
-# 4. GET YOUR BRIDGE LINE (after 24-48 hours):
-#    # Use the built-in tool
-#    docker exec tor-bridge bridge-line
-#
-#    # Or check directly
-#    docker exec tor-bridge cat /var/lib/tor/pt_state/obfs4_bridgeline.txt
-#
-#    # Or find it in logs
-#    docker exec tor-bridge grep "bridge line" /var/log/tor/notices.log
-#
-#    Output will look like:
-#    Bridge obfs4 <IP>:<PORT> <FINGERPRINT> cert=<CERT> iat-mode=0
-#
-# 5. SHARE YOUR BRIDGE:
-#    - ONLY share with people you trust
-#    - Do NOT publish publicly
-#    - Users can also get bridges from https://bridges.torproject.org/
-#
-# 6. MONITORING:
-#    # Health check (JSON output)
-#    docker exec tor-bridge health
-#
-#    # Full status report
-#    docker exec tor-bridge status
-#
-# ============================================================================
-# Bridge Operation Notes
-# ============================================================================
-#
-# WHAT IS A BRIDGE?
-# - Bridges help users in censored countries connect to Tor
-# - Bridge addresses are NOT published in the main directory
-# - They are distributed through BridgeDB and other channels
-#
-# obfs4 PLUGGABLE TRANSPORT:
-# - Makes Tor traffic look like random data
-# - Harder for censors to detect and block
-# - Most effective transport for circumventing censorship
-#
-# AFTER DEPLOYMENT:
-# - Wait 24-48 hours for bridge to be registered and distributed
-# - Bridge will appear in BridgeDB: https://bridges.torproject.org/
-# - Users in censored countries can request bridge addresses
-#
-# PRIVACY NOTES:
-# - Bridges show fewer statistics than relays (by design)
-# - Connection counts are approximate
-# - Less information is logged for user privacy
-#
-# ============================================================================
-# Port Information
-# ============================================================================
-#
-# Using network_mode: host, all ports bind directly to the host:
-#
-# PUBLIC (must be accessible from internet):
-# - ORPort (default: 9001, configurable) - Tor connection
-# - obfs4 port (default: 9002, configurable) - Pluggable transport
-#
-# All diagnostics via docker exec only (no monitoring ports exposed)
-#
-# ============================================================================
-# Firewall Configuration
-# ============================================================================
-#
-# UFW (Ubuntu/Debian):
-#   sudo ufw allow 9001/tcp
-#   sudo ufw allow 9002/tcp
-#
-# firewalld (RHEL/CentOS):
-#   sudo firewall-cmd --permanent --add-port=9001/tcp
-#   sudo firewall-cmd --permanent --add-port=9002/tcp
-#   sudo firewall-cmd --reload
-#
-# iptables:
-#   sudo iptables -A INPUT -p tcp --dport 9001 -j ACCEPT
-#   sudo iptables -A INPUT -p tcp --dport 9002 -j ACCEPT
-#
-# ============================================================================
-# Troubleshooting
-# ============================================================================
-#
-# Bridge line not appearing:
-# - Wait 24-48 hours after first start
-# - Check logs: docker logs tor-bridge
-# - Verify both ports 9001 and 9002 are accessible from outside
-# - Check firewall settings
-#
-# No connections:
-# - Normal for new bridges (takes time to be distributed)
-# - Bridges are not heavily used unless specifically shared
-# - Check BridgeDB: https://bridges.torproject.org/
-#
-# lyrebird (obfs4) not working:
-# - Check logs for lyrebird errors: docker logs tor-bridge | grep lyrebird
-# - Verify lyrebird is installed: docker exec tor-bridge which lyrebird
-# - Check pt_state directory: docker exec tor-bridge ls -la /var/lib/tor/pt_state/
-#
-# ============================================================================
-# Resources
-# ============================================================================
-#
-# - Bridge Setup: https://community.torproject.org/relay/setup/bridge/
-# - BridgeDB: https://bridges.torproject.org/
-# - Pluggable Transports: https://tb-manual.torproject.org/circumvention/
-# - obfs4 Documentation: https://gitlab.com/yawning/obfs4
-#
-# ============================================================================

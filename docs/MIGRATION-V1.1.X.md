@@ -1,4 +1,4 @@
-# Migration Guide: v1.1.0 → v1.1.1
+# Migration Guide: v1.1.0 → >=v1.1.1
 
 This guide documents **two successful real-world migration paths** validated in production:
 1. **Guard/Middle Relay** (mounted torrc) - Zero issues
@@ -470,5 +470,5 @@ docker rm obfs4-bridge
 
 ---
 
-*Last Updated: 2025-11-13*
+*Last Updated: 2025-12-05*
 *Validated with production deployments*
