@@ -25,7 +25,7 @@ success() { printf "✅ %s\n" "$1"; }
 warn() { printf "🛑 %s\n" "$1"; }
 die() { printf "🛑 ERROR: %s\n" "$1"; exit 1; }
 
-trap 'cleanup_and_exit' SIGTERM SIGINT
+trap 'cleanup_and_exit' TERM INT
 
 cleanup_and_exit() {
   log ""

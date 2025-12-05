@@ -238,7 +238,7 @@ jobs:
           done
           if [ -d "docs" ]; then
             echo "📁 Checking docs directory..."
-            for doc in DEPLOYMENT.md BACKUP.md PERFORMANCE.md LEGAL.md MONITORING.md TOOLS.md; do
+            for doc in ARCHITECTURE.md BACKUP.md CONTROL-PORT.md DEPLOYMENT.md FAQ.md LEGAL.md LOCAL-TESTING.md MIGRATION-V1.1.X.md MIGRATION.md MONITORING.md MULTI-MODE.md PERFORMANCE.md TOOLS.md TROUBLESHOOTING-BRIDGE-MIGRATION.md; do
               if [ -f "docs/$doc" ]; then
                 echo "✅ docs/$doc exists"
               else
