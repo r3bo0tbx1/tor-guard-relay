@@ -4,21 +4,18 @@
 TOR_LOG="${TOR_LOG_DIR:-/var/log/tor}/notices.log"
 TOR_DATA="${TOR_DATA_DIR:-/var/lib/tor}"
 
-# Sanitize numeric values to prevent "bad number" errors
 sanitize_num() {
     v=$(printf '%s' "$1" | tr -cd '0-9')
     [ -z "$v" ] && v=0
     printf '%s' "$v"
 }
 
-# Header
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "🧅 Tor Relay Status"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 
-# Check if Tor is running
 if pgrep -x tor >/dev/null 2>&1; then
     TOR_PID=$(pgrep -x tor)
     echo "🚀 Status:      RUNNING (PID: $TOR_PID)"
@@ -28,14 +25,12 @@ else
     exit 1
 fi
 
-# Check log file
 if [ ! -f "$TOR_LOG" ]; then
     echo "⚠️  Log:         NOT FOUND"
     echo ""
     exit 1
 fi
 
-# Bootstrap progress
 if grep -q "Bootstrapped 100%" "$TOR_LOG" 2>/dev/null; then
     echo "✅ Bootstrap:   100% COMPLETE"
 else
@@ -44,7 +39,6 @@ else
     echo "⏳ Bootstrap:   ${PROGRESS}%"
 fi
 
-# Reachability
 if grep -q "Self-testing indicates your ORPort is reachable" "$TOR_LOG"; then
     echo "🌐 ORPort:      REACHABLE"
 elif grep -q "ORPort is not reachable" "$TOR_LOG"; then
@@ -53,19 +47,16 @@ else
     echo "❓ ORPort:      TESTING..."
 fi
 
-# Get relay info (POSIX-compliant fingerprint truncation)
 if [ -f "$TOR_DATA/fingerprint" ] && [ -r "$TOR_DATA/fingerprint" ]; then
     FINGERPRINT=$(cat "$TOR_DATA/fingerprint" | awk '{print $2}')
     NICKNAME=$(cat "$TOR_DATA/fingerprint" | awk '{print $1}')
     echo "🪪 Nickname:    $NICKNAME"
 
-    # POSIX-compliant substring extraction using cut
     FP_START=$(printf "%s" "$FINGERPRINT" | cut -c1-8)
     FP_END=$(printf "%s" "$FINGERPRINT" | cut -c33-40)
     echo "🔑 Fingerprint: ${FP_START}...${FP_END}"
 fi
 
-# Count errors and warnings
 ERRORS=$(grep -c "\[err\]" "$TOR_LOG" 2>/dev/null || echo "0")
 ERRORS=$(sanitize_num "$ERRORS")
 WARNINGS=$(grep -c "\[warn\]" "$TOR_LOG" 2>/dev/null || echo "0")
@@ -81,7 +72,6 @@ if [ "$WARNINGS" -gt 5 ]; then
     echo "⚠️  Warnings:    $WARNINGS"
 fi
 
-# Uptime
 UPTIME=$(ps -o etime= -p "$TOR_PID" 2>/dev/null | tr -d ' ' || echo "unknown")
 [ -n "$UPTIME" ] && echo "⏱️  Uptime:      $UPTIME"
 

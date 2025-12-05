@@ -44,6 +44,7 @@ You can configure Tor relays using **TWO methods**:
 docker run -d \
   --name tor-bridge \
   --network host \
+  --security-opt no-new-privileges:true \  
   -e TOR_RELAY_MODE=bridge \
   -e TOR_NICKNAME=MyBridge \
   -e TOR_CONTACT_INFO=admin@example.com \
@@ -293,6 +294,6 @@ If you still see this error after updating to v1.1.1:
 
 ---
 
-**Version:** 1.1.2
-**Last Updated:** 2025-11-18
+**Version:** 1.1.3
+**Last Updated:** 2025-12-05
 **Maintainer:** rE-Bo0t.bx1 <r3bo0tbx1@brokenbotnet.com>

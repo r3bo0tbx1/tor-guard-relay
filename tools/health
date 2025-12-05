@@ -4,25 +4,21 @@
 TOR_LOG="${TOR_LOG_DIR:-/var/log/tor}/notices.log"
 TOR_DATA="${TOR_DATA_DIR:-/var/lib/tor}"
 
-# Sanitize numeric values to prevent "bad number" errors
 sanitize_num() {
     v=$(printf '%s' "$1" | tr -cd '0-9')
     [ -z "$v" ] && v=0
     printf '%s' "$v"
 }
 
-# Check if running
 if ! pgrep -x tor >/dev/null 2>&1; then
     echo '{"status":"down","bootstrap":0,"reachable":"unknown","errors":0}'
     exit 1
 fi
 
-# Get PID and uptime
 TOR_PID=$(pgrep -x tor)
 TOR_PID=$(sanitize_num "$TOR_PID")
 UPTIME=$(ps -o etime= -p "$TOR_PID" 2>/dev/null | tr -d ' ' || echo "unknown")
 
-# Check bootstrap
 BOOTSTRAP=0
 if [ -f "$TOR_LOG" ]; then
     if grep -q "Bootstrapped 100%" "$TOR_LOG"; then
@@ -33,7 +29,6 @@ if [ -f "$TOR_LOG" ]; then
 fi
 BOOTSTRAP=$(sanitize_num "$BOOTSTRAP")
 
-# Check reachability
 REACHABLE="unknown"
 if [ -f "$TOR_LOG" ]; then
     if grep -q "Self-testing indicates your ORPort is reachable" "$TOR_LOG"; then
@@ -43,11 +38,9 @@ if [ -f "$TOR_LOG" ]; then
     fi
 fi
 
-# Count errors
 ERRORS=$(grep -c "\[err\]" "$TOR_LOG" 2>/dev/null || echo "0")
 ERRORS=$(sanitize_num "$ERRORS")
 
-# Get nickname and fingerprint
 NICKNAME="unknown"
 FINGERPRINT="unknown"
 if [ -f "$TOR_DATA/fingerprint" ]; then
@@ -55,7 +48,6 @@ if [ -f "$TOR_DATA/fingerprint" ]; then
     FINGERPRINT=$(cat "$TOR_DATA/fingerprint" | awk '{print $2}')
 fi
 
-# Output comprehensive JSON
 cat <<EOF
 {
   "status": "up",

@@ -10,7 +10,6 @@ if [ -f "$FINGERPRINT_FILE" ]; then
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo ""
 
-    # Read and format fingerprint
     NICKNAME=$(cat "$FINGERPRINT_FILE" | awk '{print $1}')
     FINGERPRINT=$(cat "$FINGERPRINT_FILE" | awk '{print $2}')
 
@@ -18,11 +17,9 @@ if [ -f "$FINGERPRINT_FILE" ]; then
     echo "  🔐 Fingerprint: $FINGERPRINT"
     echo ""
 
-    # Format for easy copying
     echo "  📋 Copy/paste:  $NICKNAME $FINGERPRINT"
     echo ""
 
-    # Show search URL
     echo "  🔍 Find on Tor Metrics:"
     echo "     https://metrics.torproject.org/rs.html#search/$FINGERPRINT"
     echo ""
