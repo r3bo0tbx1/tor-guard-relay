@@ -261,7 +261,7 @@ Example JSON:
 }
 ```
 
-> 📖 **Complete reference:** See [Tools Documentation](docs/TOOLS.md) for all 4 tools with examples, JSON schema, and integration guides.
+> 📖 **Complete reference:** See [Tools Documentation](docs/TOOLS.md) for all 5 tools with examples, JSON schema, and integration guides.
 
 <br>
 
@@ -750,7 +750,7 @@ Images are automatically rebuilt on separate schedules to include security patch
 
 **Stable Variant** (`:latest`)
 - **Schedule:** Every Sunday at 18:30 UTC
-- **Includes:** Latest Tor + Alpine 3.22.2 updates
+- **Includes:** Latest Tor + Alpine 3.23.0 updates
 - **Strategy:** Overwrites last release version (e.g., `:1.1.3`) with updated packages
 - **Tags Updated:** `:latest` and version tags (e.g., `:1.1.3`)
 
