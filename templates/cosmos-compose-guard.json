@@ -53,9 +53,8 @@
       "labels": {
         "cosmos-stack": "TorGuardRelay",
         "cosmos-stack-main": "tor-guard-relay",
-        "cosmos-description": "🧅 Tor Guard Relay v1.1.3 - High-bandwidth guard/middle node | ENV-based config | Weekly security updates",
+        "cosmos-description": "🛡️ Tor Guard Relay | ENV-based config",
         "cosmos-icon": "https://raw.githubusercontent.com/r3bo0tbx1/tor-guard-relay/refs/heads/main/src/onion.png",
-        "cosmos-auto-update": "true",
         "cosmos-force-network-secured": "false",
         "cosmos-version": "1.1.3"
       }

@@ -41,10 +41,6 @@
         "DAC_OVERRIDE"
       ],
       "labels": {
-        "cosmos-auto-update": "true",
-        "cosmos-auto-update-type": "registry",
-        "cosmos-auto-update-notify": "true",
-        "cosmos-auto-update-restart": "true",
         "cosmos-description": "🛡️ Tor Guard Relay",
         "cosmos-force-network-secured": "false",
         "cosmos-icon": "https://raw.githubusercontent.com/r3bo0tbx1/tor-guard-relay/refs/heads/main/src/onion.png",
