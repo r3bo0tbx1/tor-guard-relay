@@ -1,0 +1,34 @@
+name: 🗑️🧹
+
+on:
+  schedule:
+    - cron: '0 0 * * 0'
+  workflow_dispatch:
+
+permissions:
+  actions: write
+
+jobs:
+  clear-cache:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🗑️ Clear GitHub Actions Cache
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          echo "🔍 Fetching list of caches..."
+          # Get all cache keys
+          cacheKeys=$(gh cache list --limit 100 --repo $REPO --json key --jq '.[].key')
+
+          if [ -z "$cacheKeys" ]; then
+            echo "✅ No caches found to clear."
+            exit 0
+          fi
+
+          echo "🗑️ Deleting caches..."
+          for key in $cacheKeys; do
+            echo "   - Deleting $key"
+            gh cache delete "$key" --repo $REPO || echo "     ⚠️ Failed to delete $key (might already be gone)"
+          done
+          echo "🎉 Cache cleanup complete."
