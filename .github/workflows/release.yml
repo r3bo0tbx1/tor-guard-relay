@@ -1,4 +1,4 @@
-name: 🚀✨ Build
+name: 🚀✨
 
 on:
   workflow_dispatch:

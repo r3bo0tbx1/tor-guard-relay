@@ -16,8 +16,8 @@ ARG BUILD_VERSION
 ARG TARGETARCH
 
 LABEL maintainer="rE-Bo0t.bx1 <r3bo0tbx1@brokenbotnet.com>" \
-      org.opencontainers.image.title="Tor Guard Relay (Latest/Stable)" \
-      org.opencontainers.image.description="🧅 Ultra-optimized Tor Guard/Exit/Bridge Relay AIO (~16.8 MB)" \
+      org.opencontainers.image.title="Tor Guard Relay (Latest)" \
+      org.opencontainers.image.description="🧅 Ultra-optimized Tor Guard/Exit/Bridge Relay AIO (Stable)" \
       org.opencontainers.image.version="${BUILD_VERSION}" \
       org.opencontainers.image.created="${BUILD_DATE}" \
       org.opencontainers.image.source="https://github.com/r3bo0tbx1/tor-guard-relay" \
