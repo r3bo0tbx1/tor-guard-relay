@@ -46,6 +46,16 @@ Tor relay operation is generally legal, but specific laws vary:
 
 ---
 
+### 🚨 2024-2025 Global Trends
+
+Recent legislative shifts have increased risks in several regions:
+
+- **The "Duty of Care" Shift:** New laws in the UK and EU are shifting focus from "passive infrastructure" to requiring operators to prevent harm, increasing administrative burdens.
+- **Mandatory Registration:** Countries in Southeast Asia and Africa (Indonesia, Nigeria) are enforcing strict "service provider" registration that volunteer relays cannot meet.
+- **Anti-Scam Crackdowns:** Broad "anti-fraud" laws in Thailand and Philippines are effectively criminalizing anonymity tools used by scammers, catching Tor relays in the crossfire.
+
+---
+
 ## Legal Frameworks
 
 ### International Standards
@@ -81,7 +91,7 @@ The EU has strong privacy protections:
 
 ### 🟢 Generally Safe (Explicit Protection)
 
-#### United States
+#### United States 🇺🇸
 
 **Status:** Legal to run relay  
 **Legal basis:** First Amendment protections, ECPA Safe Harbor provisions
@@ -98,7 +108,7 @@ The EU has strong privacy protections:
 
 ---
 
-#### European Union (General)
+#### European Union (General) 🇪🇺
 
 **Status:** Legal to run relay  
 **Legal basis:** GDPR, Article 8, E-Privacy Directive
@@ -120,7 +130,21 @@ The EU has strong privacy protections:
 
 ---
 
-#### Canada
+#### Norway 🇳🇴
+
+**Status:** Safe / Regulated  
+**Legal basis:** Electronic Communications Act (Ekom Act) 2025; E-Commerce Act Section 16-18
+
+**Key points:**
+- **2025 Update:** The new Ekom Act implements the EU Electronic Communications Code. While it increases registration duties for commercial providers, volunteer relays generally retain "mere conduit" liability protection.
+- **Liability:** Section 16-18 of the E-Commerce Act exempts service providers from liability for transmitted content if they do not modify it.
+- **Risk:** High-bandwidth exit nodes on dedicated servers might be scrutinized as "commercial" undertakings, triggering registration.
+
+**Recommendation:** ✅ **Safe for Guard Relay; Use non-commercial status**
+
+---
+
+#### Canada 🇨🇦
 
 **Status:** Legal to run relay  
 **Legal basis:** Canadian Charter of Rights and Freedoms (Section 7 - privacy)
@@ -135,7 +159,7 @@ The EU has strong privacy protections:
 
 ---
 
-#### Australia
+#### Australia 🇦🇺
 
 **Status:** Legal to run relay  
 **Legal basis:** Implied constitutional right to privacy
@@ -143,8 +167,7 @@ The EU has strong privacy protections:
 **Key points:**
 - No law explicitly prohibits relay operation
 - Australian communications privacy protected
-- Courts have upheld privacy rights
-- Assistance and Access Act doesn't criminalize tools
+- Assistance and Access Act (TOLA) allows authorities to request technical help, but rarely targets individual relays.
 
 **Note:** Government may investigate unusual network activity; cooperation may be required, but operation itself isn't illegal.
 
@@ -152,7 +175,7 @@ The EU has strong privacy protections:
 
 ---
 
-#### Japan
+#### Japan 🇯🇵
 
 **Status:** Legal to run relay  
 **Legal basis:** Article 21 (freedom of expression), privacy laws
@@ -161,7 +184,61 @@ The EU has strong privacy protections:
 - Japan has strong privacy laws
 - No law criminalizes relay operation
 - Generally supportive of privacy tools
-- Anime industry even jokes about Tor in official materials
+
+**Recommendation:** ✅ **Safe to operate guard relay**
+
+---
+
+#### New Zealand 🇳🇿
+
+**Status:** Safe  
+**Legal basis:** Telecommunications (Interception Capability and Security) Act 2013 (TICSA)
+
+**Key points:**
+- **Network Operator Definition:** TICSA obligations generally apply to large operators (ISPs). Individual volunteer relays rarely meet the threshold to be classified as a "public telecommunications network" requiring interception capability.
+- **Intelligence:** As a "Five Eyes" member, traffic is monitored, but operation itself is legal.
+- **ISP Terms:** The main barrier is usually ISP Terms of Service for residential connections rather than criminal law.
+
+**Recommendation:** ✅ **Safe to operate guard relay**
+
+---
+
+#### Chile 🇨🇱
+
+**Status:** Very Safe (Net Neutrality Pioneer)  
+**Legal basis:** Law 20.453 (Net Neutrality), Cybersecurity Framework Law 2024
+
+**Key points:**
+- **Strong Neutrality:** Chile was the first nation to mandate Net Neutrality. ISPs are legally prohibited from arbitrarily blocking or interfering with protocols like Tor.
+- **2024 Update:** The new Cybersecurity Framework Law creates a National Agency (ANCI) but focuses on "essential services" (power, water, telecom companies), leaving volunteer operators largely unregulated.
+
+**Recommendation:** ✅ **Excellent location; Strong legal protections**
+
+---
+
+#### Argentina 🇦🇷
+
+**Status:** Safe  
+**Legal basis:** Supreme Court Case Law (Rodriguez v. Google)
+
+**Key points:**
+- **"Rodriguez" Doctrine:** Intermediaries are not liable for third-party content unless they have actual knowledge of a specific illegality and fail to act.
+- **Tor Compatibility:** Since Guard/Exit operators cannot see content (due to encryption/onion routing), they cannot have "actual knowledge," providing a strong legal defense.
+- **2025 Reform:** New data protection reforms are aligning with GDPR, further formalizing privacy rights.
+
+**Recommendation:** ✅ **Safe to operate guard relay**
+
+---
+
+#### South Africa 🇿🇦
+
+**Status:** Safe  
+**Legal basis:** Electronic Communications and Transactions Act (ECTA); Cybercrimes Act 2020
+
+**Key points:**
+- **Mere Conduit:** Section 73 of ECTA provides a limited liability shield for service providers acting as "mere conduits".
+- **Cybercrimes Act:** While it criminalizes hacking, it places reporting obligations primarily on large Electronic Communications Service Providers (ECSPs), not typically individual volunteers.
+- **Privacy:** POPIA (Protection of Personal Information Act) encourages data minimization, which aligns with Tor's no-logs design.
 
 **Recommendation:** ✅ **Safe to operate guard relay**
 
@@ -169,7 +246,35 @@ The EU has strong privacy protections:
 
 ### 🟡 Gray Area (Legal but Cautious)
 
-#### Brazil
+#### United Kingdom 🇬🇧
+
+**Status:** Legal but Bureaucratic Risk  
+**Legal basis:** Online Safety Act 2023 (OSA); Investigatory Powers Act 2016
+
+**Key points:**
+- **Online Safety Act 2023:** Imposes a "duty of care" on providers. While relays don't "host" content, exit nodes facilitating access to illegal sites face increased scrutiny and "collateral blocking" by ISPs.
+- **Investigatory Powers:** The government has broad powers to issue "technical capability notices" or "equipment interference" warrants. While usually targeted at large Telcos, the legal scope is wide.
+- **ISP Hostility:** UK ISPs actively filter "anomalous" traffic to comply with safety duties; expect account suspensions.
+
+**Recommendation:** ⚠️ **Gray Area; Guard Relay OK on commercial hosting (not home)**
+
+---
+
+#### Poland 🇵🇱
+
+**Status:** Legal but Procedural Risk  
+**Legal basis:** Electronic Communications Law (ECL) 2024
+
+**Key points:**
+- **Hardware Seizure:** Police have broad powers to seize "evidence" (servers) during investigations. Operators often lose hardware for months even if innocent.
+- **2024 ECL:** Distinguishes between "business activity" and volunteers. Non-commercial relays avoid data retention duties, but "commercial" definitions can be blurry.
+- **Anti-Abuse:** New laws (CAEC) allow ISPs to block "abusive" traffic patterns, which often misflags Tor.
+
+**Recommendation:** ⚠️ **Guard Relay Safe; Exit Relay High Risk (Hardware Loss)**
+
+---
+
+#### Brazil 🇧🇷
 
 **Status:** Unclear; legally risky but not explicit ban  
 **Legal basis:** Brazilian Civil Constitution (Article 5 - privacy rights)
@@ -179,13 +284,26 @@ The EU has strong privacy protections:
 - Government is taking stronger internet surveillance stance
 - May face pressure from authorities
 - Some local hostility to anonymity tools
-- Best practice: contact lawyer first
 
 **Recommendation:** ⚠️ **Consult local lawyer; moderate risk for guard relay**
 
 ---
 
-#### Mexico
+#### Colombia 🇨🇴
+
+**Status:** Gray Area  
+**Legal basis:** Habeas Data (Constitutional) vs. Police Powers
+
+**Key points:**
+- **No Safe Harbor:** Unlike Chile, Colombia lacks a specific law shielding intermediaries from liability, relying on court interpretation.
+- **Enforcement:** The DIJIN (cybercrime unit) is active. Equipment seizure during investigations is a real risk if an IP is linked to a crime.
+- **Data Reform 2025:** Upcoming amendments to Statutory Law 1581 may impose stricter processing definitions.
+
+**Recommendation:** ⚠️ **Moderate Risk; Guard relay safer than Exit**
+
+---
+
+#### Mexico 🇲🇽
 
 **Status:** Unclear; politically sensitive  
 **Legal basis:** Constitution Article 6 (free speech, though weak)
@@ -201,60 +319,166 @@ The EU has strong privacy protections:
 
 ---
 
-#### India
+#### Philippines 🇵🇭
 
-**Status:** Unclear; politically sensitive  
-**Legal basis:** Constitution Article 19 (free speech, though restricted)
+**Status:** Gray / High Risk  
+**Legal basis:** Cybercrime Prevention Act of 2012; SIM Registration Act
 
 **Key points:**
-- Tor isn't specifically banned
-- Government increasingly hostile to encryption
-- Telecom Regulatory Authority may investigate
-- Operating relay could trigger surveillance
-- Citizenship Amendment Act and other laws increasing restrictions
-- Best practice: know local laws; be careful
+- **Aiding & Abetting:** The law punishes "aiding" cybercrimes. Without a "safe harbor" clause, exit node operators could theoretically be charged as accomplices.
+- **Cyber-Libel:** Intense focus on criminal libel makes anonymity tools politically sensitive.
+- **De-anonymization:** Mandatory SIM registration removes anonymity for mobile-based connections.
 
-**Recommendation:** ⚠️ **Risky; consult local lawyer; consider risks carefully**
+**Recommendation:** ⚠️ **High Risk for Exits; Guard Relay likely okay**
 
 ---
 
-#### Russia
+#### India 🇮🇳
 
-**Status:** Risky; government hostile to Tor  
-**Legal basis:** Russian law is authoritarian; Tor operations frowned upon
+**Status:** Unclear; politically sensitive  
+**Legal basis:** IT Rules (2021), CERT-In Directions
 
 **Key points:**
-- Tor isn't explicitly illegal
+- **CERT-In Rules:** VPN/Cloud providers must log user data for 5 years. Tor relays cannot comply.
+- Tor is not banned, but the government is increasingly hostile to encryption.
+- Citizenship Amendment Act and other laws increasing restrictions
+
+**Recommendation:** ⚠️ **High Risk; consider hosting outside India**
+
+---
+
+#### Russia 🇷🇺
+
+**Status:** Dangerous; Government Hostile  
+**Legal basis:** "Sovereign Internet" laws; Roskomnadzor regulations
+
+**Key points:**
+- Public Tor relays are actively blocked by DPI (Deep Packet Inspection).
+- Operating a public relay makes you a target for investigation.
 - Roskomnadzor (communications regulator) actively blocks Tor
-- Operating relay could trigger investigation
 - Government takes dim view of anonymity tools
-- Best practice: don't attract attention
 - VPN and proxy services are targeted
 
-**Recommendation:** 🔴 **High risk; not recommended without security awareness**
+**Recommendation:** 🔴 **High risk; not recommended**
 
 ---
 
 ### 🔴 Dangerous (Legal Risk, Authoritarian Context)
 
-#### China
+#### Thailand 🇹🇭
 
-**Status:** Dangerous; effectively illegal  
-**Legal basis:** Chinese law effectively criminalizes unauthorized networks
+**Status:** Dangerous; Functionally Illegal  
+**Legal basis:** Computer Crime Act (CCA); Anti-Online Scam Decrees (2024)
 
 **Key points:**
-- Tor network is routinely blocked
+- **Anti-Scam Decrees:** New laws empower the "Anti-Online Scam Operation Center" (AOC) to suspend services and freeze accounts without notice for suspicious activity.
+- **Liability:** Section 14 of the CCA criminalizes "inputting false data." Operators can be held liable for "consenting" to the transmission of illegal content.
+- **Risk:** High probability of immediate internet termination and police investigation.
+
+**Recommendation:** 🔴 **NOT SAFE; Do not operate**
+
+---
+
+#### Indonesia 🇮🇩
+
+**Status:** Dangerous / Illegal  
+**Legal basis:** Ministerial Regulation 5/2020 (PSE)
+
+**Key points:**
+- **Mandatory Registration:** All "Electronic System Providers" (PSE) must register with the Ministry (Kominfo). This requires a Tax ID and business license, making it impossible for anonymous/volunteer operators.
+- **Blocking:** Unregistered services are routinely blocked (e.g., PayPal, Steam were temporarily blocked).
+- **Surveillance:** Registered PSEs must provide law enforcement access, which Tor protocols cannot technically fulfill.
+
+**Recommendation:** 🔴 **NOT SAFE; Do not operate**
+
+---
+
+#### Nigeria 🇳🇬
+
+**Status:** Dangerous / High Risk  
+**Legal basis:** Cybercrimes (Amendment) Act 2024
+
+**Key points:**
+- **Mandatory Retention:** The 2024 Amendment requires "service providers" to retain traffic data and subscriber info for two years.
+- **Incompatibility:** Operating a Tor node (which deletes logs by design) is a direct violation of this mandatory retention law.
+- **Broad Definition:** The term "service provider" is interpreted broadly to include anyone facilitating internet traffic.
+
+**Recommendation:** 🔴 **High risk; Do not operate**
+
+---
+
+#### Ukraine 🇺🇦 (Martial Law Context)
+
+**Status:** High Risk / Special Context  
+**Legal basis:** Martial Law Decrees; National Security Council (NSDC)
+
+**Key points:**
+- **Dual-Use Paradox:** While Tor is used for freedom (accessing news in occupied areas), operating a relay inside government-controlled territory is risky.
+- **Hostile Node:** High-bandwidth encrypted nodes may be flagged by the SBU (Security Service) as Russian sabotage/botnet infrastructure.
+- **Rights Suspended:** Derogations from ECHR privacy rights are in effect due to the war.
+
+**Recommendation:** 🔴 **High Operational Risk; Not recommended inside country**
+
+---
+
+#### Egypt 🇪🇬
+
+**Status:** Illegal  
+**Legal basis:** Anti-Cyber and Information Technology Crimes Law (No. 175 of 2018)
+
+**Key points:**
+- **Criminalization of Evasion:** Article 22 penalizes facilitating access to blocked websites. Running a relay is viewed as aiding censorship circumvention.
+- **Active Blocking:** The government uses DPI to block OpenVPN and Tor protocols.
+- **Arrest Risk:** High risk of arrest for "misuse of telecommunications."
+
+**Recommendation:** 🔴 **NOT SAFE; Do not operate**
+
+---
+
+#### Turkey 🇹🇷
+
+**Status:** Dangerous; Active Blocking  
+**Legal basis:** Cybersecurity Law No. 7545 (March 2025)
+
+**Key points:**
+- **2025 Update:** New laws introduce strict penalties for "unauthorized networks."
+- ISPs use DPI to throttle or block Tor and VPNs.
+
+**Recommendation:** 🔴 **High risk; do not operate**
+
+---
+
+#### Vietnam 🇻🇳
+
+**Status:** Dangerous; Data Localization  
+**Legal basis:** Law on Cybersecurity (Decree 53/2022)
+
+**Key points:**
+- Requires foreign and domestic tech services to store data locally.
+- Encrypted traffic is viewed with extreme suspicion.
+
+**Recommendation:** 🔴 **NOT SAFE; do not operate**
+
+---
+
+#### China 🇨🇳
+
+**Status:** Dangerous; Effectively Illegal  
+**Legal basis:** CSCL and "unauthorized network" regulations
+
+**Key points:**
+- The "Great Firewall" actively hunts Tor relays.
 - Operating relay would use circumvention (also illegal)
 - Government actively prosecutes "unauthorized internet services"
+- Operating a relay is viewed as providing "tools for circumvention."
 - Human rights lawyers have faced prosecution for similar tools
-- Best practice: don't operate Tor relay in China
 - Even bridge operation is risky
 
 **Recommendation:** 🔴 **NOT SAFE; do not operate**
 
 ---
 
-#### Iran
+#### Iran 🇮🇷
 
 **Status:** Dangerous; hostile to circumvention  
 **Legal basis:** Islamic Revolutionary Court rulings on "hostile networks"
@@ -264,13 +488,12 @@ The EU has strong privacy protections:
 - Operating relay would violate cybercrimes laws
 - Government prosecutes for helping people circumvent censorship
 - Political prisoners have been detained for tech-related offenses
-- Best practice: avoid entirely
 
 **Recommendation:** 🔴 **NOT SAFE; do not operate**
 
 ---
 
-#### Saudi Arabia
+#### Saudi Arabia 🇸🇦
 
 **Status:** Dangerous; cybercrime laws applied aggressively  
 **Legal basis:** Saudi Cybercrime Law (2007)
@@ -280,13 +503,12 @@ The EU has strong privacy protections:
 - Cybercrime law penalties include imprisonment
 - Operating relay could be prosecuted as "assisting crime"
 - Government aggressively monitors networks
-- Best practice: don't operate
 
 **Recommendation:** 🔴 **NOT SAFE; do not operate**
 
 ---
 
-#### Pakistan
+#### Pakistan 🇵🇰
 
 **Status:** Dangerous; government hostile  
 **Legal basis:** Pakistan Telecom Authority (PTA) regulations
@@ -296,7 +518,6 @@ The EU has strong privacy protections:
 - Operating circumvention tools is risky
 - Cybercrime Ordinance broadly interpreted
 - Government has prosecuted for tech activism
-- Best practice: consult lawyer; very careful
 
 **Recommendation:** 🔴 **High risk; not recommended**
 
@@ -308,14 +529,33 @@ The EU has strong privacy protections:
 |--------|------------|-----------|-------|
 | 🇺🇸 USA | ✅ Safe | ⚠️ Risky | DMCA claims possible |
 | 🇪🇺 EU | ✅ Safe | ✅ Safe | GDPR protection |
+| 🇳🇴 Norway | ✅ Safe | ⚠️ Gray | 2025 Ekom Act |
 | 🇨🇦 Canada | ✅ Safe | ✅ Safe | Charter protection |
 | 🇦🇺 Australia | ✅ Safe | ⚠️ Gray | May require support |
 | 🇯🇵 Japan | ✅ Safe | ✅ Safe | Privacy protections |
+| 🇳🇿 New Zealand | ✅ Safe | ⚠️ Gray | TICSA obligations rare |
+| 🇨🇱 Chile | ✅ Safe | ✅ Safe | Net neutrality pioneer |
+| 🇦🇷 Argentina | ✅ Safe | ✅ Safe | Rodriguez doctrine |
+| 🇿🇦 South Africa | ✅ Safe | ⚠️ Gray | ECTA protection |
+| 🇬🇧 UK | ⚠️ Gray | 🔴 High | Online Safety Act |
+| 🇵🇱 Poland | ⚠️ Gray | 🔴 High | Hardware seizure risk |
 | 🇧🇷 Brazil | ⚠️ Gray | 🔴 High | Consult lawyer |
+| 🇨🇴 Colombia | ⚠️ Gray | 🔴 High | No safe harbor |
+| 🇲🇽 Mexico | ⚠️ Gray | 🔴 High | Weak rule of law |
+| 🇵🇭 Philippines | ⚠️ Gray | 🔴 High | Aiding & abetting risk |
 | 🇮🇳 India | ⚠️ Gray | 🔴 High | Growing hostility |
 | 🇷🇺 Russia | ⚠️ Gray | 🔴 Very High | Blocked network |
+| 🇹🇭 Thailand | 🔴 No | 🔴 No | Anti-scam decrees |
+| 🇮🇩 Indonesia | 🔴 No | 🔴 No | Mandatory registration |
+| 🇳🇬 Nigeria | 🔴 No | 🔴 No | Data retention law |
+| 🇺🇦 Ukraine | 🔴 No | 🔴 No | Martial law context |
+| 🇪🇬 Egypt | 🔴 No | 🔴 No | Criminalized |
+| 🇹🇷 Turkey | 🔴 No | 🔴 No | Active blocking |
+| 🇻🇳 Vietnam | 🔴 No | 🔴 No | Data localization |
 | 🇨🇳 China | 🔴 No | 🔴 No | Criminalized |
 | 🇮🇷 Iran | 🔴 No | 🔴 No | Blocked + hostile |
+| 🇸🇦 Saudi Arabia | 🔴 No | 🔴 No | Aggressive enforcement |
+| 🇵🇰 Pakistan | 🔴 No | 🔴 No | PTA blocking |
 
 ---
 
@@ -458,6 +698,25 @@ ExitPolicy reject *:*
 Log notice file /var/log/tor/notices.log
 ```
 
+### 📢 Transparency & Exit Notices
+
+If you choose to run an **Exit Relay** (high risk), it is **critical** to run a web server on your relay's IP address (Port 80) that serves an "Exit Notice."
+
+**Why this helps legally:**
+1.  **Immediate Context:** When a sysadmin sees "attacking" traffic from your IP, their first step is often to type your IP into a browser.
+2.  **Reduces Abuse Reports:** If they see a professional notice explaining that this is a Tor Exit Node (and not a hacker's machine), they often discard the complaint immediately.
+3.  **Safe Harbor:** It explicitly states your status as a common carrier/infrastructure provider.
+
+**Implementation:**
+Add this to your `torrc`:
+```conf
+DirPort 80
+DirPortFrontPage /etc/tor/index.html
+```
+
+> Privacy-friendly Exit Notice Template that you can use can be found in [`templates/tor-exit-notice`](/templates/tor-exit-notice/).
+> Make sure to change your exit node's IP/contact info.
+
 ---
 
 ## Abuse Handling
@@ -570,78 +829,4 @@ cannot identify users or their activity."
 
 - **Freedom of the Press Foundation** - https://freedom.press
   - Legal resources for activists
-  - Supports at-risk operators
-
-### Reading
-
-- **EFF's "Tor Legal FAQ"** - Comprehensive Q&A
-- **Tor Project's "Relay Guide"** - Operator best practices
-- **UN Resolution 68/167** - International privacy rights
-
-### If You Need Help
-
-1. **EFF Threat Lab** - https://www.eff.org/contact
-2. **Access Now Helpline** - https://www.accessnow.org/help
-3. **Local ACLU chapter** (USA) - https://www.aclu.org
-4. **Privacy International** (International) - https://privacy.international
-
----
-
-## Quick Decision Tree
-
-```
-Do you want to run a Tor relay?
-
-├─ Are you in a democracy with strong rule of law?
-│  ├─ YES → Continue to next question
-│  └─ NO → Research your country's laws carefully; consult lawyer
-│
-├─ Will you run a guard relay (not exit)?
-│  ├─ YES → Likely legal; check ISP terms
-│  └─ NO (exit relay planned) → High risk; understand liability
-│
-├─ Do you understand Tor's purpose?
-│  ├─ YES → Proceed
-│  └─ NO → Read Tor Project documentation first
-│
-├─ Have you checked your ISP's terms?
-│  ├─ YES, allowed → Deploy relay
-│  ├─ YES, prohibited → Choose different ISP or don't operate
-│  └─ UNCLEAR → Contact ISP first
-│
-└─ Deploy responsibly ✅
-```
-
----
-
-## Summary
-
-**Operating a Tor guard relay is generally legal in:**
-- ✅ All democracies with rule of law
-- ✅ EU countries
-- ✅ Most developed nations
-
-**Operating is risky or illegal in:**
-- ⚠️ Countries with government censorship
-- ⚠️ Authoritarian regimes
-- 🔴 Countries actively blocking Tor
-
-**This project's stance:**
-- We recommend guard relays (not exit relays) to minimize legal risk
-- We encourage consulting local laws and lawyers
-- We believe internet privacy is a human right
-- We support operators in safe jurisdictions
-
----
-
-**Remember:** This is informational guidance, not legal advice. Consult a local attorney if you have specific legal concerns.
-
----
-
-## Support
-
-- 📖 [Main README](../README.md)
-- 🚀 [Deployment Guide](./DEPLOYMENT.md)
-- 🐛 [Report Issues](https://github.com/r3bo0tbx1/tor-guard-relay/issues)
-- 🌐 [Tor Project](https://www.torproject.org)
-- ⚖️ [EFF Legal Resources](https://www.eff.org/tor-legal)
+  - Supports at-risk

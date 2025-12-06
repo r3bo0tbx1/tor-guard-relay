@@ -2,9 +2,9 @@
 
 This directory contains deployment templates for running Tor relays in **3 modes**: Guard/Middle, Exit, and Bridge (obfs4).
 
-## 📁 Template Files Overview
+## 📁  Template Files Overview
 
-### Cosmos Cloud Templates (JSON)
+### [Cosmos Cloud Templates (JSON)](/templates/cosmos-compose/)
 
 | File | Mode | ENV Naming | Use Case |
 |------|------|------------|----------|
@@ -13,8 +13,10 @@ This directory contains deployment templates for running Tor relays in **3 modes
 | `cosmos-compose-bridge.json` | Bridge (obfs4) | TOR_* | Bridge relay, ENV-based config |
 | `cosmos-compose-bridge-official.json` | Bridge (obfs4) | OR_PORT, PT_PORT, EMAIL | **Drop-in replacement for thetorproject/obfs4-bridge** |
 | `cosmos-compose-multi-relay.json` | All 3 modes | TOR_* | Run guard, exit, and bridge simultaneously |
+| `cosmos-bind-config-guard-relay.json` | Guard/Middle | TOR_* | Standard guard relay, mounted config |
+| `cosmos-bind-config-bridge.json` | Bridge (obfs4) | TOR_* | Bridge relay, mounted config |
 
-### Docker Compose Templates (YAML)
+### [Docker Compose Templates (YAML)](/templates/docker-compose/)
 
 | File | Mode | ENV Naming | Use Case |
 |------|------|------------|----------|
@@ -90,6 +92,7 @@ TOR_EXIT_POLICY=accept *:80,accept *:443,reject *:*
 docker run -d \
   --name tor-bridge \
   --network host \
+  --security-opt no-new-privileges:true \  
   -v /path/to/relay-bridge.conf:/etc/tor/torrc:ro \
   -v tor-data:/var/lib/tor \
   r3bo0tbx1/onion-relay:latest
@@ -295,5 +298,5 @@ If you still see this error after updating to v1.1.1:
 ---
 
 **Version:** 1.1.3
-**Last Updated:** 2025-12-05
+**Last Updated:** 2025-12-06
 **Maintainer:** rE-Bo0t.bx1 <r3bo0tbx1@brokenbotnet.com>

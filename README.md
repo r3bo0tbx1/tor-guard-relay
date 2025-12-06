@@ -376,19 +376,19 @@ STATUS=$(echo "$HEALTH" | jq -r '.status')
 - **[FAQ](docs/FAQ.md)** - ⭐ **NEW!** Frequently asked questions with factual answers
 - **[Quick Start Script](scripts/utilities/quick-start.sh)** - ⭐ **NEW!** Interactive relay deployment wizard
 - **[Migration Assistant](scripts/migration/migrate-from-official.sh)** - ⭐ **NEW!** Automated migration from thetorproject/obfs4-bridge
-- **[Deployment Guide](docs/DEPLOYMENT.md)** - Complete installation for Docker CLI, Compose, Cosmos Cloud, and Portainer
+- **[Deployment Guide](docs/DEPLOYMENT.md)** - ✨ **UPDATED!** Complete installation for Docker CLI, Compose, Cosmos Cloud, and Portainer
 - **[Migration Guide](docs/MIGRATION-V1.1.X.md)** - Upgrade to >=v1.1.1 or migrate from other Tor setups
 
 ### Technical Reference
 - **[Architecture](docs/ARCHITECTURE.md)** - ⭐ **NEW!** Technical architecture with Mermaid diagrams
-- **[Tools Reference](docs/TOOLS.md)** - Complete guide to all 4 diagnostic tools
-- **[Monitoring Guide](docs/MONITORING.md)** - External monitoring integration, JSON health API, alerts, and observability
+- **[Tools Reference](docs/TOOLS.md)** - ✨ **UPDATED!** Complete guide to all 5 diagnostic tools
+- **[Monitoring Guide](docs/MONITORING.md)** - ✨ **UPDATED!** External monitoring integration, JSON health API, alerts, and observability
 - **[Control Port Guide](docs/CONTROL-PORT.md)** - ⭐ **NEW!** Authentication setup and Nyx integration
 - **[Backup Guide](docs/BACKUP.md)** - Data persistence, recovery, and disaster planning
 - **[Performance Guide](docs/PERFORMANCE.md)** - Optimization, tuning, and resource management
 
 ### Legal & Community
-- **[Legal Considerations](docs/LEGAL.md)** - Legal aspects of running a Tor relay
+- **[Legal Considerations](docs/LEGAL.md)** - ✨ **UPDATED!** Legal aspects of running a Tor relay
 - **[Documentation Index](docs/README.md)** - Complete documentation navigation
 
 ### Project Info

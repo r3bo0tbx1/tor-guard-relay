@@ -633,48 +633,185 @@ sudo iptables-save > /etc/iptables/rules.v4
 ```
 
 ### Cloud Provider Firewalls
-
 Don't forget to open ports in your cloud provider's firewall:
-
 - **AWS**: Security Groups
 - **Google Cloud**: Firewall Rules
 - **Azure**: Network Security Groups
 - **DigitalOcean**: Cloud Firewalls
 - **Hetzner**: Firewall section
+- **Linode**: Cloud Firewalls
+- **Vultr**: Firewall Management
+- **Netcup**: Firewall Rules
 
 ---
 
 ## Hosting Provider Recommendations
 
-### ✅ Tor-Friendly Providers
+### 🏆 BEST for Exit Nodes
 
-| Provider | Notes | Starting Price |
-|----------|-------|----------------|
-| **Hetzner** | Tor-friendly, excellent bandwidth | €4.15/mo |
-| **OVH** | Good for high-bandwidth relays | €3.50/mo |
-| **Linode** | Reliable, easy to use | $5/mo |
-| **DigitalOcean** | Simple setup, good docs | $4/mo |
-| **Vultr** | Many locations, fair pricing | $2.50/mo |
+| Provider | Exit | Guard/Middle | Bridges | Starting Price | Locations | Notes |
+|----------|------|--------------|---------|----------------|-----------|-------|
+| **BuyVM** | ✅ | ✅ | ✅ | $2/mo | US, LU | Best value, unmetered bandwidth, often sold out |
+| **MAXKO Hosting** | ✅ | ✅ | ✅ | ~$10/mo | HR, HU, BG, ZA | Code: TOR10, crypto accepted, underrepresented regions |
+| **Privex** | ✅ (SE only) | ✅ | ✅ | €15/mo | SE, DE, FI, US, AU | Purpose-built for privacy, runs own relays, crypto required |
+| **IncogNET** | ✅ | ✅ | ✅ | ~$10/mo | NL, US | Clear exit policy, requires port 80 notice page |
+| **Linode** | ✅ (reduced) | ✅ | ✅ | $5/mo | 12+ locations | $100 free credits, reduced exit policy required |
+| **1337 Services (RDP.sh)** | ✅ | ✅ | ✅ | ~€5/mo | DE | ⚠️ Overrepresented (4.33%) - avoid for diversity |
+
+### ✅ Good for Exit Nodes (with caveats)
+
+| Provider | Exit | Guard/Middle | Bridges | Starting Price | Locations | Caveat |
+|----------|------|--------------|---------|----------------|-----------|--------|
+| **Hetzner** | ✅ | ✅ | ✅ | €4.15/mo | DE, FI, US | ⚠️ Overrepresented (8.26%), good bandwidth |
+| **Netcup** | ✅ | ✅ | ✅ | €2.50/mo | DE, AT, NL, US | ⚠️ Aggressive abuse handling (4.56%), best for relays |
+| **LiteServer** | ✅ | ✅ | ✅ | ~€5/mo | NL | Reduced policy + notify support, 3.1% consensus weight |
+| **Trabia** | ✅ | ✅ | ✅ | ~$5/mo | MD | Good for network diversity |
+| **i3D** | ✅ | ✅ | ✅ | €10-30/mo | NL | If abuse handled properly, 0.02% consensus |
+| **KoDDoS** | ✅ | ✅ | ✅ | ~$10/mo | NL | DDoS protection, Bitcoin accepted, 0.0% consensus |
+| **PulseServers** | ✅ | ✅ | ✅ | ~$5/mo | US, FR, CA | ⚠️ Uses OVH network (11.14% overrepresented) |
+
+### ✅ Excellent for Guard/Middle Relays (No Exits)
+
+| Provider | Exit | Guard/Middle | Bridges | Starting Price | Locations | Notes |
+|----------|------|--------------|---------|----------------|-----------|-------|
+| **myLoc** | ❌ | ✅ | ✅ | €5/mo | DE | Reliable, good support, 0.76% consensus |
+| **Worldstream** | ❌ | ✅ | ✅ | €10/mo | NL | Solid uptime, 0.34% consensus |
+| **Creanova** | ❌ | ✅ | ✅ | €5/mo | FI | Good for diversity, 0.07% consensus |
+| **DreamHost** | ❓ | ✅ | ✅ | $5/mo | US | Unconfirmed for exits, 0.01% consensus |
+| **MilesWeb** | ❌ | ✅ | ✅ | $3/mo | RO, US, UK | Budget-friendly, multiple locations |
+
+### 🌟 Privacy-Focused Providers
+
+| Provider | Exit | Guard/Middle | Bridges | Starting Price | Locations | Notes |
+|----------|------|--------------|---------|----------------|-----------|-------|
+| **1984Hosting** | ✅ | ✅ | ✅ | ~$10/mo | IS | Free speech hoster, Iceland, 0.08% consensus |
+| **FlokiNET** | ✅ | ✅ | ✅ | ~$10/mo | IS, RO, NL, FI | Sponsors Tor exits, 0.67% consensus |
+| **NiceVPS** | ✅ | ✅ | ✅ | ~$5/mo | CH, NL | Crypto accepted, has onion site |
+| **Ukrainian Data Network** | ✅ | ✅ | ✅ | ~$5/mo | UA | Free speech, crypto, 20TB fair use |
+
+### 💰 Budget Champions
+
+| Provider | Exit | Guard/Middle | Bridges | Starting Price | Locations | Notes |
+|----------|------|--------------|---------|----------------|-----------|-------|
+| **BuyVM** | ✅ | ✅ | ✅ | $2/mo | US, LU | Best value overall if in stock |
+| **Netcup** | ✅ | ✅ | ✅ | €2.50/mo | DE, AT, NL, US | 40-120TB bandwidth, aggressive abuse handling |
+| **VPSslim** | ✅ | ✅ | ✅ | ~$3/mo | NL | 2TB/day fair use, 0.08% consensus |
+| **iHostArt** | ✅ | ✅ | ✅ | ~$5/mo | RO | Good diversity, Romania underrepresented |
+| **Linode** | ✅ | ✅ | ✅ | $5/mo | Global | $100 free = ~20 months free |
 
 ### ⚠️ Providers with Restrictions
 
-- **AWS**: No explicit ban, but expensive bandwidth
-- **Google Cloud**: May flag relay traffic
-- **Azure**: Check ToS carefully
+| Provider | Status | Notes |
+|----------|--------|-------|
+| **OVH/OVHcloud** | ❌ Exits | Middle/bridges OK. **Overrepresented (11.14%)** - avoid for diversity |
+| **DigitalOcean** | ❌ Exits | Middle/bridges OK. May suspend without warning, 0.41% consensus |
+| **Vultr** | ❌ Exits | Middle/bridges OK as of Oct 2024. Check current AUP, 0.08% consensus |
+| **AWS** | ❌ Exits | Expensive bandwidth, middle relays possible but costly |
+| **Google Cloud** | ⚠️ | May flag relay traffic, not recommended |
+| **Azure** | ❌ Exits | Expensive, middle relays uncertain, 0.0% consensus |
+
+### ❌ AVOID - Banned or Problematic
+
+| Provider | Reason |
+|----------|--------|
+| **Contabo** | Explicitly bans all Tor nodes in Section 2.9 of TOS |
+| **HitMe.pl** | Blocks accounts on first abuse report |
+| **Slask DataCenter** | No longer allows Tor traffic (Poland) |
+| **ColoCrossing/HostPapa** | All Tor nodes banned |
+| **GreenCloud** | Explicitly bans Tor in TOS |
+| **Spectrum** | Residential ISP - TOS violation |
+| **Astound Broadband** | Disallows servers/proxies |
+| **Time4VPS** | Lithuania - explicitly prohibits Tor in TOS |
+
+### 💡 Quick Selection Guide
+
+**For Exit Nodes:**
+- **Best Value**: BuyVM ($2/mo) if available
+- **Best Support**: MAXKO Hosting (~$10/mo) - use code TOR10
+- **Best Testing**: Linode ($5/mo + $100 credits)
+- **Budget + High Maintenance OK**: Netcup (€2.50/mo)
+- **Privacy-Focused**: Privex (€15/mo) or 1984Hosting (~$10/mo)
+
+**For Guard/Middle Relays:**
+- **Best Overall**: Netcup (€2.50/mo) or Hetzner (€4.15/mo)
+- **Best Reliability**: myLoc (€5/mo)
+- **Good Diversity**: Creanova (€5/mo) or MilesWeb ($3/mo)
+
+**For Bridges:**
+- **Best Privacy**: 1984Hosting (~$10/mo)
+- **Best Value**: Netcup (€2.50/mo) or BuyVM ($2/mo)
+- **Multiple Locations**: FlokiNET (~$10/mo)
+
+**For Network Diversity (Underrepresented Regions):**
+- MAXKO Hosting (Croatia, Hungary, Bulgaria, South Africa)
+- Trabia (Moldova) - 0.09% consensus
+- Ukrainian Data Network (Ukraine)
+- iHostArt (Romania)
+- i3D (Netherlands) - 0.02% consensus
+- KoDDoS (Netherlands) - 0.0% consensus
+
+### ⚠️ Network Diversity Warning
+
+**Avoid these for NEW relays** (already overrepresented):
+- OVH/OVHcloud: 11.14% ❌
+- Hetzner: 8.26% ❌
+- Netcup: 4.56% ⚠️
+- 1337 Services/RDP.sh: 4.33% ⚠️
+- LiteServer: 3.1% ⚠️
+- BuyVM/Frantech: 2.22% ⚠️
+
+**Ideal providers** (under 1% consensus weight):
+- i3D: 0.02%
+- KoDDoS: 0.0%
+- Trabia: 0.09%
+- MAXKO: 0.27%
+- Creanova: 0.07%
+- VPSslim: 0.08%
+
+Choose providers with <1% consensus weight for better network health.
+
+---
 
 ### 🏠 Home Hosting Considerations
 
 **Pros:**
 - Free bandwidth (usually)
-- Full control
+- Full control over hardware
+- Can run 24/7 on low-power devices (Raspberry Pi, old laptop)
+- No monthly VPS costs
 
 **Cons:**
-- ISP may have ToS restrictions
-- Residential IP might be less trusted
-- Dynamic IP issues
-- Home network security risks
+- ISP may have ToS restrictions (check first!)
+- Residential IP might be less trusted by Tor network
+- Dynamic IP issues (use DynDNS or similar)
+- Home network security risks (isolate on separate VLAN)
+- Slower upload speeds on consumer connections
+- Your home IP will be public in Tor directory
+- Can attract unwanted attention to your home address
 
-**Recommendation**: Use VPS for guard/exit relays, home for bridges only.
+**ISP Considerations:**
+- **Comcast**: Exits require commercial plan + prior contact; middle relays generally OK
+- **Spectrum**: Prohibited by TOS
+- **CenturyLink/Lumen**: Home TOS doesn't explicitly ban servers
+- **Most cable ISPs**: Check TOS - many prohibit "servers"
+- **TekSavvy** (Canada): Server-friendly, supports Tor
+- **MonkeyBrains** (US): Allows Tor but colocation only
+
+**Recommendation**: 
+- ✅ **Bridges**: Safe for home networks (won't be publicly listed)
+- ⚠️ **Guard/Middle relays**: Check ISP TOS first, use VPS if uncertain
+- ❌ **Exit nodes**: Never on residential - use VPS with clear exit policy
+
+**If running at home:**
+1. Verify ISP TOS allows servers/relays
+2. Use static IP or dynamic DNS (DuckDNS, No-IP)
+3. Isolate relay on separate VLAN/network segment
+4. Set bandwidth limits with AccountingMax (e.g., 80% of your upload speed)
+5. Monitor for abuse complaints (shouldn't get any for bridges/middle)
+6. Only run bridges or middle relays, never exits
+7. Consider power consumption (Raspberry Pi uses ~5W)
+
+**Best home setup**: Raspberry Pi 4 (4GB+ RAM) running Debian, dedicated to Tor bridge only.
 
 ---
 
@@ -682,7 +819,7 @@ Don't forget to open ports in your cloud provider's firewall:
 
 ### Option 1: JSON Health API
 
-v1.1.1 provides a `health` tool that outputs JSON for monitoring integration:
+>=v1.1.1 provides a `health` tool that outputs JSON for monitoring integration:
 
 ```bash
 # Get health status (raw JSON)
@@ -837,3 +974,13 @@ After successful deployment:
 - 🐛 [Report Issues](https://github.com/r3bo0tbx1/tor-guard-relay/issues)
 - 💬 [Tor Project Forum](https://forum.torproject.net/)
 - 📧 [Relay Operators List](https://lists.torproject.org/cgi-bin/mailman/listinfo/tor-relays)
+
+---
+
+## 📚 Additional Resources
+
+- **Tor Project Good/Bad ISPs List**: https://community.torproject.org/relay/community-resources/good-bad-isps/
+- **Tor Metrics**: https://metrics.torproject.org/ (check AS/country distribution)
+- **Reduced Exit Policy**: https://trac.torproject.org/projects/tor/wiki/doc/ReducedExitPolicy
+- **Exit Guidelines**: https://community.torproject.org/relay/community-resources/tor-exit-guidelines/
+- **Abuse Templates**: https://community.torproject.org/relay/community-resources/tor-abuse-templates/

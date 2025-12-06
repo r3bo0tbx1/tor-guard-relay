@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tor Exit Router Notice</title>
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg
+						xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' stroke='%239955B3' fill='none' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z'/%3E%3C/svg%3E">
+    <style>
+      :root {
+        --bg-color: #050505;
+        --card-bg: rgba(22, 27, 34, 0.7);
+        --card-border: rgba(48, 54, 61, 0.6);
+        --text-main: #e6edf3;
+        --text-muted: #7d8590;
+        --tor-purple: #9955B3;
+        --tor-glow: rgba(153, 85, 179, 0.25);
+        --danger: #ff7b72;
+        --safe: #238636;
+        --link: #58a6ff;
+        --code-bg: rgba(110, 118, 129, 0.15);
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        background-color: var(--bg-color);
+        background-image:
+          radial-gradient(circle at 15% 25%, rgba(125, 70, 152, 0.08) 0%, transparent 25%),
+          radial-gradient(circle at 85% 75%, rgba(35, 134, 54, 0.08) 0%, transparent 25%),
+          linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+        background-size: 100% 100%, 100% 100%, 30px 30px, 30px 30px;
+        background-position: 0 0, 0 0, center center, center center;
+        color: var(--text-main);
+        line-height: 1.6;
+        padding: 40px 20px;
+        display: flex;
+        justify-content: center;
+        min-height: 100vh;
+      }
+
+      ::selection {
+        background: var(--tor-purple);
+        color: white;
+      }
+
+      .container {
+        max-width: 900px;
+        width: 100%;
+      }
+
+      header {
+        text-align: center;
+        margin-bottom: 50px;
+      }
+
+      h1 {
+        font-weight: 800;
+        font-size: 2.5rem;
+        color: #ffffff;
+        margin-bottom: 12px;
+        letter-spacing: -1px;
+        text-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+      }
+
+      .status-pill {
+        display: inline-flex;
+        align-items: center;
+        background: rgba(35, 134, 54, 0.1);
+        border: 1px solid rgba(35, 134, 54, 0.4);
+        color: #3fb950;
+        padding: 6px 16px;
+        border-radius: 100px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        backdrop-filter: blur(4px);
+      }
+
+      .status-pill::before {
+        content: '';
+        display: block;
+        width: 8px;
+        height: 8px;
+        background-color: #3fb950;
+        border-radius: 50%;
+        margin-right: 8px;
+        box-shadow: 0 0 10px #3fb950;
+        animation: blink 2s infinite;
+      }
+
+      .card {
+        background-color: var(--card-bg);
+        border: 1px solid var(--card-border);
+        border-radius: 16px;
+        padding: 35px;
+        margin-bottom: 30px;
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      }
+
+      h2 {
+        color: #ffffff;
+        margin-bottom: 20px;
+        font-size: 1.3rem;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        border-bottom: 1px solid var(--card-border);
+        padding-bottom: 15px;
+      }
+
+      p {
+        margin-bottom: 16px;
+        color: var(--text-muted);
+        font-size: 1.05rem;
+      }
+
+      a {
+        color: var(--link);
+        text-decoration: none;
+        transition: all 0.2s;
+      }
+
+      a:hover {
+        color: #8dbdff;
+        text-decoration: underline;
+      }
+
+      code {
+        font-family: 'SF Mono', 'Segoe UI Mono', 'Roboto Mono', monospace;
+        background: var(--code-bg);
+        padding: 2px 6px;
+        border-radius: 4px;
+        color: #e6edf3;
+        font-size: 0.9em;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .diagram-wrapper {
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid var(--card-border);
+        border-radius: 12px;
+        padding: 40px 20px;
+        margin: 30px 0;
+        position: relative;
+      }
+
+      .flow-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        position: relative;
+        z-index: 2;
+      }
+
+      .step {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        width: 120px;
+        z-index: 5;
+      }
+
+      .icon-box {
+        width: 70px;
+        height: 70px;
+        background: #1c2128;
+        border: 2px solid var(--card-border);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 15px;
+        transition: all 0.3s ease;
+        position: relative;
+      }
+
+      .icon-box svg {
+        width: 30px;
+        height: 30px;
+        fill: var(--text-muted);
+        transition: fill 0.3s;
+      }
+
+      .label {
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: var(--text-main);
+      }
+
+      .sub-label {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        margin-top: 4px;
+      }
+
+      .step.active .icon-box {
+        border-color: var(--tor-purple);
+        box-shadow: 0 0 25px var(--tor-glow);
+        background: rgba(125, 70, 152, 0.1);
+      }
+
+      .step.active .icon-box::after {
+        content: '';
+        position: absolute;
+        top: -4px;
+        left: -4px;
+        right: -4px;
+        bottom: -4px;
+        border-radius: 50%;
+        border: 2px solid var(--tor-purple);
+        opacity: 0;
+        animation: pulse-ring 2.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+      }
+
+      .step.active .icon-box svg {
+        fill: var(--tor-purple);
+      }
+
+      .connector {
+        flex-grow: 1;
+        height: 3px;
+        background: #30363d;
+        position: relative;
+        margin: 0 10px;
+        margin-bottom: 35px;
+        border-radius: 2px;
+        overflow: hidden;
+      }
+
+      .connector::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        width: 100%;
+        background: repeating-linear-gradient(90deg,
+            transparent,
+            transparent 5px,
+            rgba(255, 255, 255, 0.4) 5px,
+            rgba(255, 255, 255, 0.8) 15px);
+        animation: flow-horizontal 1.5s linear infinite;
+      }
+
+      .connector.encrypted {
+        background: rgba(125, 70, 152, 0.3);
+      }
+
+      .connector.encrypted::after {
+        background: repeating-linear-gradient(90deg, transparent, transparent 10px, var(--tor-purple) 10px, var(--tor-purple) 25px);
+      }
+
+      .connector.plain {
+        background: rgba(248, 81, 73, 0.3);
+      }
+
+      .connector.plain::after {
+        background: repeating-linear-gradient(90deg, transparent, transparent 10px, var(--danger) 10px, var(--danger) 25px);
+      }
+
+      .conn-label {
+        position: absolute;
+        top: 12px;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 0.65rem;
+        letter-spacing: 1px;
+        font-weight: 700;
+        text-transform: uppercase;
+      }
+
+      .encrypted .conn-label {
+        color: var(--tor-purple);
+      }
+
+      .plain .conn-label {
+        color: var(--danger);
+      }
+
+      .contact-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 15px;
+        margin-top: 20px;
+      }
+
+      .contact-box {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid var(--card-border);
+        padding: 20px;
+        border-radius: 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        transition: background 0.2s;
+      }
+
+      .contact-box:hover {
+        background: rgba(255, 255, 255, 0.06);
+      }
+
+      .contact-label {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        font-weight: bold;
+        text-transform: uppercase;
+      }
+
+      .contact-value {
+        font-family: monospace;
+        font-size: 1rem;
+        color: var(--text-main);
+      }
+
+      footer {
+        text-align: center;
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        margin-top: 40px;
+        border-top: 1px solid var(--card-border);
+        padding-top: 20px;
+      }
+
+      @keyframes pulse-ring {
+        0% {
+          transform: scale(0.8);
+          opacity: 0.8;
+        }
+
+        100% {
+          transform: scale(1.4);
+          opacity: 0;
+        }
+      }
+
+      @keyframes blink {
+        0% {
+          opacity: 1;
+        }
+
+        50% {
+          opacity: 0.5;
+        }
+
+        100% {
+          opacity: 1;
+        }
+      }
+
+      @keyframes flow-horizontal {
+        from {
+          transform: translateX(-25px);
+        }
+
+        to {
+          transform: translateX(0);
+        }
+      }
+
+      @keyframes flow-vertical {
+        from {
+          transform: translateY(-25px);
+        }
+
+        to {
+          transform: translateY(0);
+        }
+      }
+
+      @media (max-width: 768px) {
+        .flow-container {
+          flex-direction: column;
+          gap: 0;
+        }
+
+        .step {
+          width: 100%;
+          padding: 10px 0;
+        }
+
+        .icon-box {
+          margin: 0 auto 10px auto;
+          width: 60px;
+          height: 60px;
+        }
+
+        .icon-box svg {
+          width: 24px;
+          height: 24px;
+        }
+
+        .connector {
+          width: 3px;
+          height: 80px;
+          margin: 0 auto;
+          margin-bottom: 0;
+        }
+
+        .conn-label {
+          top: 50%;
+          left: 15px;
+          transform: translateY(-50%);
+          text-align: left;
+          width: 150px;
+        }
+
+        .connector::after {
+          background: repeating-linear-gradient(0deg,
+              transparent,
+              transparent 5px,
+              rgba(255, 255, 255, 0.4) 5px,
+              rgba(255, 255, 255, 0.8) 15px);
+          animation: flow-vertical 1.5s linear infinite;
+        }
+
+        .connector.encrypted::after {
+          background: repeating-linear-gradient(180deg, transparent, transparent 10px, var(--tor-purple) 10px, var(--tor-purple) 25px);
+        }
+
+        .connector.plain::after {
+          background: repeating-linear-gradient(180deg, transparent, transparent 10px, var(--danger) 10px, var(--danger) 25px);
+        }
+      }
+
+      @media print {
+        body {
+          background: white;
+          color: black;
+          display: block;
+        }
+
+        .card {
+          border: 1px solid #ccc;
+          box-shadow: none;
+          background: none;
+          color: black;
+        }
+
+        h1,
+        h2,
+        p,
+        a {
+          color: black !important;
+          text-shadow: none !important;
+        }
+
+        .diagram-wrapper {
+          display: none;
+        }
+
+        .contact-box {
+          border: 1px solid #ccc;
+        }
+
+        a {
+          text-decoration: underline;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>Tor Exit Router</h1>
+        <div class="status-pill">System Operational</div>
+      </header>
+      <section class="card">
+        <h2>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="16" x2="12" y2="12"></line>
+            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+          </svg> Information
+        </h2>
+        <p> You are visiting this page because the IP address <code>YOUR.EXIT.IP.ADDRESS</code> likely appeared in your server logs. </p>
+        <p> This server is a <strong>Tor Exit Node</strong>. It is part of the <a href="http://2gzyxa5ihm7nsggfxnu52rck2vv4rvmdlkiu3zzui5du4xyclen53wid.onion/" target="_blank">Tor Anonymity Network</a>. The traffic you observed <strong>did not originate from this machine</strong>; it originated from an anonymous user somewhere else in the world, and was merely routed through this server to reach the open internet. </p>
+      </section>
+      <section class="card">
+        <h2>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
+            <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
+            <line x1="6" y1="6" x2="6" y2="6"></line>
+            <line x1="6" y1="18" x2="6" y2="18"></line>
+          </svg> Traffic Analysis
+        </h2>
+        <div class="diagram-wrapper">
+          <div class="flow-container">
+            <div class="step">
+              <div class="icon-box">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                </svg>
+              </div>
+              <div class="label">User</div>
+              <div class="sub-label">Hidden Origin</div>
+            </div>
+            <div class="connector encrypted">
+              <span class="conn-label">Encrypted</span>
+            </div>
+            <div class="step">
+              <div class="icon-box">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z" />
+                </svg>
+              </div>
+              <div class="label">Tor Network</div>
+              <div class="sub-label">Relays</div>
+            </div>
+            <div class="connector encrypted">
+              <span class="conn-label">Encrypted</span>
+            </div>
+            <div class="step active">
+              <div class="icon-box">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M4 1h16c1.1 0 2 .9 2 2v4c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V3c0-1.1.9-2 2-2zm0 4h16V3H4v2zm16 4H4v2h16V9zm-2-4h-2V4h2v1zm0 14h-2v-1h2v1zM4 11h16c1.1 0 2 .9 2 2v4c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2v-4c0-1.1.9-2 2-2zm0 4h16v-2H4v2z" />
+                </svg>
+              </div>
+              <div class="label">This Server</div>
+              <div class="sub-label">Exit Node</div>
+            </div>
+            <div class="connector plain">
+              <span class="conn-label">Unencrypted</span>
+            </div>
+            <div class="step">
+              <div class="icon-box">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z" />
+                </svg>
+              </div>
+              <div class="label">Your Server</div>
+              <div class="sub-label">Destination</div>
+            </div>
+          </div>
+        </div>
+        <p style="font-size: 0.9em; text-align: center; color: var(--text-muted);"> Traffic is encrypted within Tor. It only becomes visible when it leaves this exit node. </p>
+      </section>
+      <section class="card">
+        <h2>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+          </svg> Abuse Resolution
+        </h2>
+        <p> This machine is a common carrier. We do not host content. If you are investigating a DMCA violation or abuse originating from this IP, please contact the maintainer below. </p>
+        <div class="contact-grid">
+          <div class="contact-box">
+            <span class="contact-label">Maintainer Email</span>
+            <a href="mailto:user@domain.tld" class="contact-value">user@domain.tld</a>
+          </div>
+          <div class="contact-box">
+            <span class="contact-label">P2P Policy</span>
+            <span class="contact-value" style="color: var(--danger);">Blocked</span>
+            <!-- if P2P is allowed, use this instead:
+            <span class="contact-value" style="color: var(--safe);">Allowed</span>
+            -->
+          </div>
+          <div class="contact-box">
+            <span class="contact-label">Logs</span>
+            <span class="contact-value">None Stored</span>
+          </div>
+        </div>
+        <p style="margin-top: 25px; font-size: 0.9em; opacity: 0.8;"> Network administrators may block this IP using the <a href="https://check.torproject.org/torbulkexitlist" target="_blank">Tor Bulk Exit List</a>. </p>
+      </section>
+      <footer>
+        <p> Node Operated by "User" • <a href="http://hctxrvjzfpvmzh2jllqhgvvkoepxb4kfzdjm6h7egcwlumggtktiftid.onion/" target="_blank">Tor Metrics</a> • <a href="http://rzuwtpc4wb3xdzrj3yeajsvm3fkq4vbeubm2tdxaqruzzzgs5dwemlad.onion/" target="_blank">Tor Support</a>
+        </p>
+      </footer>
+    </div>
+  </body>
+</html>
