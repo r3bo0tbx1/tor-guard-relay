@@ -1,20 +1,15 @@
 # 🧱 optimized for CI builds
 
-# Ignore Git and CI/CD metadata
 .git
 .gitignore
 .gitattributes
 .github/
-
-# Ignore documentation and changelogs
 *.md
 CHANGELOG.md
 CONTRIBUTING.md
 CODE_OF_CONDUCT.md
 SECURITY.md
 LICENSE.txt
-
-# Ignore examples, templates, and local configs
 examples/
 templates/
 docs/
@@ -23,25 +18,11 @@ config/
 *.json
 *.yaml
 *.yml
-
-# Ignore temporary, backup, and log files
 *.log
 *.tmp
 *.bak
 *.swp
 *.DS_Store
-
-# Ignore local build artifacts
-*.tar
-*.gz
-*.zip
-*.tgz
-build/
-dist/
-node_modules/
-__pycache__/
-
-# Keep only files needed for building and running the image
 !Dockerfile
 !Dockerfile.edge
 !tools/

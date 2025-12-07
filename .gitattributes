@@ -1,26 +1,15 @@
-# Auto detect text files and perform LF normalization
 * text=auto
-
-# Ensure shell scripts always use LF
 *.sh text eol=lf
 docker-entrypoint.sh text eol=lf
 healthcheck.sh text eol=lf
 tools/* text eol=lf
-
-# Dockerfiles
 *.container text eol=lf
 Dockerfile text eol=lf
-
-# GitHub workflows
 .github/workflows/*.yml text eol=lf
-
-# Standard file handling
 *.md text
 *.txt text
 *.yml text eol=lf
 *.yaml text eol=lf
-
-# Binary files
 *.png binary
 *.jpg binary
 *.gif binary

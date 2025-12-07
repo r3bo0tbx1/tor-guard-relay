@@ -97,6 +97,17 @@
         animation: blink 2s infinite;
       }
 
+      .status-pill.danger {
+        color: var(--danger);
+        border-color: rgba(255, 123, 114, 0.4);
+        background: rgba(255, 123, 114, 0.1);
+      }
+
+      .status-pill.danger::before {
+        background-color: var(--danger);
+        box-shadow: 0 0 10px var(--danger);
+      }
+
       .card {
         background-color: var(--card-bg);
         border: 1px solid var(--card-border);
@@ -475,6 +486,15 @@
       <header>
         <h1>Tor Exit Router</h1>
         <div class="status-pill">System Operational</div>
+        <div style="margin-top: 10px;">
+          <noscript>
+            <div class="status-pill"> JavaScript: Disabled (Safe) </div>
+          </noscript>
+          <div id="js-warning" class="status-pill danger" style="display: none;"> JavaScript: Enabled </div>
+        </div>
+        <script>
+          document.getElementById('js-warning').style.display = 'inline-flex';
+        </script>
       </header>
       <section class="card">
         <h2>
@@ -562,9 +582,6 @@
           <div class="contact-box">
             <span class="contact-label">P2P Policy</span>
             <span class="contact-value" style="color: var(--danger);">Blocked</span>
-            <!-- if P2P is allowed, use this instead:
-            <span class="contact-value" style="color: var(--safe);">Allowed</span>
-            -->
           </div>
           <div class="contact-box">
             <span class="contact-label">Logs</span>

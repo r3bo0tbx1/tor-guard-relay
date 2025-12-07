@@ -1,4 +1,4 @@
-name: 🗑️🧹
+name: 🗑️🧹 Force Clear Cache
 
 on:
   schedule:
@@ -12,24 +12,10 @@ jobs:
   clear-cache:
     runs-on: ubuntu-latest
     steps:
-      - name: 🗑️ Clear GitHub Actions Cache
+      - name: 💥 Nuke GitHub Actions Cache
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          REPO: ${{ github.repository }}
         run: |
-          echo "🔍 Fetching list of caches..."
-          # Get all cache keys
-          cacheKeys=$(gh cache list --limit 100 --repo $REPO --json key --jq '.[].key')
-
-          if [ -z "$cacheKeys" ]; then
-            echo "✅ No caches found to clear."
-            exit 0
-          fi
-
-          echo "🗑️ Deleting caches..."
-          for key in $cacheKeys; do
-            echo "   - Deleting $key"
-            gh cache delete "$key" --repo $REPO || echo "     ⚠️ Failed to delete $key (might already be gone)"
-          done
-          echo "🎉 Cache cleanup complete."
-          
+          echo "🔍 meaningful-text: check for caches..."
+          gh cache delete --all --repo ${{ github.repository }} || true
+          echo "✅ Cache storage is now empty."
