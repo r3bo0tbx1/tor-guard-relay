@@ -9,7 +9,7 @@ RUN git clone https://gitlab.torproject.org/tpo/anti-censorship/pluggable-transp
  && go mod tidy \
  && CGO_ENABLED=0 go build -ldflags="-s -w" -o /usr/bin/lyrebird ./cmd/lyrebird
 
-FROM alpine:3.23.0
+FROM alpine:3.23.2
 
 ARG BUILD_DATE
 ARG BUILD_VERSION
