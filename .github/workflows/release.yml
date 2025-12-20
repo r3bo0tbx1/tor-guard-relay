@@ -69,7 +69,7 @@ jobs:
         run: |
           set -e
           echo "🔍 Determining version context..."
-          BUILD_VARIANTS="both"  # Default: build both variants
+          BUILD_VARIANTS="both"
 
           if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
             VERSION="${GITHUB_REF#refs/tags/v}"
@@ -83,14 +83,12 @@ jobs:
             LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v1.0.0")
 
             if [[ "${BUILD_MODE}" == "rebuild" ]]; then
-              # Rebuild mode: Use last release version (same as weekly)
               VERSION="${LATEST_TAG#v}"
               BUILD_TYPE="manual-rebuild"
               IS_RELEASE="false"
               echo "🔄 Manual rebuild of last release: ${VERSION} (with updated packages)"
               echo "   Variants: ${BUILD_VARIANTS}"
             else
-              # Version bump mode: Create new version with suffix
               VERSION="${LATEST_TAG#v}-manual-${GITHUB_RUN_NUMBER}"
               BUILD_TYPE="manual"
               IS_RELEASE="false"
@@ -98,25 +96,21 @@ jobs:
               echo "   Variants: ${BUILD_VARIANTS}"
             fi
           elif [[ "${GITHUB_EVENT_NAME}" == "schedule" ]]; then
-            # Scheduled rebuild: Determine which schedule based on time
             LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v1.0.0")
             VERSION="${LATEST_TAG#v}"
             IS_RELEASE="false"
 
             CURRENT_HOUR=$(date -u +%H)
             if [[ "${CURRENT_HOUR}" == "18" ]]; then
-              # Weekly rebuild (Sundays 18:30 UTC): Build stable only
               BUILD_TYPE="weekly"
               BUILD_VARIANTS="latest"
               echo "📅 Weekly rebuild of last release: ${VERSION} (stable variant with updated packages)"
             else
-              # Edge-only rebuild (Every 3 days at 12:00 UTC): Build edge only
               BUILD_TYPE="edge-rebuild"
               BUILD_VARIANTS="edge"
               echo "⚡ Edge-only rebuild of last release: ${VERSION} (edge variant with updated packages)"
             fi
           else
-            # Fallback (shouldn't happen)
             LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v1.0.0")
             VERSION="${LATEST_TAG#v}"
             BUILD_TYPE="unknown"
@@ -179,7 +173,6 @@ jobs:
           BUILD_VARIANTS="${{ needs.determine-version.outputs.build_variants }}"
           VARIANT_NAME="${{ matrix.variant.name }}"
 
-          # Determine if this variant should be built
           SHOULD_BUILD="false"
 
           if [ "$BUILD_VARIANTS" = "both" ]; then
@@ -306,32 +299,24 @@ jobs:
 
           TAGS=()
 
-          # Always add GHCR versioned tag
           TAGS+=("${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION}${SUFFIX}")
 
           if [ "$BUILD_TYPE" = "release" ]; then
-            # New release: Add special tags
             if [ "$IS_LATEST" = "true" ]; then
-              # Stable variant gets :latest
               TAGS+=("${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:latest")
             else
-              # Edge variant gets :edge
               TAGS+=("${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:edge")
             fi
 
-            # Add Docker Hub tags
             if [ "$PUSH_DOCKERHUB" = "true" ]; then
               if [ "$IS_LATEST" = "true" ]; then
-                # Stable: versioned tag + :latest
                 TAGS+=("${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}")
                 TAGS+=("${{ env.DOCKERHUB_IMAGE_NAME }}:latest")
               else
-                # Edge: only :edge (no versioned tag for Docker Hub)
                 TAGS+=("${{ env.DOCKERHUB_IMAGE_NAME }}:edge")
               fi
             fi
           elif [ "$BUILD_TYPE" = "weekly" ] || [ "$BUILD_TYPE" = "manual-rebuild" ] || [ "$BUILD_TYPE" = "edge-rebuild" ]; then
-            # Weekly rebuild, manual rebuild, or edge-only rebuild: Update version tag with fresh packages
             if [ "$IS_LATEST" = "true" ]; then
               TAGS+=("${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:latest")
             else
@@ -340,21 +325,17 @@ jobs:
 
             if [ "$PUSH_DOCKERHUB" = "true" ]; then
               if [ "$IS_LATEST" = "true" ]; then
-                # Stable: versioned tag + :latest
                 TAGS+=("${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}")
                 TAGS+=("${{ env.DOCKERHUB_IMAGE_NAME }}:latest")
               else
-                # Edge: only :edge (no versioned tag for Docker Hub)
                 TAGS+=("${{ env.DOCKERHUB_IMAGE_NAME }}:edge")
               fi
             fi
           else
-            # Manual/validated builds: version tag only
             if [ "$PUSH_DOCKERHUB" = "true" ]; then
               if [ "$IS_LATEST" = "true" ]; then
                 TAGS+=("${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}")
               else
-                # Edge manual builds: only :edge for Docker Hub
                 TAGS+=("${{ env.DOCKERHUB_IMAGE_NAME }}:edge")
               fi
             fi
@@ -400,7 +381,6 @@ jobs:
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo ""
 
-          # Install syft for SBOM generation
           curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
 
           VERSION="${{ needs.determine-version.outputs.version }}"
@@ -412,27 +392,22 @@ jobs:
           echo "   Image: ${IMAGE}"
           echo ""
 
-          # Generate CycloneDX JSON
           echo "📄 Generating CycloneDX JSON format..."
           syft "${IMAGE}" -o cyclonedx-json > "sbom-${VARIANT}-cyclonedx-v${VERSION}.json"
           echo "   ✅ sbom-${VARIANT}-cyclonedx-v${VERSION}.json"
 
-          # Generate CycloneDX XML
           echo "📄 Generating CycloneDX XML format..."
           syft "${IMAGE}" -o cyclonedx-xml > "sbom-${VARIANT}-cyclonedx-v${VERSION}.xml"
           echo "   ✅ sbom-${VARIANT}-cyclonedx-v${VERSION}.xml"
 
-          # Generate SPDX JSON
           echo "📄 Generating SPDX JSON format..."
           syft "${IMAGE}" -o spdx-json > "sbom-${VARIANT}-spdx-v${VERSION}.json"
           echo "   ✅ sbom-${VARIANT}-spdx-v${VERSION}.json"
 
-          # Generate SPDX tag-value
           echo "📄 Generating SPDX tag-value format..."
           syft "${IMAGE}" -o spdx-tag-value > "sbom-${VARIANT}-spdx-v${VERSION}.spdx"
           echo "   ✅ sbom-${VARIANT}-spdx-v${VERSION}.spdx"
 
-          # Generate human-readable table
           echo "📄 Generating human-readable table..."
           syft "${IMAGE}" -o table > "sbom-${VARIANT}-table-v${VERSION}.txt"
           echo "   ✅ sbom-${VARIANT}-table-v${VERSION}.txt"
@@ -453,7 +428,7 @@ jobs:
             sbom-${{ matrix.variant.name }}-*.xml
             sbom-${{ matrix.variant.name }}-*.spdx
             sbom-${{ matrix.variant.name }}-*.txt
-          retention-days: 90
+          retention-days: 7
 
   release-notes:
     name: 📝 Generate Release Notes
@@ -478,7 +453,6 @@ jobs:
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo ""
 
-          # Try to extract from CHANGELOG.md first
           CHANGELOG_FOUND=0
 
           if [ -f CHANGELOG.md ]; then
@@ -490,9 +464,10 @@ jobs:
               p
             ' CHANGELOG.md > tmp_notes.txt
 
-            sed -i '/^$/N;/^\n$/D' tmp_notes.txt 2>/dev/null || true
-
             if [ -s tmp_notes.txt ]; then
+              sed -i '${/^---[[:space:]]*$/d;}' tmp_notes.txt
+              sed -i ':a; /^[ \n\r\t]*$/ { $d; N; ba }' tmp_notes.txt 2>/dev/null || true
+
               echo "✅ Found changelog section for v${VERSION} in CHANGELOG.md"
               CHANGELOG_FOUND=1
 
@@ -506,17 +481,14 @@ jobs:
             echo "⚠️ CHANGELOG.md not found"
           fi
 
-          # Fall back to auto-generated notes from commits
           if [ "$CHANGELOG_FOUND" = "0" ]; then
             echo "📋 Auto-generating release notes from commits..."
 
             if [ -x scripts/release/generate-release-notes.sh ]; then
-              # Use auto-generation script
               chmod +x scripts/release/generate-release-notes.sh
               ./scripts/release/generate-release-notes.sh --format github "${VERSION}" > release_notes.md
               echo "✅ Auto-generated release notes from conventional commits"
             else
-              # Simple fallback
               echo "## 🧅 Tor Guard Relay v${VERSION}" > release_notes.md
               echo "" >> release_notes.md
               echo "### Changes" >> release_notes.md
@@ -529,7 +501,6 @@ jobs:
             fi
           fi
 
-          # Append Docker images and SBOM info
           echo "" >> release_notes.md
           echo "---" >> release_notes.md
           echo "" >> release_notes.md

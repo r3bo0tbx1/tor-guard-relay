@@ -11,7 +11,7 @@
         "TOR_NICKNAME=MyGuardRelay",
         "TOR_CONTACT_INFO=admin@example.com",
         "TOR_ORPORT=9001",
-        "TOR_DIRPORT=9030",
+        "TOR_DIRPORT=0",
         "TOR_BANDWIDTH_RATE=50 MBytes",
         "TOR_BANDWIDTH_BURST=100 MBytes"
       ],
@@ -56,7 +56,7 @@
         "cosmos-description": "🛡️ Tor Guard Relay | ENV-based config",
         "cosmos-icon": "https://raw.githubusercontent.com/r3bo0tbx1/tor-guard-relay/refs/heads/main/src/onion.png",
         "cosmos-force-network-secured": "false",
-        "cosmos-version": "1.1.3"
+        "cosmos-version": "1.1.4"
       }
     }
   },

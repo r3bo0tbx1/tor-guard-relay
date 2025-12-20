@@ -4,12 +4,17 @@ on:
   schedule:
     - cron: '0 0 * * 0'
   workflow_dispatch:
+  push:
+    tags:
+      - 'v*.*.*'
 
 permissions:
   actions: write
+  packages: write
 
 jobs:
   clear-cache:
+    name: 💥 Nuke Caches
     runs-on: ubuntu-latest
     steps:
       - name: 💥 Nuke GitHub Actions Cache
@@ -19,3 +24,62 @@ jobs:
           echo "🔍 meaningful-text: check for caches..."
           gh cache delete --all --repo ${{ github.repository }} || true
           echo "✅ Cache storage is now empty."
+
+  prune-ghcr:
+    name: 🧊 Prune GHCR
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🗑️ Delete old GHCR versions
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: 'onion-relay'
+          package-type: 'container'
+          min-versions-to-keep: 14
+          ignore-versions: '^(latest|edge)$'
+          delete-only-untagged-versions: 'false'
+
+  prune-dockerhub:
+    name: 🐋 Prune Docker Hub
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v5
+
+      - name: 🪄 Clean Docker Hub Tags
+        env:
+          DOCKER_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKERHUB_TOKEN }}
+          REPOSITORY: "r3bo0tbx1/onion-relay"
+        run: |
+          set -e
+          echo "🔑 Authenticating with Docker Hub..."
+          TOKEN=$(curl -s -H "Content-Type: application/json" -X POST \
+            -d "{\"username\": \"$DOCKER_USERNAME\", \"password\": \"$DOCKER_PASSWORD\"}" \
+            https://hub.docker.com/v2/users/login/ | jq -r .token)
+
+          if [ "$TOKEN" == "null" ] || [ -z "$TOKEN" ]; then
+            echo "❌ Authentication failed. Check DOCKERHUB_TOKEN."
+            exit 1
+          fi
+
+          echo "🔍 Fetching tags for $REPOSITORY..."
+          ALL_TAGS=$(curl -s -H "Authorization: JWT $TOKEN" \
+            "https://hub.docker.com/v2/repositories/$REPOSITORY/tags/?page_size=100")
+
+          # Filter out moving tags and count only the real version tags
+          VERSION_TAGS=$(echo "$ALL_TAGS" | jq -r '.results | sort_by(.last_updated) | reverse | .[].name' | grep -E -v "^(latest|edge)$" || true)
+
+          COUNT=$(echo "$VERSION_TAGS" | wc -w)
+          echo "📊 Found $COUNT versioned tags."
+
+          if [ "$COUNT" -gt 14 ]; then
+            OLD_TAGS=$(echo "$VERSION_TAGS" | awk 'NR>14')
+            for TAG in $OLD_TAGS; do
+              echo "🗑️ Deleting old versioned tag: $TAG"
+              curl -s -H "Authorization: JWT $TOKEN" -X DELETE \
+                "https://hub.docker.com/v2/repositories/$REPOSITORY/tags/$TAG/"
+            done
+            echo "✅ Docker Hub cleanup complete."
+          else
+            echo "✨ Current version count ($COUNT) is within the limit. No deletion needed."
+          fi

@@ -508,7 +508,7 @@ jobs:
         with:
           name: trivy-security-report
           path: trivy-full-report.json
-          retention-days: 30
+          retention-days: 7
         continue-on-error: true
 
       - name: 📋 Generate Security Summary

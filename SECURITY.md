@@ -14,10 +14,10 @@ We actively support the following versions with security updates:
 
 | Version   | Status                | Support Level                               |
 | --------- | --------------------- | ------------------------------------------- |
-| **>=1.1.2** | 🟢 🛡️ **Active**     | Full support (current stable)               |
-| **1.1.1** | 🟡 🔧 **Maintenance** | Security + critical fixes only              |
-| **1.0.9** | 🟠 ⚠️ **Legacy**      | Security patches only – upgrade recommended |
-| **1.0.8** | 🔴 ❌ **EOL**          | No support – upgrade immediately            |
+| **1.1.4** | 🟢 🛡️ **Active**     | Full support (current stable)               |
+| **1.1.3** | 🟡 🔧 **Maintenance** | Security + critical fixes only              |
+| **1.1.2** | 🟠 ⚠️ **Legacy**      | Security patches only – upgrade recommended |
+| **< 1.1.1** | 🔴 ❌ **EOL**          | No support – upgrade immediately            |
 
 ---
 
@@ -25,7 +25,7 @@ We actively support the following versions with security updates:
 
 ### Ultra-Minimal Port Exposure
 
-**>=v1.1.1 follows an ultra-minimal security architecture:**
+**> v1.1.1 follows an ultra-minimal security architecture:**
 
 - ✅ **NO monitoring HTTP endpoints** - Removed for maximum security
 - ✅ **NO exposed metrics ports** - All monitoring via `docker exec` only
@@ -40,14 +40,14 @@ We actively support the following versions with security updates:
 ```
 PUBLIC PORTS:
   TOR_ORPORT   (default: 9001)  →  Tor ORPort (relay traffic)
-  TOR_DIRPORT  (default: 9030)  →  Directory service (optional, set to 0 to disable)
+  TOR_DIRPORT                   →  Directory service (optional, disabled by default)
 ```
 
 #### Exit Relay Mode:
 ```
 PUBLIC PORTS:
   TOR_ORPORT   (default: 9001)  →  Tor ORPort (relay traffic)
-  TOR_DIRPORT  (default: 9030)  →  Directory service (optional, set to 0 to disable)
+  TOR_DIRPORT                   →  Directory service (optional, disabled by default)
 ```
 
 #### Bridge Relay Mode:
@@ -659,4 +659,4 @@ Security researchers who responsibly disclose vulnerabilities will be listed her
 
 ---
 
-*Last Updated: 2025-12-05 | Version: 1.1.3*
+*Last Updated: 2025-12-21 | Version: 1.1.4*

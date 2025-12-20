@@ -65,7 +65,7 @@ TOR_CONTACT_INFO=admin@example.com  # Contact email
 
 # Ports (configurable)
 TOR_ORPORT=9001         # ORPort for relay traffic (default: 9001)
-TOR_DIRPORT=9030        # DirPort for guard/exit only (default: 9030, set to 0 to disable)
+TOR_DIRPORT=       # DirPort for guard/exit only (default: 0)
 TOR_OBFS4_PORT=9002     # obfs4 port for bridge mode (default: 9002)
 
 # Bandwidth (optional)
@@ -179,14 +179,14 @@ For advanced torrc options (like `AddressDisableIPv6`, `MaxMemInQueues`, etc.):
 
 Both work identically, choose based on your preference or migration needs.
 
-### Q: Why is TOR_DIRPORT set in Dockerfile when bridges don't use it?
+~~Q: Why is TOR_DIRPORT set in Dockerfile when bridges don't use it?~~
 
-**A:** TOR_DIRPORT=9030 is a **Dockerfile default** for guard/exit modes. The entrypoint **DOES NOT** add DirPort to bridge configurations (see `docker-entrypoint.sh` lines 276-290). Bridges only use ORPort and obfs4 port.
+~~**A:** TOR_DIRPORT=9030 is a **Dockerfile default** for guard/exit modes. The entrypoint **DOES NOT** add DirPort to bridge configurations (see `docker-entrypoint.sh` lines 276-290). Bridges only use ORPort and obfs4 port.~~
 
 **Port usage by mode:**
-- **Guard/Middle:** TOR_ORPORT (required), TOR_DIRPORT (optional, set to 0 to disable)
-- **Exit:** TOR_ORPORT (required), TOR_DIRPORT (optional)
-- **Bridge:** TOR_ORPORT (required), TOR_OBFS4_PORT (required), TOR_DIRPORT (ignored/not used)
+- **Guard/Middle:** TOR_ORPORT (required), TOR_DIRPORT (optional, default = 0)
+- **Exit:** TOR_ORPORT (required), TOR_DIRPORT (optional, default = 0)
+- **Bridge:** TOR_ORPORT (required), TOR_OBFS4_PORT (required), TOR_DIRPORT (ignored/default = 0)
 
 ### Q: Why does TOR_RELAY_MODE say "guard" in logs when I set PT_PORT?
 
@@ -297,6 +297,6 @@ If you still see this error after updating to v1.1.1:
 
 ---
 
-**Version:** 1.1.3
-**Last Updated:** 2025-12-06
+**Version:** 1.1.4
+**Last Updated:** 2025-12-21
 **Maintainer:** rE-Bo0t.bx1 <r3bo0tbx1@brokenbotnet.com>

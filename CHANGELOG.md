@@ -16,6 +16,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.4] - 2025-12-21
+
+### 🏗️ Build Variants
+
+| Variant | Base Image | Tags | Registries | Notes |
+| :--- | :--- | :--- | :--- | :--- |
+| **🟢 Stable** | Alpine 3.23.2 | `:latest`, `:1.1.4` | Docker Hub, GHCR | **Recommended** for production. |
+| **⚠️ Edge** | Alpine Edge | `:edge`, `:1.1.4-edge` | GHCR Only | Testing only; not for production. |
+
+### ⚙️ Changed (Refactor)
+* **Tor Configuration:** Modernized relay templates and hardened security defaults.
+* **Networking:** Disabled `DirPort` (set to `0`) across all relay types and compose templates.
+* **Metadata:** Updated `ContactInfo` to follow the `ciissversion:2` format.
+* **Policy Refinement:** Enhanced exit policies and security for Exit, Guard, and Bridge roles.
+* **Synchronization:** Unified configurations across `cosmos-compose` and `docker-compose`.
+
+### ➕ Added
+* **Monitoring:** Integrated `nyx.config` for enhanced relay visualization.
+* **Performance:** Added support for **IPv6** and hardware acceleration.
+
+### 🗑️ Removed
+* **Maintenance:** Updated retention policy to keep the last **7 releases** (14 tags) and purge legacy build artifacts.
+
+> **BREAKING CHANGES:** None.
+
+---
+
 ## [1.1.3] - 2025-12-05
 
 ### ⚡ Optimization & Tooling Update
@@ -406,15 +433,16 @@ BREAKING CHANGES: None
 
 | Version   | Status                | Support Level                               |
 | --------- | --------------------- | ------------------------------------------- |
-| **1.1.3** | 🟢 🛡️ **Active**     | Full support (current stable)               |
-| **1.1.1** | 🟡 🔧 **Maintenance** | Security + critical fixes only              |
-| **1.0.8** | 🟠 ⚠️ **Legacy**      | Security patches only – upgrade recommended |
-| **1.0.9** | 🔴 ❌ **EOL**          | No support – upgrade immediately            |
+| **1.1.4** | 🟢 🛡️ **Active**     | Full support (current stable)               |
+| **1.1.3** | 🟡 🔧 **Maintenance** | Security + critical fixes only              |
+| **1.1.2** | 🟠 ⚠️ **Legacy**      | Security patches only – upgrade recommended |
+| **< 1.1.2** | 🔴 ❌ **EOL**          | No support – upgrade immediately            |
 
 ---
 
 ## 🔗 Release Links
 
+[1.1.4]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.1.4
 [1.1.3]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.1.3
 [1.1.2]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.1.2
 [1.1.1]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.1.1

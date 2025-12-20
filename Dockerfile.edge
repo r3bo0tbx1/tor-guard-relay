@@ -76,7 +76,6 @@ ENV TOR_DATA_DIR=/var/lib/tor \
     TOR_NICKNAME="" \
     TOR_CONTACT_INFO="" \
     TOR_ORPORT=9001 \
-    TOR_DIRPORT=9030 \
     TOR_OBFS4_PORT=9002 \
     TOR_BANDWIDTH_RATE="" \
     TOR_BANDWIDTH_BURST="" \
@@ -87,7 +86,7 @@ RUN rm -rf /usr/share/man /tmp/* /var/tmp/* /root/.cache/*
 
 USER tor
 
-EXPOSE 9001 9030 9002
+EXPOSE 9001 9002
 
 HEALTHCHECK --interval=10m --timeout=15s --start-period=30s --retries=3 \
   CMD /usr/local/bin/healthcheck.sh

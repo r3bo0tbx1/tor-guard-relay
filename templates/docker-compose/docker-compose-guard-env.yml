@@ -11,7 +11,7 @@ services:
       TOR_NICKNAME: MyGuardRelay
       TOR_CONTACT_INFO: "your-email@example.com <0xYOUR_PGP_KEY>"
       TOR_ORPORT: 9001
-      TOR_DIRPORT: 9030
+      TOR_DIRPORT: 0
       TOR_BANDWIDTH_RATE: "50 MBytes"
       TOR_BANDWIDTH_BURST: "100 MBytes"
     volumes:

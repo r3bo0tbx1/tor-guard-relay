@@ -1,21 +1,12 @@
-# Act secrets file
 .secrets
-
-# Docker volumes
 tor-data/
 tor-logs/
-
-# IDE
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
-
-# OS
 .DS_Store
 Thumbs.db
-
-# Temporary files
 *.tmp
 *.log
