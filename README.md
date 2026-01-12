@@ -410,7 +410,7 @@ Nickname MyTorRelay
 ContactInfo your-email@example.com
 ORPort 9001
 ORPort [::]:9001
-DirPort 9030
+DirPort 0
 ExitRelay 0
 SocksPort 0
 DataDirectory /var/lib/tor
@@ -559,7 +559,7 @@ flowchart TB
         ━━━━━━━━━━
         Routes Traffic
         ExitRelay 0
-        DirPort Enabled"]
+        DirPort Disabled"]
         Mode -->|exit| Exit["🚪 EXIT RELAY
         ━━━━━━━━━━
         Last Hop to Internet
