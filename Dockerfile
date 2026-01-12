@@ -4,7 +4,7 @@ FROM golang:1.25.5-alpine AS builder
 RUN apk add --no-cache git
 
 WORKDIR /go/src/lyrebird
-RUN git clone https://gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/lyrebird.git . \
+RUN git clone https://gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/lyrebird.git .  \
  && go get golang.org/x/crypto@latest \
  && go get golang.org/x/net@latest \
  && go get github. com/pion/interceptor@latest \
