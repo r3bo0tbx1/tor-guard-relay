@@ -7,7 +7,7 @@ WORKDIR /go/src/lyrebird
 RUN git clone https://gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/lyrebird.git .  \
  && go get golang.org/x/crypto@latest \
  && go get golang.org/x/net@latest \
- && go get github. com/pion/interceptor@latest \
+ && go get github.com/pion/interceptor@latest \
  && go get github.com/cloudflare/circl@latest \
  && go mod tidy \
  && CGO_ENABLED=0 go build -ldflags="-s -w" -o /usr/bin/lyrebird ./cmd/lyrebird
