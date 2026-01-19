@@ -1,0 +1,143 @@
+# syntax=docker/dockerfile:1.20
+FROM golang:1.25.6-alpine AS lyrebird-builder
+
+RUN apk add --no-cache git
+
+WORKDIR /go/src/lyrebird
+RUN git clone https://gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/lyrebird.git .  \
+ && go get golang.org/x/crypto@latest \
+ && go get golang.org/x/net@latest \
+ && go get github.com/pion/interceptor@latest \
+ && go get github.com/cloudflare/circl@latest \
+ && go mod tidy \
+ && CGO_ENABLED=0 go build -ldflags="-s -w" -o /usr/bin/lyrebird ./cmd/lyrebird
+
+FROM alpine:3.23.2 AS tor-builder
+
+# Install build dependencies for compiling Tor from source
+RUN apk add --no-cache \
+    git \
+    build-base \
+    automake \
+    autoconf \
+    libtool \
+    zlib-dev \
+    libevent-dev \
+    openssl-dev \
+    xz-dev \
+    libcap-dev \
+    libseccomp-dev
+
+# Clone Tor source repository and build from alpha/main branch
+WORKDIR /usr/src/tor
+RUN git clone https://gitlab.torproject.org/tpo/core/tor.git . \
+ && git checkout main \
+ && ./autogen.sh \
+ && ./configure \
+    --prefix=/usr \
+    --sysconfdir=/etc \
+    --localstatedir=/var \
+    --disable-asciidoc \
+    --disable-manpage \
+    --disable-html-manual \
+ && make -j$(nproc) \
+ && make install DESTDIR=/tor-install
+
+FROM alpine:3.23.2
+
+ARG BUILD_DATE
+ARG BUILD_VERSION
+ARG TARGETARCH
+
+LABEL maintainer="rE-Bo0t.bx1 <r3bo0tbx1@brokenbotnet.com>" \
+      org.opencontainers.image.title="Tor Guard Relay (Alpha)" \
+      org.opencontainers.image.description="🧅 Ultra-optimized Tor Guard/Exit/Bridge Relay AIO (Alpha/Development)" \
+      org.opencontainers.image.version="${BUILD_VERSION}-alpha" \
+      org.opencontainers.image.created="${BUILD_DATE}" \
+      org.opencontainers.image.source="https://github.com/r3bo0tbx1/tor-guard-relay" \
+      org.opencontainers.image.documentation="https://github.com/r3bo0tbx1/tor-guard-relay#readme" \
+      org.opencontainers.image.licenses="MIT" \
+      org.opencontainers.image.vendor="r3bo0tbx1" \
+      org.opencontainers.image.authors="rE-Bo0t.bx1 <r3bo0tbx1@brokenbotnet.com>" \
+      org.opencontainers.image.url="https://github.com/r3bo0tbx1/tor-guard-relay" \
+      org.opencontainers.image.base.name="docker.io/library/alpine:3.23.2" \
+      org.opencontainers.image.revision="${TARGETARCH}"
+
+SHELL ["/bin/ash", "-eo", "pipefail", "-c"]
+
+# Install runtime dependencies only
+RUN set -eux \
+ && deluser klogd || true \
+ && addgroup -g 101 -S tor \
+ && adduser -u 100 -S -D -H -h /var/lib/tor -G tor -s /sbin/nologin tor \
+ && apk upgrade --no-cache \
+ && apk add --no-cache \
+    tini \
+    libevent \
+    zlib \
+    openssl \
+    xz-libs \
+    libcap \
+    libseccomp \
+ && mkdir -p /var/lib/tor /var/log/tor /run/tor /etc/tor \
+ && chown -R tor:tor /var/lib/tor /var/log/tor /run/tor /etc/tor \
+ && chmod 700 /var/lib/tor \
+ && chmod 755 /var/log/tor /run/tor /etc/tor \
+ && rm -f /etc/tor/torrc \
+ && printf "Version: %s-alpha\nBuild Date: %s\nArchitecture: %s\nBase: Alpine 3.23.2\nTor: Compiled from source (main branch)\n" \
+    "${BUILD_VERSION:-unversioned}" "${BUILD_DATE:-unknown}" "${TARGETARCH:-amd64}" > /build-info.txt \
+ && rm -rf /var/cache/apk/*
+
+# Copy compiled Tor binaries from builder
+COPY --from=tor-builder /tor-install/usr/bin/tor /usr/bin/tor
+COPY --from=tor-builder /tor-install/usr/bin/tor-gencert /usr/bin/tor-gencert
+COPY --from=tor-builder /tor-install/usr/bin/tor-resolve /usr/bin/tor-resolve
+
+# Copy lyrebird from lyrebird builder
+COPY --from=lyrebird-builder /usr/bin/lyrebird /usr/bin/lyrebird
+
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+COPY healthcheck.sh /usr/local/bin/healthcheck.sh
+COPY tools/status /usr/local/bin/status
+COPY tools/health /usr/local/bin/health
+COPY tools/fingerprint /usr/local/bin/fingerprint
+COPY tools/bridge-line /usr/local/bin/bridge-line
+COPY tools/gen-auth /usr/local/bin/gen-auth
+
+RUN set -eux \
+ && chmod +x /usr/local/bin/docker-entrypoint.sh \
+              /usr/local/bin/healthcheck.sh \
+              /usr/local/bin/status \
+              /usr/local/bin/health \
+              /usr/local/bin/fingerprint \
+              /usr/local/bin/bridge-line \
+              /usr/local/bin/gen-auth \
+ && echo "🧩 Registered diagnostic tools:" \
+ && ls -lh /usr/local/bin/status /usr/local/bin/health /usr/local/bin/fingerprint /usr/local/bin/bridge-line \
+ && echo "🔍 Tor version:" \
+ && tor --version
+
+ENV TOR_DATA_DIR=/var/lib/tor \
+    TOR_LOG_DIR=/var/log/tor \
+    TOR_CONFIG=/etc/tor/torrc \
+    TOR_RELAY_MODE=guard \
+    TOR_NICKNAME="" \
+    TOR_CONTACT_INFO="" \
+    TOR_ORPORT=9001 \
+    TOR_OBFS4_PORT=9002 \
+    TOR_BANDWIDTH_RATE="" \
+    TOR_BANDWIDTH_BURST="" \
+    TOR_EXIT_POLICY="" \
+    PATH="/usr/local/bin:$PATH"
+
+RUN rm -rf /usr/share/man /tmp/* /var/tmp/* /root/.cache/*
+
+USER tor
+
+EXPOSE 9001 9002
+
+HEALTHCHECK --interval=10m --timeout=15s --start-period=30s --retries=3 \
+  CMD /usr/local/bin/healthcheck.sh
+
+ENTRYPOINT ["/sbin/tini", "--", "/usr/local/bin/docker-entrypoint.sh"]
+CMD ["tor", "-f", "/etc/tor/torrc"]

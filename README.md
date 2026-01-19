@@ -143,7 +143,7 @@ docker logs -f tor-relay
 
 ## 🎯 Choosing a Variant
 
-We offer **two build variants** to match your risk tolerance and requirements:
+We offer **three build variants** to match your risk tolerance and requirements:
 
 ### Stable Variant (Recommended)
 
@@ -183,24 +183,44 @@ docker pull ghcr.io/r3bo0tbx1/onion-relay:edge
 docker pull ghcr.io/r3bo0tbx1/onion-relay:1.1.4-edge
 ```
 
-**When to use edge:**
-- 🔬 Testing new Tor features before stable release
-- 🛡️ Security research requiring latest packages
-- 🧪 Non-production test environments
-- 🚀 Early adopters willing to accept potential breakage
+### Alpha Variant (Development/Testing)
+
+**Base:** Alpine 3.23.2 + Tor from source | **Recommended for:** Early adopters, feature testing
+
+- 🔬 **Tor compiled from source** (main branch) - latest development features
+- 🚀 Bleeding-edge Tor features before they reach stable or edge
+- 🧪 **For testing and early adoption only** - may contain unstable features
+- ⚠️ **NOT recommended for production** - untested development code
+- 📦 Available on both Docker Hub and GHCR
+
+```bash
+# Pull from Docker Hub
+docker pull r3bo0tbx1/onion-relay:alpha
+
+# Pull from GHCR
+docker pull ghcr.io/r3bo0tbx1/onion-relay:alpha
+docker pull ghcr.io/r3bo0tbx1/onion-relay:1.1.4-alpha
+```
+
+**When to use alpha:**
+- 🔬 Testing the latest Tor development features
+- 🐛 Bug testing and early feature validation
+- 🧪 Development and research environments
+- 🚀 Contributing to Tor development and testing
 
 **Stability comparison:**
 
-| Feature | Stable | Edge |
-|---------|--------|------|
-| Production ready | ✅ Yes | ❌ No |
-| Breaking changes | ❌ Rare | ⚠️ Possible |
-| Security updates | Weekly | Every 3 days |
-| Package versions | 3.23.2 | Bleeding edge |
-| Docker Hub | ✅ Yes | ✅ Yes |
-| GHCR | ✅ Yes | ✅ Yes |
+| Feature | Stable | Edge | Alpha |
+|---------|--------|------|-------|
+| Production ready | ✅ Yes | ❌ No | ❌ No |
+| Breaking changes | ❌ Rare | ⚠️ Possible | ⚠️ Frequent |
+| Security updates | Weekly | Every 3 days | On demand |
+| Tor version | Alpine package | Alpine edge | From source (main) |
+| Package versions | 3.23.2 | Bleeding edge | 3.23.2 + source Tor |
+| Docker Hub | ✅ Yes | ✅ Yes | ✅ Yes |
+| GHCR | ✅ Yes | ✅ Yes | ✅ Yes |
 
-> 💡 **Our recommendation:** Use **stable** for production relays, **edge** only for testing or when you specifically need the latest package versions.
+> 💡 **Our recommendation:** Use **stable** for production relays, **edge** for testing latest packages, **alpha** only for testing development Tor features.
 
 ---
 

@@ -20,6 +20,8 @@ on:
           - both
           - latest
           - edge
+          - alpha
+          - all
       release_type:
         description: 'Release type (only for version_bump mode)'
         required: false
@@ -162,6 +164,12 @@ jobs:
             is_latest: "false"
             base: "Alpine edge"
             push_dockerhub: "true"
+          - name: alpha
+            dockerfile: Dockerfile.alpha
+            suffix: "-alpha"
+            is_latest: "false"
+            base: "Alpine 3.23.2 + Tor from source"
+            push_dockerhub: "true"
 
     steps:
       - name: 📥 Checkout Repository
@@ -176,10 +184,18 @@ jobs:
           SHOULD_BUILD="false"
 
           if [ "$BUILD_VARIANTS" = "both" ]; then
+            # "both" means stable and edge only (backward compatibility)
+            if [ "$VARIANT_NAME" = "stable" ] || [ "$VARIANT_NAME" = "edge" ]; then
+              SHOULD_BUILD="true"
+            fi
+          elif [ "$BUILD_VARIANTS" = "all" ]; then
+            # "all" means stable, edge, and alpha
             SHOULD_BUILD="true"
           elif [ "$BUILD_VARIANTS" = "latest" ] && [ "$VARIANT_NAME" = "stable" ]; then
             SHOULD_BUILD="true"
           elif [ "$BUILD_VARIANTS" = "edge" ] && [ "$VARIANT_NAME" = "edge" ]; then
+            SHOULD_BUILD="true"
+          elif [ "$BUILD_VARIANTS" = "alpha" ] && [ "$VARIANT_NAME" = "alpha" ]; then
             SHOULD_BUILD="true"
           fi
 
@@ -304,39 +320,49 @@ jobs:
           if [ "$BUILD_TYPE" = "release" ]; then
             if [ "$IS_LATEST" = "true" ]; then
               TAGS+=("${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:latest")
-            else
+            elif [ "$VARIANT_NAME" = "edge" ]; then
               TAGS+=("${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:edge")
+            elif [ "$VARIANT_NAME" = "alpha" ]; then
+              TAGS+=("${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:alpha")
             fi
 
             if [ "$PUSH_DOCKERHUB" = "true" ]; then
               if [ "$IS_LATEST" = "true" ]; then
                 TAGS+=("${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}")
                 TAGS+=("${{ env.DOCKERHUB_IMAGE_NAME }}:latest")
-              else
+              elif [ "$VARIANT_NAME" = "edge" ]; then
                 TAGS+=("${{ env.DOCKERHUB_IMAGE_NAME }}:edge")
+              elif [ "$VARIANT_NAME" = "alpha" ]; then
+                TAGS+=("${{ env.DOCKERHUB_IMAGE_NAME }}:alpha")
               fi
             fi
           elif [ "$BUILD_TYPE" = "weekly" ] || [ "$BUILD_TYPE" = "manual-rebuild" ] || [ "$BUILD_TYPE" = "edge-rebuild" ]; then
             if [ "$IS_LATEST" = "true" ]; then
               TAGS+=("${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:latest")
-            else
+            elif [ "$VARIANT_NAME" = "edge" ]; then
               TAGS+=("${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:edge")
+            elif [ "$VARIANT_NAME" = "alpha" ]; then
+              TAGS+=("${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:alpha")
             fi
 
             if [ "$PUSH_DOCKERHUB" = "true" ]; then
               if [ "$IS_LATEST" = "true" ]; then
                 TAGS+=("${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}")
                 TAGS+=("${{ env.DOCKERHUB_IMAGE_NAME }}:latest")
-              else
+              elif [ "$VARIANT_NAME" = "edge" ]; then
                 TAGS+=("${{ env.DOCKERHUB_IMAGE_NAME }}:edge")
+              elif [ "$VARIANT_NAME" = "alpha" ]; then
+                TAGS+=("${{ env.DOCKERHUB_IMAGE_NAME }}:alpha")
               fi
             fi
           else
             if [ "$PUSH_DOCKERHUB" = "true" ]; then
               if [ "$IS_LATEST" = "true" ]; then
                 TAGS+=("${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}")
-              else
+              elif [ "$VARIANT_NAME" = "edge" ]; then
                 TAGS+=("${{ env.DOCKERHUB_IMAGE_NAME }}:edge")
+              elif [ "$VARIANT_NAME" = "alpha" ]; then
+                TAGS+=("${{ env.DOCKERHUB_IMAGE_NAME }}:alpha")
               fi
             fi
           fi
@@ -535,15 +561,30 @@ jobs:
           echo "docker pull ${DOCKERHUB_IMAGE}:edge" >> release_notes.md
           echo "\`\`\`" >> release_notes.md
           echo "" >> release_notes.md
+          echo "**Alpha Variant (Development/Testing)**" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "- Base: Alpine 3.23.2 with Tor compiled from source (main branch)" >> release_notes.md
+          echo "- ⚠️ **NOT recommended for production** - latest development features, less tested" >> release_notes.md
+          echo "- 🔬 **For testing and early adoption** - bleeding edge Tor features" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "\`\`\`bash" >> release_notes.md
+          echo "# From GitHub Container Registry (GHCR) - versioned + simple tags" >> release_notes.md
+          echo "docker pull ${GHCR_IMAGE}:${VERSION}-alpha" >> release_notes.md
+          echo "docker pull ${GHCR_IMAGE}:alpha" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "# From Docker Hub - simple tag only" >> release_notes.md
+          echo "docker pull ${DOCKERHUB_IMAGE}:alpha" >> release_notes.md
+          echo "\`\`\`" >> release_notes.md
+          echo "" >> release_notes.md
           echo "### 📋 Software Bill of Materials (SBOM)" >> release_notes.md
           echo "" >> release_notes.md
-          echo "This release includes comprehensive SBOM files for **both variants** for supply chain security:" >> release_notes.md
+          echo "This release includes comprehensive SBOM files for **all variants** for supply chain security:" >> release_notes.md
           echo "" >> release_notes.md
-          echo "- **CycloneDX**: JSON and XML formats (stable + edge)" >> release_notes.md
-          echo "- **SPDX**: JSON and tag-value formats (stable + edge)" >> release_notes.md
-          echo "- **Human-readable**: Table format (stable + edge)" >> release_notes.md
+          echo "- **CycloneDX**: JSON and XML formats (stable + edge + alpha)" >> release_notes.md
+          echo "- **SPDX**: JSON and tag-value formats (stable + edge + alpha)" >> release_notes.md
+          echo "- **Human-readable**: Table format (stable + edge + alpha)" >> release_notes.md
           echo "" >> release_notes.md
-          echo "Download SBOM files from the release assets below (prefixed with \`stable-\` or \`edge-\`)." >> release_notes.md
+          echo "Download SBOM files from the release assets below (prefixed with \`stable-\`, \`edge-\`, or \`alpha-\`)." >> release_notes.md
           echo "" >> release_notes.md
           echo "---" >> release_notes.md
           echo "" >> release_notes.md
@@ -563,6 +604,13 @@ jobs:
         with:
           name: sbom-edge-v${{ needs.determine-version.outputs.version }}
           path: ./sbom
+
+      - name: 📦 Download SBOM Artifacts (Alpha)
+        uses: actions/download-artifact@v4
+        with:
+          name: sbom-alpha-v${{ needs.determine-version.outputs.version }}
+          path: ./sbom
+        continue-on-error: true
 
       - name: 🏷️ Create GitHub Release
         uses: softprops/action-gh-release@v2
