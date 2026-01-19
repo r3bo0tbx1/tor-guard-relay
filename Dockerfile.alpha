@@ -1,10 +1,20 @@
 # syntax=docker/dockerfile:1.20
+
+# Build arguments for pinning commits (optional, defaults to latest)
+ARG LYREBIRD_COMMIT=main
+ARG TOR_COMMIT=main
+
 FROM golang:1.25.6-alpine AS lyrebird-builder
 
 RUN apk add --no-cache git
 
+# Clone and build lyrebird
+# NOTE: For alpha variant, we intentionally use latest code from main branch
+# To pin to a specific commit for reproducibility, pass --build-arg LYREBIRD_COMMIT=<hash>
 WORKDIR /go/src/lyrebird
+ARG LYREBIRD_COMMIT
 RUN git clone https://gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/lyrebird.git .  \
+ && git checkout ${LYREBIRD_COMMIT} \
  && go get golang.org/x/crypto@latest \
  && go get golang.org/x/net@latest \
  && go get github.com/pion/interceptor@latest \
@@ -28,10 +38,14 @@ RUN apk add --no-cache \
     libcap-dev \
     libseccomp-dev
 
-# Clone Tor source repository and build from alpha/main branch
+# Clone Tor source repository and build from main branch
+# NOTE: For alpha variant, we intentionally use latest code from main branch
+# This provides access to the newest development features before they reach stable
+# To pin to a specific commit for reproducibility, pass --build-arg TOR_COMMIT=<hash>
 WORKDIR /usr/src/tor
+ARG TOR_COMMIT
 RUN git clone https://gitlab.torproject.org/tpo/core/tor.git . \
- && git checkout main \
+ && git checkout ${TOR_COMMIT} \
  && ./autogen.sh \
  && ./configure \
     --prefix=/usr \
@@ -41,7 +55,8 @@ RUN git clone https://gitlab.torproject.org/tpo/core/tor.git . \
     --disable-manpage \
     --disable-html-manual \
  && make -j$(nproc) \
- && make install DESTDIR=/tor-install
+ && make install DESTDIR=/tor-install \
+ && git rev-parse HEAD > /tor-install/tor-commit.txt
 
 FROM alpine:3.23.2
 
@@ -84,17 +99,20 @@ RUN set -eux \
  && chmod 700 /var/lib/tor \
  && chmod 755 /var/log/tor /run/tor /etc/tor \
  && rm -f /etc/tor/torrc \
- && printf "Version: %s-alpha\nBuild Date: %s\nArchitecture: %s\nBase: Alpine 3.23.2\nTor: Compiled from source (main branch)\n" \
-    "${BUILD_VERSION:-unversioned}" "${BUILD_DATE:-unknown}" "${TARGETARCH:-amd64}" > /build-info.txt \
  && rm -rf /var/cache/apk/*
 
 # Copy compiled Tor binaries from builder
 COPY --from=tor-builder /tor-install/usr/bin/tor /usr/bin/tor
 COPY --from=tor-builder /tor-install/usr/bin/tor-gencert /usr/bin/tor-gencert
 COPY --from=tor-builder /tor-install/usr/bin/tor-resolve /usr/bin/tor-resolve
+COPY --from=tor-builder /tor-install/tor-commit.txt /tor-commit.txt
 
 # Copy lyrebird from lyrebird builder
 COPY --from=lyrebird-builder /usr/bin/lyrebird /usr/bin/lyrebird
+
+# Generate build info with Tor commit hash
+RUN printf "Version: %s-alpha\nBuild Date: %s\nArchitecture: %s\nBase: Alpine 3.23.2\nTor: Compiled from source\nTor Commit: %s\n" \
+    "${BUILD_VERSION:-unversioned}" "${BUILD_DATE:-unknown}" "${TARGETARCH:-amd64}" "$(cat /tor-commit.txt)" > /build-info.txt
 
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 COPY healthcheck.sh /usr/local/bin/healthcheck.sh
