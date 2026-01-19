@@ -156,7 +156,7 @@ jobs:
             dockerfile: Dockerfile
             suffix: ""
             is_latest: "true"
-            base: "Alpine 3.22.2"
+            base: "Alpine 3.23.2"
             push_dockerhub: "true"
           - name: edge
             dockerfile: Dockerfile.edge
@@ -534,7 +534,7 @@ jobs:
           echo "" >> release_notes.md
           echo "**Stable Variant (Recommended for Production)**" >> release_notes.md
           echo "" >> release_notes.md
-          echo "- Base: Alpine 3.22.2" >> release_notes.md
+          echo "- Base: Alpine 3.23.2" >> release_notes.md
           echo "- Proven stability with weekly security updates" >> release_notes.md
           echo "" >> release_notes.md
           echo "\`\`\`bash" >> release_notes.md
