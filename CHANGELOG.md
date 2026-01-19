@@ -8,6 +8,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### ✨ Features
+
+* **Alpha Variant:** Added new build variant that compiles Tor from source (main branch) for testing latest development features
+  - Multi-stage build with separate tor-builder stage
+  - Compiles Tor from GitLab repository (https://gitlab.torproject.org/tpo/core/tor.git)
+  - Includes all build dependencies in builder stage, only runtime dependencies in final image
+  - Available on Docker Hub and GHCR with `:alpha` and `:version-alpha` tags
+
+### 🏗️ Build Variants
+
+| Variant | Base Image | Tor Source | Tags | Registries | Notes |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **🟢 Stable** | Alpine 3.23.2 | Alpine package | `:latest`, `:version` | Docker Hub, GHCR | **Recommended** for production. |
+| **⚠️ Edge** | Alpine Edge | Alpine edge package | `:edge`, `:version-edge` | Docker Hub, GHCR | Testing only; bleeding-edge packages. |
+| **🔬 Alpha** | Alpine 3.23.2 | Compiled from source | `:alpha`, `:version-alpha` | Docker Hub, GHCR | Development/testing; latest Tor features. |
+
+### 📚 Documentation
+
+* Updated README.md with alpha variant information and comparison table
+* Updated release workflow to build and publish alpha variant
+* Added alpha variant to release notes generation
+
 ### 🎯 Planned Features
 
 * 📊 Additional monitoring integrations (Datadog, New Relic)
