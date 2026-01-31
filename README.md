@@ -13,7 +13,7 @@
 
 **A hardened, production-ready Tor relay with built-in diagnostics and monitoring**
 
-[Quick Start](#quick-start) • [Features](#key-features) • [Documentation](#documentation) • [FAQ](docs/FAQ.md) • [Architecture](docs/ARCHITECTURE.md) • [Tools](#diagnostic-tools) • [Contributing](#contributing)
+[Quick Start](#-quick-start) • [Features](#-key-features) • [Documentation](#-documentation) • [FAQ](docs/FAQ.md) • [Architecture](docs/ARCHITECTURE.md) • [Tools](#-diagnostic-tools) • [Contributing](#-contributing)
 
 </div>
 
@@ -43,7 +43,7 @@
 ### Port Exposure Policy
 
 - **9001** ORPort, public  
-- **9030** DirPort, **Disabled (0)** by default in v1.1.4
+- **9030** DirPort, **Disabled (0)** by default
 - **9002** obfs4 for bridge mode  
 
 ### Environment Variables
@@ -147,7 +147,7 @@ We offer **two build variants** to match your risk tolerance and requirements:
 
 ### Stable Variant (Recommended)
 
-**Base:** Alpine 3.23.2 | **Recommended for:** Production relays
+**Base:** Alpine 3.23.3 | **Recommended for:** Production relays
 
 - ✅ Battle-tested Alpine stable release
 - ✅ Weekly automated rebuilds with latest security patches
@@ -157,11 +157,11 @@ We offer **two build variants** to match your risk tolerance and requirements:
 ```bash
 # Pull from Docker Hub (easiest)
 docker pull r3bo0tbx1/onion-relay:latest
-docker pull r3bo0tbx1/onion-relay:1.1.4
+docker pull r3bo0tbx1/onion-relay:1.1.5
 
 # Pull from GHCR
 docker pull ghcr.io/r3bo0tbx1/onion-relay:latest
-docker pull ghcr.io/r3bo0tbx1/onion-relay:1.1.4
+docker pull ghcr.io/r3bo0tbx1/onion-relay:1.1.5
 ```
 
 ### Edge Variant (Testing Only)
@@ -180,7 +180,7 @@ docker pull r3bo0tbx1/onion-relay:edge
 
 # Pull from GHCR
 docker pull ghcr.io/r3bo0tbx1/onion-relay:edge
-docker pull ghcr.io/r3bo0tbx1/onion-relay:1.1.4-edge
+docker pull ghcr.io/r3bo0tbx1/onion-relay:1.1.5-edge
 ```
 
 **When to use edge:**
@@ -196,7 +196,7 @@ docker pull ghcr.io/r3bo0tbx1/onion-relay:1.1.4-edge
 | Production ready | ✅ Yes | ❌ No |
 | Breaking changes | ❌ Rare | ⚠️ Possible |
 | Security updates | Weekly | Every 3 days |
-| Package versions | 3.23.2 | Bleeding edge |
+| Package versions | 3.23.3 | Bleeding edge |
 | Docker Hub | ✅ Yes | ✅ Yes |
 | GHCR | ✅ Yes | ✅ Yes |
 
@@ -752,15 +752,15 @@ Images are automatically rebuilt on separate schedules to include security patch
 
 **Stable Variant** (`:latest`)
 - **Schedule:** Every Sunday at 18:30 UTC
-- **Includes:** Latest Tor + Alpine 3.23.2 updates
-- **Strategy:** Overwrites last release version (e.g., `:1.1.4`) with updated packages
-- **Tags Updated:** `:latest` and version tags (e.g., `:1.1.4`)
+- **Includes:** Latest Tor + Alpine 3.23.3 updates
+- **Strategy:** Overwrites last release version (e.g., `:1.1.5`) with updated packages
+- **Tags Updated:** `:latest` and version tags (e.g., `:1.1.5`)
 
 **Edge Variant** (`:edge`)
 - **Schedule:** Every 3 days at 12:00 UTC (independent schedule)
 - **Includes:** Latest Tor + Alpine edge (bleeding-edge) updates
-- **Strategy:** Overwrites last release version (e.g., `:1.1.4-edge`) with updated packages
-- **Tags Updated:** `:edge` and version tags (e.g., `:1.1.4-edge`)
+- **Strategy:** Overwrites last release version (e.g., `:1.1.5-edge`) with updated packages
+- **Tags Updated:** `:edge` and version tags (e.g., `:1.1.5-edge`)
 - **Frequency:** ~2-3x more frequent updates than stable
 
 All images auto-published to Docker Hub and GitHub Container Registry
@@ -795,7 +795,7 @@ All images auto-published to Docker Hub and GitHub Container Registry
 ![GitHub Repo stars](https://img.shields.io/github/stars/r3bo0tbx1/tor-guard-relay?style=for-the-badge)
 ![GitHub Issues](https://img.shields.io/github/issues/r3bo0tbx1/tor-guard-relay?style=for-the-badge)
 
-**Current Version:** v1.1.4 • **Status:** Production Ready  
+**Current Version:** v1.1.5 • **Status:** Production Ready  
 **Image Size:** 16.8 MB • **Retention:** Last 7 Releases  
 **Registries:** Docker Hub • GHCR  
 

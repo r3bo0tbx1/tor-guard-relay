@@ -14,9 +14,9 @@ We actively support the following versions with security updates:
 
 | Version   | Status                | Support Level                               |
 | --------- | --------------------- | ------------------------------------------- |
-| **1.1.4** | 🟢 🛡️ **Active**     | Full support (current stable)               |
-| **1.1.3** | 🟡 🔧 **Maintenance** | Security + critical fixes only              |
-| **1.1.2** | 🟠 ⚠️ **Legacy**      | Security patches only – upgrade recommended |
+| **1.1.5** | 🟢 🛡️ **Active**     | Full support (current stable)               |
+| **1.1.4** | 🟡 🔧 **Maintenance** | Security + critical fixes only              |
+| **1.1.3** | 🟠 ⚠️ **Legacy**      | Security patches only – upgrade recommended |
 | **< 1.1.1** | 🔴 ❌ **EOL**          | No support – upgrade immediately            |
 
 ---
@@ -659,4 +659,4 @@ Security researchers who responsibly disclose vulnerabilities will be listed her
 
 ---
 
-*Last Updated: 2025-12-21 | Version: 1.1.4*
+*Last Updated: 2026-01-31 | Version: 1.1.5*

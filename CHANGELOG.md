@@ -16,6 +16,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.5] - 2026-01-31
+
+### 🛡️ Security Fixes
+* OpenSSL Patch: Mitigated CVE-2025-15467 (CVSS 9.8 🚨) by upgrading openssl to version 3.5.5-r0 or later via the Alpine base image update.
+
+### ⚙️ Changed
+* Base Image: Updated Alpine from 3.23.2 to 3.23.3 to incorporate latest security patches and library improvements.
+* Build Tooling: Updated docker/dockerfile tag to v1.21.
+
+### 🐛 Fixed
+* General Maintenance: Addressed various minor bug fixes and stability improvements.
+
+---
+
 ## [1.1.4] - 2025-12-21
 
 ### 🏗️ Build Variants
@@ -433,15 +447,16 @@ BREAKING CHANGES: None
 
 | Version   | Status                | Support Level                               |
 | --------- | --------------------- | ------------------------------------------- |
-| **1.1.4** | 🟢 🛡️ **Active**     | Full support (current stable)               |
-| **1.1.3** | 🟡 🔧 **Maintenance** | Security + critical fixes only              |
-| **1.1.2** | 🟠 ⚠️ **Legacy**      | Security patches only – upgrade recommended |
+| **1.1.5** | 🟢 🛡️ **Active**     | Full support (current stable)               |
+| **1.1.4** | 🟡 🔧 **Maintenance** | Security + critical fixes only              |
+| **1.1.3** | 🟠 ⚠️ **Legacy**      | Security patches only – upgrade recommended |
 | **< 1.1.2** | 🔴 ❌ **EOL**          | No support – upgrade immediately            |
 
 ---
 
 ## 🔗 Release Links
 
+[1.1.5]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.1.5
 [1.1.4]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.1.4
 [1.1.3]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.1.3
 [1.1.2]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.1.2
