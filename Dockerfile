@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1.21
-FROM golang:1.25.6-alpine AS builder
+FROM golang:1.26rc3-alpine AS builder
 
 RUN apk add --no-cache git
 
