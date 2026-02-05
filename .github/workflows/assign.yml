@@ -10,7 +10,7 @@ jobs:
     permissions:
       pull-requests: write
     steps:
-      - name: Assign reviewer
+      - name: Assign reviewer and assignee
         uses: actions/github-script@v7
         with:
           script: |
@@ -19,4 +19,10 @@ jobs:
               repo: context.repo.repo,
               pull_number: context.issue.number,
               reviewers: ['r3bo0tbx1']
+            });
+            await github.rest.issues.addAssignees({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              assignees: ['r3bo0tbx1']
             });
