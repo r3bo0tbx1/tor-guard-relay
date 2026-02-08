@@ -157,11 +157,11 @@ We offer **two build variants** to match your risk tolerance and requirements:
 ```bash
 # Pull from Docker Hub (easiest)
 docker pull r3bo0tbx1/onion-relay:latest
-docker pull r3bo0tbx1/onion-relay:1.1.5
+docker pull r3bo0tbx1/onion-relay:1.1.6
 
 # Pull from GHCR
 docker pull ghcr.io/r3bo0tbx1/onion-relay:latest
-docker pull ghcr.io/r3bo0tbx1/onion-relay:1.1.5
+docker pull ghcr.io/r3bo0tbx1/onion-relay:1.1.6
 ```
 
 ### Edge Variant (Testing Only)
@@ -180,7 +180,7 @@ docker pull r3bo0tbx1/onion-relay:edge
 
 # Pull from GHCR
 docker pull ghcr.io/r3bo0tbx1/onion-relay:edge
-docker pull ghcr.io/r3bo0tbx1/onion-relay:1.1.5-edge
+docker pull ghcr.io/r3bo0tbx1/onion-relay:1.1.6-edge
 ```
 
 **When to use edge:**
@@ -230,7 +230,7 @@ See [Deployment Guide](docs/DEPLOYMENT.md) for complete instructions.
 
 ## 🔧 Diagnostic Tools
 
-Version >v1.1.1 includes five busybox-only tools.
+Five busybox-only diagnostic tools are included (since v1.1.1).
 
 | Tool | Purpose | Usage |
 |------|---------|--------|
@@ -252,12 +252,14 @@ Example JSON:
 
 ```json
 {
-  "status": "healthy",
+  "status": "up",
+  "pid": 1,
+  "uptime": "01:00:00",
   "bootstrap": 100,
-  "reachable": true,
-  "fingerprint": "1234567890ABCDEF",
+  "reachable": "true",
+  "errors": 0,
   "nickname": "MyRelay",
-  "uptime_seconds": 3600
+  "fingerprint": "1234567890ABCDEF"
 }
 ```
 
@@ -273,7 +275,7 @@ Example JSON:
 </div>
 <br>
 
-**>v1.1.2 supports both real-time CLI monitoring and external observability** for minimal image size and maximum security.
+**Real-time CLI monitoring and external observability** are supported for minimal image size and maximum security.
 
 ### Real-Time Monitoring (Nyx)
 
@@ -309,7 +311,7 @@ docker exec tor-relay health | jq .
 # Use textfile collector (requires jq on host)
 docker exec tor-relay health | jq -r '
   "tor_bootstrap_percent \(.bootstrap)",
-  "tor_reachable \(if .reachable then 1 else 0 end)"
+  "tor_reachable \(if .reachable == "true" then 1 else 0 end)"
 ' > /var/lib/node_exporter/tor.prom
 ```
 
@@ -370,14 +372,14 @@ STATUS=$(echo "$HEALTH" | jq -r '.status')
 
 ## 📚 Documentation
 
-**>v1.1.1 includes comprehensive documentation** organized by topic:
+**Comprehensive documentation** organized by topic:
 
 ### Getting Started
 - **[FAQ](docs/FAQ.md)** - ⭐ **NEW!** Frequently asked questions with factual answers
 - **[Quick Start Script](scripts/utilities/quick-start.sh)** - ⭐ **NEW!** Interactive relay deployment wizard
 - **[Migration Assistant](scripts/migration/migrate-from-official.sh)** - ⭐ **NEW!** Automated migration from thetorproject/obfs4-bridge
 - **[Deployment Guide](docs/DEPLOYMENT.md)** - ✨ **UPDATED!** Complete installation for Docker CLI, Compose, Cosmos Cloud, and Portainer
-- **[Migration Guide](docs/MIGRATION-V1.1.X.md)** - Upgrade to > v1.1.1 or migrate from other Tor setups
+- **[Migration Guide](docs/MIGRATION-V1.1.X.md)** - Upgrade to latest or migrate from other Tor setups
 
 ### Technical Reference
 - **[Architecture](docs/ARCHITECTURE.md)** - ⭐ **NEW!** Technical architecture with Mermaid diagrams
@@ -503,9 +505,28 @@ docker exec tor-relay gen-auth
 | Problem | Quick Fix |
 |---------|-----------|
 | Container won't start | Check logs: `docker logs tor-relay` |
+| Permission / ownership errors | See **Bind Mount Ownership** below |
 | ORPort not reachable | Verify firewall: `sudo ufw allow 9001/tcp` |
 | Not on Tor Metrics | Wait 24h, verify bootstrap complete |
 | Low/no traffic | Normal for new relays (2-8 weeks to build reputation) |
+
+### Bind Mount Ownership
+
+If you use **host bind mounts** (e.g. `-v /my/path:/var/lib/tor`) instead of named Docker volumes, the mounted directories must be owned by the container's `tor` user (**UID 100, GID 101**). Tor will refuse to start if directories have incorrect ownership.
+
+**Symptoms:**
+```
+[warn] /var/lib/tor//keys is not owned by this user (tor, 100) but by <unknown> (99)
+[warn] Failed to parse/validate config: Couldn't access private data directory "/var/lib/tor//keys"
+```
+
+**Fix — set correct ownership on the host:**
+```bash
+chown -R 100:101 /path/to/your/tor-data
+chown -R 100:101 /path/to/your/tor-keys   # if mounted separately
+```
+
+> 💡 **Tip:** Named Docker volumes (e.g. `-v tor-guard-data:/var/lib/tor`) handle ownership automatically and avoid this issue entirely. We recommend using named volumes unless you have a specific reason to use bind mounts.
 
 > 📖 **Full troubleshooting:** See [Tools Documentation](docs/TOOLS.md#troubleshooting) for detailed diagnostic procedures.
 
@@ -517,7 +538,7 @@ docker exec tor-relay gen-auth
 > - Container lifecycle and initialization flow (6 phases)
 > - ENV compatibility layer and configuration priority
 > - Config generation for guard/exit/bridge modes
-> - OBFS4V security validation (v1.1.1 fix)
+> - OBFS4V security validation
 > - Diagnostic tools architecture
 > - Signal handling and graceful shutdown
 
@@ -733,6 +754,14 @@ See [`examples/`](examples/) directory for relay configurations.
 
 ## 🔐 Security
 
+### ⚠️ Version Deprecation Notice
+
+> **All versions prior to v1.1.5 have been deprecated and removed from registries.** These versions were affected by **CVE-2025-15467** (OpenSSL, CVSS 9.8), a critical vulnerability in the OpenSSL library bundled through the Alpine base image. v1.1.5 patched this by upgrading to Alpine 3.23.3 (OpenSSL 3.5.5+). **If you are running any version older than v1.1.5, upgrade immediately:**
+>
+> ```bash
+> docker pull r3bo0tbx1/onion-relay:latest
+> ```
+
 ### Best Practices
 
 ✅ Store `relay.conf` with restricted permissions (`chmod 600`)  
@@ -753,14 +782,14 @@ Images are automatically rebuilt on separate schedules to include security patch
 **Stable Variant** (`:latest`)
 - **Schedule:** Every Sunday at 18:30 UTC
 - **Includes:** Latest Tor + Alpine 3.23.3 updates
-- **Strategy:** Overwrites last release version (e.g., `:1.1.5`) with updated packages
-- **Tags Updated:** `:latest` and version tags (e.g., `:1.1.5`)
+- **Strategy:** Overwrites last release version (e.g., `:1.1.6`) with updated packages
+- **Tags Updated:** `:latest` and version tags (e.g., `:1.1.6`)
 
 **Edge Variant** (`:edge`)
 - **Schedule:** Every 3 days at 12:00 UTC (independent schedule)
 - **Includes:** Latest Tor + Alpine edge (bleeding-edge) updates
-- **Strategy:** Overwrites last release version (e.g., `:1.1.5-edge`) with updated packages
-- **Tags Updated:** `:edge` and version tags (e.g., `:1.1.5-edge`)
+- **Strategy:** Overwrites last release version (e.g., `:1.1.6-edge`) with updated packages
+- **Tags Updated:** `:edge` and version tags (e.g., `:1.1.6-edge`)
 - **Frequency:** ~2-3x more frequent updates than stable
 
 All images auto-published to Docker Hub and GitHub Container Registry
@@ -795,7 +824,7 @@ All images auto-published to Docker Hub and GitHub Container Registry
 ![GitHub Repo stars](https://img.shields.io/github/stars/r3bo0tbx1/tor-guard-relay?style=for-the-badge)
 ![GitHub Issues](https://img.shields.io/github/issues/r3bo0tbx1/tor-guard-relay?style=for-the-badge)
 
-**Current Version:** v1.1.5 • **Status:** Production Ready  
+**Current Version:** v1.1.6 • **Status:** Production Ready  
 **Image Size:** 16.8 MB • **Retention:** Last 7 Releases  
 **Registries:** Docker Hub • GHCR  
 

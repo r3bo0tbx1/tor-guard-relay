@@ -456,7 +456,7 @@ flowchart TD
     style Enable fill:#e3f2fd
 ```
 
-**Security Features (v1.1.1 Fix):**
+**Security Features (fixed in v1.1.1, improved through v1.1.6):**
 - **Newline detection:** `wc -l` instead of busybox-incompatible `grep -qE '[\x00\n\r]'`
 - **Control char detection:** `tr -d '[ -~]'` removes printable chars, leaves control chars
 - **Whitelist enforcement:** Only known-safe torrc options allowed
@@ -468,7 +468,7 @@ flowchart TD
 
 ## Diagnostic Tools
 
-Four busybox-only diagnostic tools provide observability:
+Five busybox-only diagnostic tools provide observability:
 
 ```mermaid
 flowchart TD
@@ -524,7 +524,7 @@ flowchart TD
     style Output4 fill:#b2fab4
 ```
 
-**JSON Output Fields:** status, bootstrap_pct, reachable, errors, fingerprint, nickname, uptime_seconds
+**JSON Output Fields:** status, pid, uptime, bootstrap, reachable, errors, fingerprint, nickname
 
 ### Tool Characteristics
 
@@ -831,7 +831,7 @@ flowchart LR
 ```
 
 **Weekly Rebuild Strategy:**
-- Rebuilds use the **same version tag** as the last release (e.g., `1.1.1`)
+- Rebuilds use the **same version tag** as the last release (e.g., `1.1.6`)
 - Overwrites existing image with fresh Alpine packages (security updates)
 - No `-weekly` suffix needed - just updated packages
 - `:latest` always points to most recent release version
@@ -913,6 +913,6 @@ flowchart TD
 ---
 <div align="center">
 
-**Document Version:** 1.0.4 • **Last Updated:** 2025-12-05 • **Container Version:** v1.1.3
+**Document Version:** 1.0.5 • **Last Updated:** 2026-02-08 • **Container Version:** v1.1.6
 
 </div>

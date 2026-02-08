@@ -154,7 +154,7 @@ jobs:
             dockerfile: Dockerfile
             suffix: ""
             is_latest: "true"
-            base: "Alpine 3.22.2"
+            base: "Alpine 3.23.3"
             push_dockerhub: "true"
           - name: edge
             dockerfile: Dockerfile.edge
@@ -441,6 +441,8 @@ jobs:
     steps:
       - name: 📥 Checkout Repository
         uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
 
       - name: 📝 Generate Notes
         run: |
@@ -465,15 +467,19 @@ jobs:
             ' CHANGELOG.md > tmp_notes.txt
 
             if [ -s tmp_notes.txt ]; then
-              sed -i '${/^---[[:space:]]*$/d;}' tmp_notes.txt
-              sed -i ':a; /^[ \n\r\t]*$/ { $d; N; ba }' tmp_notes.txt 2>/dev/null || true
+              # Strip trailing blank lines and --- separators from changelog extract
+              while [ -s tmp_notes.txt ]; do
+                LAST_LINE=$(tail -1 tmp_notes.txt)
+                case "$(printf '%s' "$LAST_LINE" | tr -d '[:space:]')" in
+                  ""|"---") sed -i '$ d' tmp_notes.txt ;;
+                  *) break ;;
+                esac
+              done
 
               echo "✅ Found changelog section for v${VERSION} in CHANGELOG.md"
               CHANGELOG_FOUND=1
 
-              echo "## 🧅 Tor Guard Relay v${VERSION}" > release_notes.md
-              echo "" >> release_notes.md
-              cat tmp_notes.txt >> release_notes.md
+              cat tmp_notes.txt > release_notes.md
             else
               echo "⚠️ No changelog section found for v${VERSION} in CHANGELOG.md"
             fi
@@ -486,14 +492,24 @@ jobs:
 
             if [ -x scripts/release/generate-release-notes.sh ]; then
               chmod +x scripts/release/generate-release-notes.sh
-              ./scripts/release/generate-release-notes.sh --format github "${VERSION}" > release_notes.md
+              ./scripts/release/generate-release-notes.sh --format github "${VERSION}" > tmp_auto_notes.md
+              # Strip title (release 'name' already shows it) and footer (workflow appends its own)
+              sed '/^## 🧅/d; /^\*\*Full Changelog\*\*/d' tmp_auto_notes.md > release_notes.md
+              # Remove trailing --- and blank lines left by the script footer
+              while [ -s release_notes.md ]; do
+                LAST_LINE=$(tail -1 release_notes.md)
+                case "$(printf '%s' "$LAST_LINE" | tr -d '[:space:]')" in
+                  ""|"---") sed -i '$ d' release_notes.md ;;
+                  *) break ;;
+                esac
+              done
               echo "✅ Auto-generated release notes from conventional commits"
             else
-              echo "## 🧅 Tor Guard Relay v${VERSION}" > release_notes.md
+              echo "### Changes" > release_notes.md
               echo "" >> release_notes.md
-              echo "### Changes" >> release_notes.md
-              echo "" >> release_notes.md
-              git log --pretty=format:"- %s (\`%h\`) by %an" "$(git describe --tags --abbrev=0)..HEAD" >> release_notes.md || echo "- Initial release" >> release_notes.md
+              PREV_TAG=$(git tag --sort=-v:refname | grep -v "^v${VERSION}$" | head -1)
+              [ -z "$PREV_TAG" ] && PREV_TAG=$(git rev-list --max-parents=0 HEAD)
+              git log --pretty=format:"- %s (\`%h\`) by %an" "${PREV_TAG}..HEAD" >> release_notes.md || echo "- Initial release" >> release_notes.md
               echo "" >> release_notes.md
               echo "⚠️ **Note:** Release notes were auto-generated from commit history." >> release_notes.md
               echo "For detailed changes, see the commit history below." >> release_notes.md
@@ -503,12 +519,14 @@ jobs:
 
           echo "" >> release_notes.md
           echo "---" >> release_notes.md
+          ALPINE_VERSION=$(grep -oP '^FROM alpine:\K[0-9.]+' Dockerfile 2>/dev/null || echo "latest")
+
           echo "" >> release_notes.md
           echo "### 🐳 Docker Images" >> release_notes.md
           echo "" >> release_notes.md
           echo "**Stable Variant (Recommended for Production)**" >> release_notes.md
           echo "" >> release_notes.md
-          echo "- Base: Alpine 3.22.2" >> release_notes.md
+          echo "- Base: Alpine ${ALPINE_VERSION}" >> release_notes.md
           echo "- Proven stability with weekly security updates" >> release_notes.md
           echo "" >> release_notes.md
           echo "\`\`\`bash" >> release_notes.md
@@ -547,7 +565,9 @@ jobs:
           echo "" >> release_notes.md
           echo "---" >> release_notes.md
           echo "" >> release_notes.md
-          echo "**Full Changelog**: https://github.com/${{ github.repository }}/compare/$(git describe --tags --abbrev=0 2>/dev/null || echo 'v1.0.0')...v${VERSION}" >> release_notes.md
+          PREV_TAG=$(git tag --sort=-v:refname | grep -v "^v${VERSION}$" | head -1)
+          [ -z "$PREV_TAG" ] && PREV_TAG="v1.0.0"
+          echo "**Full Changelog**: https://github.com/${{ github.repository }}/compare/${PREV_TAG}...v${VERSION}" >> release_notes.md
 
           echo ""
           echo "✅ Release notes generation complete"

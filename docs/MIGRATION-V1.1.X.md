@@ -54,15 +54,15 @@ docker stop <container>
 docker run --rm \
   -v tor-guard-data:/data \
   -v /tmp:/backup \
-  alpine:3.22.2 tar czf /backup/tor-guard-data-backup-$(date +%Y%m%d).tar.gz /data
+  alpine:3.23.3 tar czf /backup/tor-guard-data-backup-$(date +%Y%m%d).tar.gz /data
 
 docker run --rm \
   -v tor-guard-logs:/data \
   -v /tmp:/backup \
-  alpine:3.22.2 tar czf /backup/tor-guard-logs-backup-$(date +%Y%m%d).tar.gz /data
+  alpine:3.23.3 tar czf /backup/tor-guard-logs-backup-$(date +%Y%m%d).tar.gz /data
 
 # Save fingerprint
-docker run --rm -v tor-guard-data:/data alpine:3.22.2 cat /data/fingerprint > /tmp/fingerprint-backup.txt
+docker run --rm -v tor-guard-data:/data alpine:3.23.3 cat /data/fingerprint > /tmp/fingerprint-backup.txt
 ```
 
 ### Step 2: Update Configuration
@@ -70,7 +70,7 @@ docker run --rm -v tor-guard-data:/data alpine:3.22.2 cat /data/fingerprint > /t
 **Cosmos JSON changes**:
 ```json
 {
-  "image": "r3bo0tbx1/onion-relay:1.1.1",  // ← Update from :latest or :1.1.0
+  "image": "r3bo0tbx1/onion-relay:latest",  // ← Update from :latest or :1.1.0
   "cap_add": [
     "NET_BIND_SERVICE"  // ← Removed unnecessary CHOWN, SETUID, SETGID, DAC_OVERRIDE
   ],
@@ -162,13 +162,13 @@ docker stop obfs4-bridge
 docker run --rm \
   -v obfs4-data:/data \
   -v /tmp:/backup \
-  alpine:3.22.2 tar czf /backup/obfs4-data-backup-$(date +%Y%m%d).tar.gz /data
+  alpine:3.23.3 tar czf /backup/obfs4-data-backup-$(date +%Y%m%d).tar.gz /data
 
 # Verify backup
 ls -lh /tmp/obfs4-data-backup-*.tar.gz
 
 # Save fingerprint
-docker run --rm -v obfs4-data:/data alpine:3.22.2 cat /data/fingerprint > /tmp/bridge-fingerprint-backup.txt
+docker run --rm -v obfs4-data:/data alpine:3.23.3 cat /data/fingerprint > /tmp/bridge-fingerprint-backup.txt
 cat /tmp/bridge-fingerprint-backup.txt
 ```
 
@@ -176,18 +176,18 @@ cat /tmp/bridge-fingerprint-backup.txt
 
 ```bash
 # Check current ownership (should be 101:101)
-docker run --rm -v obfs4-data:/data alpine:3.22.2 ls -ldn /data
+docker run --rm -v obfs4-data:/data alpine:3.23.3 ls -ldn /data
 # Output: drwx------ ... 101 101 ...
 
 # Fix ownership: 101 → 100
-docker run --rm -v obfs4-data:/data alpine:3.22.2 chown -R 100:101 /data
+docker run --rm -v obfs4-data:/data alpine:3.23.3 chown -R 100:101 /data
 
 # Verify fix
-docker run --rm -v obfs4-data:/data alpine:3.22.2 ls -ldn /data
+docker run --rm -v obfs4-data:/data alpine:3.23.3 ls -ldn /data
 # Output: drwx------ ... 100 101 ...  ← MUST show 100!
 
 # Verify key files are readable
-docker run --rm -v obfs4-data:/data alpine:3.22.2 ls -la /data/keys/
+docker run --rm -v obfs4-data:/data alpine:3.23.3 ls -la /data/keys/
 # Should show files owned by 100:101
 ```
 
@@ -243,7 +243,7 @@ docker rm obfs4-bridge
   "minVersion": "0.8.0",
   "services": {
     "obfs4-bridge": {
-      "image": "r3bo0tbx1/onion-relay:1.1.1",
+      "image": "r3bo0tbx1/onion-relay:latest",
       "container_name": "obfs4-bridge",
       "restart": "unless-stopped",
       "network_mode": "host",
@@ -348,7 +348,7 @@ Directory /var/lib/tor cannot be read: Permission denied
 **Fix**:
 ```bash
 docker stop obfs4-bridge
-docker run --rm -v obfs4-data:/data alpine:3.22.2 chown -R 100:101 /data
+docker run --rm -v obfs4-data:/data alpine:3.23.3 chown -R 100:101 /data
 docker start obfs4-bridge
 ```
 
@@ -361,7 +361,7 @@ docker start obfs4-bridge
 **Fix**: Restore from backup:
 ```bash
 docker stop obfs4-bridge
-docker run --rm -v obfs4-data:/data -v /tmp:/backup alpine:3.22.2 \
+docker run --rm -v obfs4-data:/data -v /tmp:/backup alpine:3.23.3 \
   sh -c 'rm -rf /data/* && tar xzf /backup/obfs4-data-backup-*.tar.gz -C / && chown -R 100:101 /data'
 docker start obfs4-bridge
 ```
@@ -383,7 +383,7 @@ docker logs obfs4-bridge --tail 50
 
 # Check if it's actually using new image
 docker inspect obfs4-bridge --format='{{.Image}}'
-docker images r3bo0tbx1/onion-relay:1.1.1 --format='{{.ID}}'
+docker images r3bo0tbx1/onion-relay:latest --format='{{.ID}}'
 # IDs must match!
 
 # If IDs don't match: remove and recreate container
@@ -443,7 +443,7 @@ docker rm obfs4-bridge
 
 ## 📚 Additional Resources
 
-- **Security Audit Report**: `SECURITY-AUDIT-REPORT.md`
+- **Security Policy**: `../SECURITY.md`
 - **General Migration Guide**: `MIGRATION.md`
 - **Troubleshooting**: `docs/TROUBLESHOOTING-BRIDGE-MIGRATION.md`
 - **Tools Documentation**: `docs/TOOLS.md`

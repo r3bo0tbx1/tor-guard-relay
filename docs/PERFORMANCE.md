@@ -362,18 +362,20 @@ docker exec guard-relay health | jq .
 # Check specific metrics
 docker exec guard-relay health | jq .bootstrap      # Bootstrap percentage
 docker exec guard-relay health | jq .reachable      # ORPort reachability
-docker exec guard-relay health | jq .uptime_seconds # Uptime
+docker exec guard-relay health | jq .uptime          # Uptime
 ```
 
 **Example JSON output:**
 ```json
 {
   "status": "up",
+  "pid": 1,
+  "uptime": "1-00:00:00",
   "bootstrap": 100,
-  "reachable": true,
+  "reachable": "true",
+  "errors": 0,
   "fingerprint": "1234567890ABCDEF...",
-  "nickname": "MyRelay",
-  "uptime_seconds": 86400
+  "nickname": "MyRelay"
 }
 ```
 
@@ -392,8 +394,7 @@ HEALTH=$(docker exec guard-relay health)
 
 echo "$HEALTH" | jq -r '
   "tor_bootstrap_percent \(.bootstrap)",
-  "tor_reachable \(if .reachable then 1 else 0 end)",
-  "tor_uptime_seconds \(.uptime_seconds // 0)"
+  "tor_reachable \(if .reachable == "true" then 1 else 0 end)"
 ' > /var/lib/node_exporter/textfile_collector/tor.prom
 ```
 

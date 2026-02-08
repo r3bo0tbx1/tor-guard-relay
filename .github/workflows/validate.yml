@@ -65,7 +65,7 @@ jobs:
           # Check main entrypoint script
           if [ -f docker-entrypoint.sh ]; then
             echo "📄 Checking docker-entrypoint.sh..."
-            bash -n docker-entrypoint.sh || exit 1
+            sh -n docker-entrypoint.sh || exit 1
             echo "   ✅ docker-entrypoint.sh syntax valid"
           fi
 

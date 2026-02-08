@@ -123,7 +123,6 @@ if [ -z "$VERSION" ]; then
     die "Version is required (use --help for usage)"
 fi
 
-# Strip 'v' prefix if present
 VERSION="${VERSION#v}"
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -134,18 +133,15 @@ if ! git rev-parse --git-dir >/dev/null 2>&1; then
     die "Not a git repository"
 fi
 
-# Auto-detect previous version if not provided
 if [ -z "$PREV_VERSION" ]; then
     PREV_VERSION=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
     if [ -z "$PREV_VERSION" ]; then
-        # No previous tags, use first commit
         PREV_VERSION=$(git rev-list --max-parents=0 HEAD)
         log "No previous tags found, using initial commit: ${PREV_VERSION:0:8}"
     else
         log "Auto-detected previous version: ${PREV_VERSION}"
     fi
 else
-    # Ensure previous version has 'v' prefix for git tag comparison
     if ! git rev-parse "v${PREV_VERSION}" >/dev/null 2>&1; then
         if ! git rev-parse "${PREV_VERSION}" >/dev/null 2>&1; then
             die "Previous version '${PREV_VERSION}' not found in git history"
@@ -159,18 +155,15 @@ fi
 # Commit Parsing
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-# Get commit range
 COMMIT_RANGE="${PREV_VERSION}..HEAD"
 log "Generating release notes from: ${COMMIT_RANGE}"
 
-# Get all commits in range
 COMMITS=$(git log "${COMMIT_RANGE}" --pretty=format:'%H|||%s|||%b|||%an|||%ae' 2>/dev/null || echo "")
 
 if [ -z "$COMMITS" ]; then
     warn "No commits found in range ${COMMIT_RANGE}"
 fi
 
-# Create temporary files for categorized commits
 TMP_DIR=$(mktemp -d)
 trap 'rm -rf "$TMP_DIR"' EXIT
 
@@ -192,11 +185,9 @@ touch "$BREAKING_FILE" "$FEAT_FILE" "$FIX_FILE" "$DOCS_FILE" "$PERF_FILE" \
       "$REFACTOR_FILE" "$TEST_FILE" "$BUILD_FILE" "$CI_FILE" "$CHORE_FILE" \
       "$STYLE_FILE" "$REVERT_FILE" "$OTHER_FILE"
 
-# Parse commits
 while IFS='|||' read -r hash subject body author email; do
     [ -z "$hash" ] && continue
 
-    # Check for breaking changes
     is_breaking=0
     if printf '%s' "$subject" | grep -qE '^[a-z]+!:'; then
         is_breaking=1
@@ -205,17 +196,13 @@ while IFS='|||' read -r hash subject body author email; do
         is_breaking=1
     fi
 
-    # Extract commit type
     commit_type=$(printf '%s' "$subject" | sed -nE 's/^([a-z]+)(!?):.*/\1/p')
 
-    # Clean subject (remove type prefix)
     clean_subject=$(printf '%s' "$subject" | sed -E 's/^[a-z]+!?: *//')
 
-    # Format: - Subject (hash) by Author
     short_hash=$(printf '%s' "$hash" | cut -c1-8)
     formatted_commit="- ${clean_subject} (\`${short_hash}\`) by ${author}"
 
-    # Categorize
     if [ "$is_breaking" = "1" ]; then
         printf '%s\n' "$formatted_commit" >> "$BREAKING_FILE"
     fi
@@ -255,7 +242,7 @@ while IFS='|||' read -r hash subject body author email; do
             printf '%s\n' "$formatted_commit" >> "$REVERT_FILE"
             ;;
         *)
-            # If no conventional type, add to other
+
             printf '%s\n' "- ${subject} (\`${short_hash}\`) by ${author}" >> "$OTHER_FILE"
             ;;
     esac
@@ -268,7 +255,6 @@ EOF
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 generate_output() {
-    # Header
     if [ "$FORMAT" = "github" ]; then
         printf "## 🧅 Tor Guard Relay v%s\n\n" "$VERSION"
     elif [ "$FORMAT" = "markdown" ]; then
@@ -277,7 +263,6 @@ generate_output() {
         printf "Tor Guard Relay v%s - Release Notes\n\n" "$VERSION"
     fi
 
-    # Breaking changes (always show if present)
     if [ -s "$BREAKING_FILE" ]; then
         if [ "$USE_EMOJI" = "1" ]; then
             printf "### 🚨 BREAKING CHANGES\n\n"
@@ -288,12 +273,10 @@ generate_output() {
         printf "\n"
     fi
 
-    # If breaking-only mode, stop here
     if [ "$BREAKING_ONLY" = "1" ]; then
         return 0
     fi
 
-    # Features
     if [ -s "$FEAT_FILE" ]; then
         if [ "$USE_EMOJI" = "1" ]; then
             printf "### ✨ Features\n\n"
@@ -304,7 +287,6 @@ generate_output() {
         printf "\n"
     fi
 
-    # Bug fixes
     if [ -s "$FIX_FILE" ]; then
         if [ "$USE_EMOJI" = "1" ]; then
             printf "### 🐛 Bug Fixes\n\n"
@@ -315,7 +297,6 @@ generate_output() {
         printf "\n"
     fi
 
-    # Performance
     if [ -s "$PERF_FILE" ]; then
         if [ "$USE_EMOJI" = "1" ]; then
             printf "### ⚡ Performance\n\n"
@@ -326,7 +307,6 @@ generate_output() {
         printf "\n"
     fi
 
-    # Documentation
     if [ -s "$DOCS_FILE" ]; then
         if [ "$USE_EMOJI" = "1" ]; then
             printf "### 📚 Documentation\n\n"
@@ -337,7 +317,6 @@ generate_output() {
         printf "\n"
     fi
 
-    # Refactoring
     if [ -s "$REFACTOR_FILE" ]; then
         if [ "$USE_EMOJI" = "1" ]; then
             printf "### ♻️ Refactoring\n\n"
@@ -348,7 +327,6 @@ generate_output() {
         printf "\n"
     fi
 
-    # CI/CD
     if [ -s "$CI_FILE" ]; then
         if [ "$USE_EMOJI" = "1" ]; then
             printf "### 👷 CI/CD\n\n"
@@ -359,7 +337,6 @@ generate_output() {
         printf "\n"
     fi
 
-    # Build system
     if [ -s "$BUILD_FILE" ]; then
         if [ "$USE_EMOJI" = "1" ]; then
             printf "### 🏗️ Build System\n\n"
@@ -370,7 +347,6 @@ generate_output() {
         printf "\n"
     fi
 
-    # Testing
     if [ -s "$TEST_FILE" ]; then
         if [ "$USE_EMOJI" = "1" ]; then
             printf "### ✅ Testing\n\n"
@@ -381,7 +357,6 @@ generate_output() {
         printf "\n"
     fi
 
-    # Maintenance
     if [ -s "$CHORE_FILE" ]; then
         if [ "$USE_EMOJI" = "1" ]; then
             printf "### 🔧 Maintenance\n\n"
@@ -392,7 +367,6 @@ generate_output() {
         printf "\n"
     fi
 
-    # Style changes
     if [ -s "$STYLE_FILE" ]; then
         if [ "$USE_EMOJI" = "1" ]; then
             printf "### 💄 Style\n\n"
@@ -403,7 +377,6 @@ generate_output() {
         printf "\n"
     fi
 
-    # Reverts
     if [ -s "$REVERT_FILE" ]; then
         if [ "$USE_EMOJI" = "1" ]; then
             printf "### ⏪ Reverts\n\n"
@@ -414,7 +387,6 @@ generate_output() {
         printf "\n"
     fi
 
-    # Other commits (non-conventional)
     if [ -s "$OTHER_FILE" ]; then
         if [ "$USE_EMOJI" = "1" ]; then
             printf "### 📦 Other Changes\n\n"
@@ -425,14 +397,12 @@ generate_output() {
         printf "\n"
     fi
 
-    # Footer with metadata
     if [ "$FORMAT" = "github" ] || [ "$FORMAT" = "markdown" ]; then
         printf "---\n\n"
         printf "**Full Changelog**: %s...v%s\n" "$PREV_VERSION" "$VERSION"
     fi
 }
 
-# Generate and output
 if [ -n "$OUTPUT_FILE" ]; then
     generate_output > "$OUTPUT_FILE"
     success "Release notes written to: ${OUTPUT_FILE}"

@@ -14,7 +14,7 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 CYAN='\033[0;36m'
 BOLD='\033[1m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
 log() { printf "${BLUE}ℹ${NC} %s\n" "$*"; }
 success() { printf "${GREEN}✅${NC} %s\n" "$*"; }
@@ -27,7 +27,6 @@ die() { error "$*"; exit 1; }
 # Utility Functions
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-# Prompt for confirmation
 confirm() {
     prompt="$1"
     printf "${YELLOW}❓ %s [y/N]: ${NC}" "$prompt"
@@ -38,7 +37,6 @@ confirm() {
     esac
 }
 
-# Check if Docker is available
 check_docker() {
     if ! command -v docker >/dev/null 2>&1; then
         die "Docker is not installed or not in PATH"
@@ -49,7 +47,6 @@ check_docker() {
     fi
 }
 
-# Sanitize numeric values
 sanitize_num() {
     v=$(printf '%s' "$1" | tr -cd '0-9')
     [ -z "$v" ] && v=0
@@ -60,12 +57,10 @@ sanitize_num() {
 # Detection Functions
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-# Detect official Tor Project bridge containers
 detect_official_containers() {
     docker ps -a --filter "ancestor=thetorproject/obfs4-bridge" --format "{{.Names}}" 2>/dev/null | head -1
 }
 
-# Extract environment variables from container
 get_container_env() {
     container_name="$1"
     env_var="$2"
@@ -73,16 +68,14 @@ get_container_env() {
         grep "^${env_var}=" | cut -d= -f2-
 }
 
-# Extract volume mounts from container
 get_container_volumes() {
     container_name="$1"
     docker inspect "$container_name" --format '{{range .Mounts}}{{if eq .Type "volume"}}{{.Name}}:{{.Destination}}{{println}}{{end}}{{end}}' 2>/dev/null
 }
 
-# Get fingerprint from volume
 get_fingerprint_from_volume() {
     volume_name="$1"
-    docker run --rm -v "${volume_name}:/data:ro" alpine:3.22.2 sh -c \
+    docker run --rm -v "${volume_name}:/data:ro" alpine:3.23.3 sh -c \
         'if [ -f /data/fingerprint ]; then cat /data/fingerprint; elif [ -f /data/keys/ed25519_master_id_public_key ]; then echo "Keys exist but fingerprint not yet generated"; else echo "NOT_FOUND"; fi' 2>/dev/null
 }
 
@@ -90,14 +83,12 @@ get_fingerprint_from_volume() {
 # Validation Functions
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-# Check volume ownership
 check_volume_ownership() {
     volume_name="$1"
-    ownership=$(docker run --rm -v "${volume_name}:/data:ro" alpine:3.22.2 stat -c '%u:%g' /data 2>/dev/null)
+    ownership=$(docker run --rm -v "${volume_name}:/data:ro" alpine:3.23.3 stat -c '%u:%g' /data 2>/dev/null)
     printf '%s' "$ownership"
 }
 
-# Wait for container to be healthy
 wait_for_healthy() {
     container_name="$1"
     timeout="${2:-120}"
@@ -125,7 +116,6 @@ wait_for_healthy() {
     return 1
 }
 
-# Wait for Tor bootstrap
 wait_for_bootstrap() {
     container_name="$1"
     timeout="${2:-300}"
@@ -136,9 +126,8 @@ wait_for_bootstrap() {
     last_progress=""
 
     while [ $counter -lt $timeout ]; do
-        # Try to get bootstrap progress from health tool
         bootstrap_output=$(docker exec "$container_name" health 2>/dev/null || echo "{}")
-        bootstrap_pct=$(printf '%s' "$bootstrap_output" | grep -o '"bootstrap_percent":[0-9]*' | cut -d: -f2 | head -1)
+        bootstrap_pct=$(printf '%s' "$bootstrap_output" | grep -o '"bootstrap":[0-9]*' | cut -d: -f2 | head -1)
         bootstrap_pct=$(sanitize_num "$bootstrap_pct")
 
         if [ "$bootstrap_pct" -ge 100 ]; then
@@ -150,8 +139,6 @@ wait_for_bootstrap() {
                 last_progress="$bootstrap_pct"
             fi
         fi
-
-        # Check if Tor is actually running
         if ! docker exec "$container_name" pgrep -x tor >/dev/null 2>&1; then
             error "Tor process not running"
             docker logs "$container_name" 2>&1 | tail -20
@@ -171,7 +158,6 @@ wait_for_bootstrap() {
 # Migration Functions
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-# Backup volume before migration
 backup_volume() {
     volume_name="$1"
     backup_dir="${2:-/tmp}"
@@ -179,7 +165,7 @@ backup_volume() {
 
     log "Creating backup of volume '${volume_name}'..."
 
-    if ! docker run --rm -v "${volume_name}:/data:ro" -v "${backup_dir}:/backup" alpine:3.22.2 \
+    if ! docker run --rm -v "${volume_name}:/data:ro" -v "${backup_dir}:/backup" alpine:3.23.3 \
         tar czf "/backup/$(basename "$backup_file")" -C /data . 2>/dev/null; then
         error "Backup failed"
         return 1
@@ -190,7 +176,6 @@ backup_volume() {
     return 0
 }
 
-# Fix volume ownership (Debian UID 101 → Alpine UID 100)
 fix_volume_ownership() {
     volume_name="$1"
 
@@ -199,7 +184,7 @@ fix_volume_ownership() {
     current_ownership=$(check_volume_ownership "$volume_name")
     log "Current ownership: ${current_ownership}"
 
-    if ! docker run --rm -v "${volume_name}:/data" alpine:3.22.2 chown -R 100:101 /data 2>/dev/null; then
+    if ! docker run --rm -v "${volume_name}:/data" alpine:3.23.3 chown -R 100:101 /data 2>/dev/null; then
         error "Failed to fix ownership"
         return 1
     fi
@@ -261,8 +246,6 @@ main() {
             log "Migration cancelled"
             exit 0
         fi
-
-        # Manual mode
         printf "\n${BOLD}Manual Configuration Mode${NC}\n"
         printf "Enter the volume name containing your Tor data: "
         read -r DATA_VOLUME
@@ -302,7 +285,6 @@ main() {
     else
         success "Found container: ${OLD_CONTAINER}"
 
-        # Extract configuration
         NICKNAME=$(get_container_env "$OLD_CONTAINER" "NICKNAME")
         EMAIL=$(get_container_env "$OLD_CONTAINER" "EMAIL")
         OR_PORT=$(get_container_env "$OLD_CONTAINER" "OR_PORT")
@@ -314,7 +296,6 @@ main() {
         log "  OR Port: ${OR_PORT:-9001}"
         log "  PT Port: ${PT_PORT:-9002}"
 
-        # Get volumes
         VOLUMES=$(get_container_volumes "$OLD_CONTAINER")
         DATA_VOLUME=""
 
@@ -327,7 +308,6 @@ main() {
                 fi
             done
 
-            # Extract first volume for data if specific mount not found
             if [ -z "$DATA_VOLUME" ]; then
                 DATA_VOLUME=$(printf '%s\n' "$VOLUMES" | head -1 | cut -d: -f1)
             fi
@@ -343,7 +323,6 @@ main() {
             fi
         fi
 
-        # Get current fingerprint
         log "Checking current fingerprint..."
         OLD_FINGERPRINT=$(get_fingerprint_from_volume "$DATA_VOLUME")
 
@@ -355,18 +334,15 @@ main() {
             success "Current fingerprint: ${OLD_FINGERPRINT}"
         fi
 
-        # Check container status
         CONTAINER_STATUS=$(docker inspect "$OLD_CONTAINER" --format '{{.State.Status}}' 2>/dev/null || echo "not_found")
         log "Container status: ${CONTAINER_STATUS}"
 
-        # Confirm migration
         printf "\n"
         if ! confirm "Proceed with migration?"; then
             log "Migration cancelled"
             exit 0
         fi
 
-        # Ask for new container name
         printf "\n"
         printf "Enter new container name (default: tor-bridge): "
         read -r NEW_CONTAINER
@@ -442,7 +418,6 @@ main() {
 
     step "Step 6: Deploy New Container"
 
-    # Check if container already exists
     if docker inspect "$NEW_CONTAINER" >/dev/null 2>&1; then
         warn "Container '${NEW_CONTAINER}' already exists"
         if confirm "Remove existing container and deploy new one?"; then
@@ -455,7 +430,6 @@ main() {
     log "Deploying new container: ${NEW_CONTAINER}"
     log "Image: ghcr.io/r3bo0tbx1/onion-relay:latest"
 
-    # Build docker run command
     DOCKER_RUN_CMD="docker run -d \
   --name ${NEW_CONTAINER} \
   --network host \
@@ -515,7 +489,6 @@ main() {
 
     step "Step 9: Validate Migration"
 
-    # Check fingerprint
     log "Checking fingerprint..."
     NEW_FINGERPRINT=$(docker exec "$NEW_CONTAINER" fingerprint 2>/dev/null | grep -oE '[A-F0-9]{40}' | head -1 || echo "")
 
@@ -536,7 +509,6 @@ main() {
         warn "Fingerprint not yet available (may still be generating)"
     fi
 
-    # Check bridge line
     log "Checking bridge line..."
     BRIDGE_LINE=$(docker exec "$NEW_CONTAINER" bridge-line 2>/dev/null || echo "")
 
@@ -548,7 +520,6 @@ main() {
         warn "Bridge line not yet available (may still be generating)"
     fi
 
-    # Check health status
     log "Checking health status..."
     HEALTH_OUTPUT=$(docker exec "$NEW_CONTAINER" health 2>/dev/null || echo "{}")
 

@@ -60,6 +60,18 @@ Located in `/var/lib/tor/`:
 
 ## Backup Methods
 
+### Quick Backup (Simplest)
+
+Copy the keys directory straight out of a running container:
+
+```bash
+docker cp <container-name>:/var/lib/tor/keys ./RelayKeyBackup
+```
+
+That's it. The `RelayKeyBackup/` folder now contains your relay's identity keys. Store it somewhere safe.
+
+---
+
 ### Method 1: Docker Volume Backup (Recommended)
 
 **Pros:** Complete, easy to restore, version-controlled  

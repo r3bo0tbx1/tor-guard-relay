@@ -233,10 +233,10 @@ Next Steps:
 **Solution:**
 ```bash
 # Manually fix ownership
-docker run --rm -v <volume-name>:/data alpine:3.22.2 chown -R 100:101 /data
+docker run --rm -v <volume-name>:/data alpine:3.23.3 chown -R 100:101 /data
 
 # Verify
-docker run --rm -v <volume-name>:/data alpine:3.22.2 ls -ldn /data
+docker run --rm -v <volume-name>:/data alpine:3.23.3 ls -ldn /data
 # Should show: drwx------ 5 100 101 ...
 ```
 
@@ -249,7 +249,7 @@ docker run --rm -v <volume-name>:/data alpine:3.22.2 ls -ldn /data
 **Solution:**
 ```bash
 # Check if keys exist in volume
-docker run --rm -v <volume-name>:/data alpine:3.22.2 ls -la /data/keys/
+docker run --rm -v <volume-name>:/data alpine:3.23.3 ls -la /data/keys/
 
 # Should see:
 # - secret_id_key
@@ -259,11 +259,11 @@ docker run --rm -v <volume-name>:/data alpine:3.22.2 ls -la /data/keys/
 # - ed25519_signing_secret_key
 
 # If keys are missing, restore from backup:
-docker run --rm -v <volume-name>:/data -v /path/to:/backup alpine:3.22.2 \
+docker run --rm -v <volume-name>:/data -v /path/to:/backup alpine:3.23.3 \
   tar xzf /backup/tor-backup-*.tar.gz -C /data
 
 # Fix ownership again
-docker run --rm -v <volume-name>:/data alpine:3.22.2 chown -R 100:101 /data
+docker run --rm -v <volume-name>:/data alpine:3.23.3 chown -R 100:101 /data
 
 # Recreate container
 docker rm -f tor-bridge
@@ -288,7 +288,7 @@ docker logs tor-bridge 2>&1 | tail -50
 docker exec tor-bridge health | jq .
 
 # Wait longer (Tor can take 5-10 minutes on first run)
-watch -n5 'docker exec tor-bridge health | jq .bootstrap_percent'
+watch -n5 'docker exec tor-bridge health | jq .bootstrap'
 ```
 
 #### Container Exits Immediately
@@ -349,10 +349,10 @@ docker rm tor-bridge
 docker run --rm \
   -v <volume-name>:/data \
   -v /path/to/backup:/backup \
-  alpine:3.22.2 sh -c 'rm -rf /data/* && tar xzf /backup/tor-backup-*.tar.gz -C /data'
+  alpine:3.23.3 sh -c 'rm -rf /data/* && tar xzf /backup/tor-backup-*.tar.gz -C /data'
 
 # 3. Fix ownership back to Debian UID 101 (if returning to official image)
-docker run --rm -v <volume-name>:/data alpine:3.22.2 chown -R 101:101 /data
+docker run --rm -v <volume-name>:/data alpine:3.23.3 chown -R 101:101 /data
 
 # 4. Restart old container
 docker start obfs4-bridge

@@ -29,7 +29,7 @@ LABEL maintainer="rE-Bo0t.bx1 <r3bo0tbx1@brokenbotnet.com>" \
       org.opencontainers.image.vendor="r3bo0tbx1" \
       org.opencontainers.image.authors="rE-Bo0t.bx1 <r3bo0tbx1@brokenbotnet.com>" \
       org.opencontainers.image.url="https://github.com/r3bo0tbx1/tor-guard-relay" \
-      org.opencontainers.image.base.name="docker.io/library/alpine:3.23.0" \
+      org.opencontainers.image.base.name="docker.io/library/alpine:3.23.3" \
       org.opencontainers.image.revision="${TARGETARCH}"
 
 SHELL ["/bin/ash", "-eo", "pipefail", "-c"]

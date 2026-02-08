@@ -1,4 +1,4 @@
-# 🚀 Deployment Guide - Tor Guard Relay >=v1.1.1
+# 🚀 Deployment Guide - Tor Guard Relay
 
 Complete deployment instructions for guard, exit, and bridge relays across various hosting environments.
 
@@ -91,7 +91,7 @@ docker ps | grep tor-relay
 # Check logs and bootstrap progress
 docker logs -f tor-relay
 
-# Run diagnostics (4 tools available)
+# Run diagnostics (5 tools available)
 docker exec tor-relay status         # Full health report with emojis
 docker exec tor-relay health         # JSON health data
 docker exec tor-relay fingerprint    # Show fingerprint + Tor Metrics URL
@@ -328,7 +328,7 @@ volumes:
 
 ## Multi-Mode Deployment
 
-v1.1.1 supports **guard**, **exit**, and **bridge** relays in a single container.
+This image supports **guard**, **exit**, and **bridge** relays in a single container.
 
 ### Guard/Middle Relay (Default)
 
@@ -349,7 +349,6 @@ docker run -d \
   -e TOR_NICKNAME=MyGuardRelay \
   -e TOR_CONTACT_INFO=tor@example.com \
   -e TOR_ORPORT=9001 \
-  -e TOR_DIRPORT=9030 \
   -v tor-data:/var/lib/tor \
   r3bo0tbx1/onion-relay:latest
 ```
@@ -373,7 +372,6 @@ docker run -d \
   -e TOR_NICKNAME=MyExitRelay \
   -e TOR_CONTACT_INFO=tor@example.com \
   -e TOR_ORPORT=9001 \
-  -e TOR_DIRPORT=9030 \
   -e TOR_EXIT_POLICY="accept *:80,accept *:443,reject *:*" \
   -v tor-data:/var/lib/tor \
   r3bo0tbx1/onion-relay:latest
@@ -415,7 +413,7 @@ docker exec tor-bridge bridge-line
 
 ## ENV-Based Deployment
 
-v1.1.1 supports full configuration via environment variables (no config file needed).
+Full configuration via environment variables is supported (no config file needed).
 
 ### Supported Environment Variables
 
@@ -424,7 +422,7 @@ v1.1.1 supports full configuration via environment variables (no config file nee
 - `TOR_NICKNAME` - Relay nickname (required for ENV config)
 - `TOR_CONTACT_INFO` - Contact email (required for ENV config)
 - `TOR_ORPORT` - ORPort (default: 9001)
-- `TOR_DIRPORT` - DirPort for guard/exit (default: 9030, set to 0 to disable)
+- `TOR_DIRPORT` - DirPort for guard/exit (default: 0 - disabled)
 - `TOR_OBFS4_PORT` - obfs4 port for bridge mode (default: 9002)
 
 #### Bandwidth Limits
@@ -457,7 +455,6 @@ services:
       TOR_NICKNAME: MyRelay
       TOR_CONTACT_INFO: tor@example.com
       TOR_ORPORT: 9001
-      TOR_DIRPORT: 9030
       TOR_BANDWIDTH_RATE: 50 MBytes
       TOR_BANDWIDTH_BURST: 100 MBytes
     volumes:
@@ -513,7 +510,7 @@ abc123def456   r3bo0tbx1/onion-relay:latest    Up 5 minutes (healthy)
 
 ### 2. Run Diagnostics
 
-v1.1.1 provides **4 diagnostic tools**:
+The image provides **5 diagnostic tools**:
 
 ```bash
 # Full health report with emojis
@@ -548,11 +545,13 @@ docker exec tor-relay health
 ```json
 {
   "status": "up",
+  "pid": 1,
+  "uptime": "01:00:00",
   "bootstrap": 100,
-  "reachable": true,
+  "reachable": "true",
+  "errors": 0,
   "fingerprint": "1234567890ABCDEF...",
-  "nickname": "MyRelay",
-  "uptime_seconds": 3600
+  "nickname": "MyRelay"
 }
 ```
 
@@ -575,8 +574,8 @@ Search for your relay:
 
 | Relay Type | Ports to Open |
 |------------|---------------|
-| **Guard/Middle** | 9001/tcp (ORPort), 9030/tcp (DirPort) |
-| **Exit** | 9001/tcp (ORPort), 9030/tcp (DirPort) |
+| **Guard/Middle** | 9001/tcp (ORPort) |
+| **Exit** | 9001/tcp (ORPort) |
 | **Bridge** | 9001/tcp (ORPort), 9002/tcp (obfs4) |
 
 > **Note:** All ports are configurable via ENV variables or config file.
@@ -586,7 +585,6 @@ Search for your relay:
 ```bash
 # Guard/Exit relay
 sudo ufw allow 9001/tcp  # ORPort
-sudo ufw allow 9030/tcp  # DirPort
 
 # Bridge relay
 sudo ufw allow 9001/tcp  # ORPort
@@ -604,7 +602,6 @@ sudo ufw status
 ```bash
 # Guard/Exit relay
 sudo firewall-cmd --permanent --add-port=9001/tcp
-sudo firewall-cmd --permanent --add-port=9030/tcp
 
 # Bridge relay
 sudo firewall-cmd --permanent --add-port=9001/tcp
@@ -622,7 +619,6 @@ sudo firewall-cmd --list-all
 ```bash
 # Guard/Exit relay
 sudo iptables -A INPUT -p tcp --dport 9001 -j ACCEPT
-sudo iptables -A INPUT -p tcp --dport 9030 -j ACCEPT
 
 # Bridge relay
 sudo iptables -A INPUT -p tcp --dport 9001 -j ACCEPT
@@ -819,7 +815,7 @@ Choose providers with <1% consensus weight for better network health.
 
 ### Option 1: JSON Health API
 
->=v1.1.1 provides a `health` tool that outputs JSON for monitoring integration:
+The `health` tool outputs JSON for monitoring integration:
 
 ```bash
 # Get health status (raw JSON)
@@ -887,8 +883,7 @@ HEALTH=$(docker exec tor-relay health)
 # Export metrics
 echo "$HEALTH" | jq -r '
   "tor_bootstrap_percent \(.bootstrap)",
-  "tor_reachable \(if .reachable then 1 else 0 end)",
-  "tor_uptime_seconds \(.uptime_seconds // 0)"
+  "tor_reachable \(if .reachable == "true" then 1 else 0 end)"
 ' > /var/lib/node_exporter/textfile_collector/tor.prom
 ```
 
@@ -969,7 +964,7 @@ After successful deployment:
 ## Support
 
 - 📖 [Main README](../README.md)
-- 🔧 [Tools Documentation](TOOLS.md) - Complete guide to the 4 diagnostic tools
+- 🔧 [Tools Documentation](TOOLS.md) - Complete guide to the 5 diagnostic tools
 - 📊 [Monitoring Guide](MONITORING.md) - External monitoring integration
 - 🐛 [Report Issues](https://github.com/r3bo0tbx1/tor-guard-relay/issues)
 - 💬 [Tor Project Forum](https://forum.torproject.net/)

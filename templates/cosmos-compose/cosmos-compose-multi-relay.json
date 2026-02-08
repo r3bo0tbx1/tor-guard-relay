@@ -56,7 +56,7 @@
         "cosmos-description": "🛡️ Multi Tor Guard Relay - 1",
         "cosmos-icon": "https://raw.githubusercontent.com/r3bo0tbx1/tor-guard-relay/main/src/onion.png",
         "cosmos-force-network-secured": "false",
-        "cosmos-version": "1.1.4",
+        "cosmos-version": "1.1.6",
         "maintainer": "rE-Bo0t.bx1 <r3bo0tbx1@brokenbotnet.com>"
       }
     },
@@ -114,7 +114,7 @@
         "cosmos-description": "🛡️ Multi Tor Guard Relay - 2",
         "cosmos-icon": "https://raw.githubusercontent.com/r3bo0tbx1/tor-guard-relay/main/src/onion.png",
         "cosmos-force-network-secured": "false",
-        "cosmos-version": "1.1.4",
+        "cosmos-version": "1.1.6",
         "maintainer": "rE-Bo0t.bx1 <r3bo0tbx1@brokenbotnet.com>"
       }
     },
@@ -172,7 +172,7 @@
         "cosmos-description": "🛡️ Multi Tor Guard Relay - 3",
         "cosmos-icon": "https://raw.githubusercontent.com/r3bo0tbx1/tor-guard-relay/main/src/onion.png",
         "cosmos-force-network-secured": "false",
-        "cosmos-version": "1.1.4",
+        "cosmos-version": "1.1.6",
         "maintainer": "rE-Bo0t.bx1 <r3bo0tbx1@brokenbotnet.com>"
       }
     }

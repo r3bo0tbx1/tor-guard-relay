@@ -159,11 +159,11 @@ OBFS4V_NumCPUs=4
 
 **Guard/Middle Relay:**
 - `TOR_ORPORT` (default: 9001) - **PUBLIC 🌐**
-- `TOR_DIRPORT` (default: 9030) - **PUBLIC 🌐** (optional, set to 0 to disable)
+- `TOR_DIRPORT` (default: 0) - **PUBLIC 🌐** (optional, disabled by default)
 
 **Exit Relay:**
 - `TOR_ORPORT` (default: 9001) - **PUBLIC 🌐**
-- `TOR_DIRPORT` (default: 9030) - **PUBLIC 🌐**
+- `TOR_DIRPORT` (default: 0) - **PUBLIC 🌐** (optional, disabled by default)
 
 **Bridge Relay:**
 - `TOR_ORPORT` (default: 9001) - **PUBLIC 🌐**
@@ -175,7 +175,6 @@ OBFS4V_NumCPUs=4
 ```bash
 # Guard relay
 sudo ufw allow 9001/tcp
-sudo ufw allow 9030/tcp
 
 # Bridge relay
 sudo ufw allow 9001/tcp
@@ -267,10 +266,10 @@ docker logs tor-bridge | grep "bridge line"
 **Fix:**
 ```bash
 # Alpine uses UID 100 (tor user)
-docker run --rm -v tor-data:/data alpine:3.22.2 chown -R 100:101 /data
+docker run --rm -v tor-data:/data alpine:3.23.3 chown -R 100:101 /data
 
 # Verify fix
-docker run --rm -v tor-data:/data alpine:3.22.2 ls -ldn /data
+docker run --rm -v tor-data:/data alpine:3.23.3 ls -ldn /data
 # Should show: drwx------ X 100 101 ...
 ```
 
@@ -373,7 +372,7 @@ docker run --rm -v obfs4-data:/data -v /tmp:/backup \
 ```bash
 # Official image: UID 101 (debian-tor)
 # Our image: UID 100 (tor)
-docker run --rm -v obfs4-data:/data alpine:3.22.2 chown -R 100:101 /data
+docker run --rm -v obfs4-data:/data alpine:3.23.3 chown -R 100:101 /data
 ```
 
 3. **Update configuration:**
@@ -427,7 +426,7 @@ docker run -d --name tor-relay ...  # Same config
 **Verify upgrade:**
 ```bash
 docker exec tor-relay cat /build-info.txt
-# Should show: Version: 1.1.3
+# Should show: Version: 1.1.6
 
 docker exec tor-relay fingerprint
 # Verify fingerprint unchanged
@@ -538,5 +537,5 @@ See [CONTRIBUTING.md](../CONTRIBUTING.md) for guidelines.
 
 ---
 
-**Last Updated:** December 2025 (v1.1.3)
+**Last Updated:** Feburary 2026 (v1.1.6)
 **Maintained by:** [@r3bo0tbx1](https://github.com/r3bo0tbx1)

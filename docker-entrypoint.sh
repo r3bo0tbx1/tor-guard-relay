@@ -50,7 +50,7 @@ cleanup_and_exit() {
 
 startup_banner() {
   log "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-  log "🧅 Tor Guard Relay v1.1.5 - Initialization"
+  log "🧅 Tor Guard Relay v1.1.6 - Initialization"
   log "https://github.com/r3bo0tbx1/tor-guard-relay"
   log "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
   log ""
@@ -77,6 +77,22 @@ phase_2_permissions() {
 
   chmod 700 "$TOR_DATA_DIR" 2>/dev/null || warn "Failed to set data directory permissions (may be read-only mount)"
   chmod 755 "$TOR_LOG_DIR" 2>/dev/null || warn "Failed to set log directory permissions (may be read-only mount)"
+
+  CURRENT_UID=$(id -u)
+  CURRENT_GID=$(id -g)
+
+  if [ ! -w "$TOR_DATA_DIR" ]; then
+    warn "Data directory $TOR_DATA_DIR is not writable by tor user (UID $CURRENT_UID)"
+    warn "If using host bind mounts, fix ownership on the host:"
+    warn "  chown -R $CURRENT_UID:$CURRENT_GID <host-path>"
+  fi
+
+  if [ -d "$TOR_DATA_DIR/keys" ] && [ ! -w "$TOR_DATA_DIR/keys" ]; then
+    warn "Keys directory $TOR_DATA_DIR/keys has wrong ownership!"
+    KEYS_OWNER=$(stat -c '%u:%g' "$TOR_DATA_DIR/keys" 2>/dev/null || echo "unknown")
+    warn "  Current owner: $KEYS_OWNER — Expected: $CURRENT_UID:$CURRENT_GID"
+    warn "  Fix on the host: chown -R $CURRENT_UID:$CURRENT_GID <host-keys-path>"
+  fi
 
   success "Permissions configured securely"
   log ""
@@ -294,13 +310,14 @@ phase_4_validation() {
   cleanup_verify_tmp() {
     [ -n "$VERIFY_TMP" ] && rm -f "$VERIFY_TMP"
   }
-  trap cleanup_verify_tmp EXIT INT TERM
+  trap cleanup_verify_tmp EXIT
 
   VERIFY_TMP=$(mktemp -t tor-verify.XXXXXX)
 
   if ! tor --verify-config -f "$TOR_CONFIG" >"$VERIFY_TMP" 2>&1; then
     warn "Configuration validation failed!"
-    if [ "${DEBUG:-false}" = "true" ]; then
+    DEBUG_LOWER=$(printf "%s" "${DEBUG:-false}" | tr '[:upper:]' '[:lower:]')
+    if [ "$DEBUG_LOWER" = "true" ] || [ "$DEBUG_LOWER" = "1" ] || [ "$DEBUG_LOWER" = "yes" ]; then
       log "   Error output:"
       head -n 10 "$VERIFY_TMP" | sed 's/^/   /'
     fi

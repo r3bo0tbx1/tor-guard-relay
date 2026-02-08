@@ -1,6 +1,6 @@
 # Troubleshooting Bridge Migration to >=v1.1.1
 
-This guide addresses the specific issue where migrating from `thetorproject/obfs4-bridge` to `r3bo0tbx1/onion-relay:1.1.1` results in configuration validation failures and changing fingerprints.
+This guide addresses the specific issue where migrating from `thetorproject/obfs4-bridge` to `r3bo0tbx1/onion-relay` results in configuration validation failures and changing fingerprints.
 
 ## Problem Description
 
@@ -22,7 +22,7 @@ This guide addresses the specific issue where migrating from `thetorproject/obfs
 
 ### Root Cause
 
-The `thetorproject/obfs4-bridge` image creates a `torrc` file that may persist in the Docker volume or get recreated. When you migrate to `r3bo0tbx1/onion-relay:1.1.1`, the entrypoint script checks for existing configuration files with this priority:
+The `thetorproject/obfs4-bridge` image creates a `torrc` file that may persist in the Docker volume or get recreated. When you migrate to `r3bo0tbx1/onion-relay`, the entrypoint script checks for existing configuration files with this priority:
 
 1. **Priority 1**: Existing `/etc/tor/torrc` file (mounted or in volume)
 2. **Priority 2**: Environment variables (OR_PORT, PT_PORT, EMAIL, NICKNAME)
@@ -338,7 +338,7 @@ docker run --rm \
 **Fix:** v1.1.1 has automatic permission healing. If it still fails:
 ```bash
 # Fix permissions manually
-docker run --rm -v obfs4-data:/data alpine chown -R 1000:1000 /data
+docker run --rm -v obfs4-data:/data alpine chown -R 100:101 /data
 docker run --rm -v obfs4-data:/data alpine chmod 700 /data
 ```
 
@@ -501,7 +501,7 @@ After migration:
 - ✨ Official Tor Project ENV variable compatibility
 - ✨ Bootstrap progress logs in terminal
 - ✨ Enhanced emoji logging (v1.1.0 style)
-- ✨ 4 diagnostic tools (status, health, fingerprint, bridge-line)
+- ✨ 5 diagnostic tools (status, health, fingerprint, bridge-line, gen-auth)
 - ✨ Auto-detection of bridge mode from PT_PORT
 - ✨ OBFS4V_* variable processing
 

@@ -15,13 +15,13 @@ For **specific v1.1.0 → >=v1.1.1 migration**, see [`MIGRATION-V1.1.X.md`](MIGR
 docker run --rm \
   -v <volume-name>:/data \
   -v /tmp:/backup \
-  alpine:3.22.2 tar czf /backup/tor-backup-$(date +%Y%m%d).tar.gz /data
+  alpine:3.23.3 tar czf /backup/tor-backup-$(date +%Y%m%d).tar.gz /data
 
 # Verify backup
 ls -lh /tmp/tor-backup-*.tar.gz
 
 # Save fingerprint
-docker run --rm -v <volume-name>:/data alpine:3.22.2 cat /data/fingerprint > /tmp/fingerprint-backup.txt
+docker run --rm -v <volume-name>:/data alpine:3.23.3 cat /data/fingerprint > /tmp/fingerprint-backup.txt
 ```
 
 ### 2. Fingerprint Preservation
@@ -126,14 +126,14 @@ environment:
 **Example**:
 ```bash
 # Old server - create backup
-docker run --rm -v tor-data:/data -v $PWD:/backup alpine:3.22.2 \
+docker run --rm -v tor-data:/data -v $PWD:/backup alpine:3.23.3 \
   tar czf /backup/tor-data.tar.gz /data
 
 # Transfer tor-data.tar.gz to new server
 
 # New server - restore
 docker volume create tor-data
-docker run --rm -v tor-data:/data -v $PWD:/backup alpine:3.22.2 \
+docker run --rm -v tor-data:/data -v $PWD:/backup alpine:3.23.3 \
   tar xzf /backup/tor-data.tar.gz -C /
 ```
 
@@ -141,7 +141,7 @@ docker run --rm -v tor-data:/data -v $PWD:/backup alpine:3.22.2 \
 
 ## ⚙️ Container vs Image vs Configuration
 
-**Image**: The Docker image (`r3bo0tbx1/onion-relay:1.1.1`)
+**Image**: The Docker image (`r3bo0tbx1/onion-relay:latest`)
 - Contains Tor binary, scripts, OS
 - Immutable
 - Can be updated independently
@@ -191,10 +191,10 @@ After any migration:
 **Fix**:
 ```bash
 # Check ownership
-docker run --rm -v <volume>:/data alpine:3.22.2 ls -ldn /data
+docker run --rm -v <volume>:/data alpine:3.23.3 ls -ldn /data
 
 # Fix if needed (Alpine tor user is UID 100)
-docker run --rm -v <volume>:/data alpine:3.22.2 chown -R 100:101 /data
+docker run --rm -v <volume>:/data alpine:3.23.3 chown -R 100:101 /data
 ```
 
 ### Issue: Fingerprint Changed
@@ -204,7 +204,7 @@ docker run --rm -v <volume>:/data alpine:3.22.2 chown -R 100:101 /data
 **Fix**: Restore from backup:
 ```bash
 docker stop <container>
-docker run --rm -v <volume>:/data -v /tmp:/backup alpine:3.22.2 \
+docker run --rm -v <volume>:/data -v /tmp:/backup alpine:3.23.3 \
   sh -c 'rm -rf /data/* && tar xzf /backup/tor-backup-*.tar.gz -C /'
 docker start <container>
 ```
@@ -314,7 +314,7 @@ cap_add:
 - **Deployment Guide**: [`DEPLOYMENT.md`](DEPLOYMENT.md)
 - **Troubleshooting**: [`TROUBLESHOOTING-BRIDGE-MIGRATION.md`](TROUBLESHOOTING-BRIDGE-MIGRATION.md)
 - **Tools Documentation**: [`TOOLS.md`](TOOLS.md)
-- **Security Audit**: [`../SECURITY-AUDIT-REPORT.md`](../SECURITY-AUDIT-REPORT.md)
+- **Security Policy**: [`../SECURITY.md`](../SECURITY.md)
 
 ---
 
@@ -340,13 +340,13 @@ If migration fails:
 
 ```bash
 # Backup
-docker run --rm -v <vol>:/data -v /tmp:/backup alpine:3.22.2 tar czf /backup/backup.tar.gz /data
+docker run --rm -v <vol>:/data -v /tmp:/backup alpine:3.23.3 tar czf /backup/backup.tar.gz /data
 
 # Restore
-docker run --rm -v <vol>:/data -v /tmp:/backup alpine:3.22.2 tar xzf /backup/backup.tar.gz -C /
+docker run --rm -v <vol>:/data -v /tmp:/backup alpine:3.23.3 tar xzf /backup/backup.tar.gz -C /
 
 # Fix ownership (Alpine)
-docker run --rm -v <vol>:/data alpine:3.22.2 chown -R 100:101 /data
+docker run --rm -v <vol>:/data alpine:3.23.3 chown -R 100:101 /data
 
 # Get fingerprint
 docker exec <container> fingerprint

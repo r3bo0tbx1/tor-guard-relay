@@ -16,6 +16,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.6] - 2026-02-08
+
+### 🐛 Fixed
+* **Bind Mount Ownership:** Added startup detection for bind-mounted data/keys directories with incorrect ownership. The entrypoint now warns users with actionable `chown` commands when volumes are not writable by the `tor` user (UID 100, GID 101).
+* **DEBUG Flag:** Made the `DEBUG` environment variable case-insensitive — now accepts `true`, `TRUE`, `1`, `yes`, `YES`.
+* **Documentation Typo:** Fixed incorrect `chown 1000:1000` → `chown 100:101` in bridge migration troubleshooting guide.
+
+### 🛡️ Security
+* **Version Deprecation:** Deprecated and removed all versions prior to v1.1.5 from registries due to CVE-2025-15467 (OpenSSL, CVSS 9.8). Added deprecation notice to README and SECURITY.md.
+
+### 📚 Documentation
+* Added bind mount ownership troubleshooting section to README.
+* Updated all version references across 20+ files to v1.1.6.
+* Rewrote PR template as a clean reusable form.
+* Updated CHANGELOG and SECURITY lifecycle tables.
+
+### ⚙️ Changed
+* Updated all Cosmos Cloud and Docker Compose template versions to 1.1.6.
+
+---
+
 ## [1.1.5] - 2026-01-31
 
 ### 🛡️ Security Fixes
@@ -434,7 +455,7 @@ BREAKING CHANGES: None
 ## 📊 Release Information
 
 * **🎉 First Release:** v1.0.0 (November 1, 2025)
-* **📦 Current Stable:** v1.1.2 (November 18, 2025)
+* **📦 Current Stable:** v1.1.6 (February 8, 2026)
 * **🔗 Latest Release:** [GitHub Releases](https://github.com/r3bo0tbx1/tor-guard-relay/releases/latest)
 * **🐳 Docker Images:**
 
@@ -447,15 +468,15 @@ BREAKING CHANGES: None
 
 | Version   | Status                | Support Level                               |
 | --------- | --------------------- | ------------------------------------------- |
-| **1.1.5** | 🟢 🛡️ **Active**     | Full support (current stable)               |
-| **1.1.4** | 🟡 🔧 **Maintenance** | Security + critical fixes only              |
-| **1.1.3** | 🟠 ⚠️ **Legacy**      | Security patches only – upgrade recommended |
-| **< 1.1.2** | 🔴 ❌ **EOL**          | No support – upgrade immediately            |
+| **1.1.6** | 🟢 🛡️ **Active**     | Full support (current stable)               |
+| **1.1.5** | 🟡 🔧 **Maintenance** | Security + critical fixes only              |
+| **< 1.1.5** | 🔴 ❌ **Deprecated**   | Removed - contains CVE-2025-15467 (OpenSSL CVSS 9.8). Upgrade immediately. |
 
 ---
 
 ## 🔗 Release Links
 
+[1.1.6]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.1.6
 [1.1.5]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.1.5
 [1.1.4]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.1.4
 [1.1.3]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.1.3
@@ -478,7 +499,6 @@ BREAKING CHANGES: None
 ## 🙏 Contributors
 
 Thank you to all contributors who have helped make this project better!
-See [CONTRIBUTORS.md](CONTRIBUTORS.md) for a complete list.
 
 ---
 

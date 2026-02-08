@@ -372,8 +372,8 @@ rm -f /tmp/relay-test.conf /tmp/bridge-test.conf
 
 - **[Contributing Guide](../CONTRIBUTING.md)** - How to contribute code
 - **[Deployment Guide](DEPLOYMENT.md)** - Production deployment methods
-- **[Migration Guide](../MIGRATION-V1.1.X.md)** - Upgrading between versions
-- **[Security Audit Report](../SECURITY-AUDIT-REPORT.md)** - Security fixes
+- **[Migration Guide](MIGRATION-V1.1.X.md)** - Upgrading between versions
+- **[Security Policy](../SECURITY.md)** - Security information
 
 ---
 

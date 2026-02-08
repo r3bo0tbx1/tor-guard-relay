@@ -58,7 +58,7 @@
         "cosmos-icon": "https://raw.githubusercontent.com/r3bo0tbx1/tor-guard-relay/refs/heads/main/src/exit.png",
         "cosmos-auto-update": "true",
         "cosmos-force-network-secured": "false",
-        "cosmos-version": "1.1.4"
+        "cosmos-version": "1.1.6"
       }
     }
   },

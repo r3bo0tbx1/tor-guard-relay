@@ -190,7 +190,7 @@ Both work identically, choose based on your preference or migration needs.
 
 ### Q: Why does TOR_RELAY_MODE say "guard" in logs when I set PT_PORT?
 
-**A:** This shouldn't happen anymore (v1.1.1+). The entrypoint auto-detects bridge mode when `PT_PORT` is set (lines 29-31):
+**A:** This shouldn't happen anymore (fixed since v1.1.1). The entrypoint auto-detects bridge mode when `PT_PORT` is set (lines 29-31):
 
 ```sh
 if [ -n "${PT_PORT:-}" ] && [ "${TOR_RELAY_MODE:-guard}" = "guard" ]; then
@@ -199,7 +199,7 @@ fi
 ```
 
 If you see "guard" mode in bridge deployment:
-1. Verify you're using v1.1.1+ image: `docker exec <container> cat /build-info.txt`
+1. Verify you're using the latest image: `docker exec <container> cat /build-info.txt`
 2. Check container is actually running the new image: `docker inspect <container> --format='{{.Image}}'`
 3. Recreate container (don't just restart): `docker rm -f <container> && docker run ...`
 
@@ -213,14 +213,14 @@ We use `{}` in templates (simpler), but both work the same.
 
 ### Q: OBFS4V_* variables are being skipped with "dangerous characters" error?
 
-**A:** This was a bug in v1.1.0 and earlier (busybox grep regex issue). **Fixed in v1.1.1+**.
+**A:** This was a bug in v1.1.0 and earlier (busybox grep regex issue). **Fixed since v1.1.1**.
 
 The entrypoint now properly validates values:
 - Rejects actual newlines (not escaped \n)
 - Rejects null bytes and control characters
 - Allows spaces (e.g., "1024 MB")
 
-If you still see this error after updating to v1.1.1:
+If you still see this error after updating to the latest version:
 1. Check image version: `docker exec <container> cat /build-info.txt`
 2. Verify value doesn't have real newlines (JSON array formatting shouldn't cause this)
 3. Try using a mounted config file for complex options
@@ -270,7 +270,6 @@ If you still see this error after updating to v1.1.1:
 - **Example config files:** `examples/relay-*.conf`
 - **Monitoring:** `docs/MONITORING.md`
 - **Legal considerations (exit relays):** `docs/LEGAL.md`
-- **Project instructions:** `CLAUDE.md`
 
 ## 🆘 Troubleshooting
 
@@ -280,12 +279,12 @@ If you still see this error after updating to v1.1.1:
 - Ensure volume permissions are correct
 
 ### Bridge mode detected as guard
-- Update to v1.1.1+
+- Update to latest version
 - Recreate container (don't restart old one)
 - Use `PT_PORT` for auto-detection or explicitly set `TOR_RELAY_MODE=bridge`
 
 ### OBFS4V_* variables ignored
-- Update to v1.1.1+ (fixed parsing bug)
+- Update to latest version (fixed in v1.1.1)
 - Enable: `OBFS4_ENABLE_ADDITIONAL_VARIABLES=1`
 - Check whitelist in `docker-entrypoint.sh` line 318-332
 - Use mounted config for non-whitelisted options
@@ -297,6 +296,6 @@ If you still see this error after updating to v1.1.1:
 
 ---
 
-**Version:** 1.1.4
-**Last Updated:** 2025-12-21
+**Version:** 1.1.6
+**Last Updated:** 2026-02-08
 **Maintainer:** rE-Bo0t.bx1 <r3bo0tbx1@brokenbotnet.com>

@@ -14,10 +14,9 @@ We actively support the following versions with security updates:
 
 | Version   | Status                | Support Level                               |
 | --------- | --------------------- | ------------------------------------------- |
-| **1.1.5** | 🟢 🛡️ **Active**     | Full support (current stable)               |
-| **1.1.4** | 🟡 🔧 **Maintenance** | Security + critical fixes only              |
-| **1.1.3** | 🟠 ⚠️ **Legacy**      | Security patches only – upgrade recommended |
-| **< 1.1.1** | 🔴 ❌ **EOL**          | No support – upgrade immediately            |
+| **1.1.6** | 🟢 🛡️ **Active**     | Full support (current stable)               |
+| **1.1.5** | 🟡 🔧 **Maintenance** | Security + critical fixes only              |
+| **< 1.1.5** | 🔴 ❌ **Deprecated**   | Removed — contains CVE-2025-15467 (OpenSSL CVSS 9.8). Upgrade immediately. |
 
 ---
 
@@ -25,7 +24,7 @@ We actively support the following versions with security updates:
 
 ### Ultra-Minimal Port Exposure
 
-**> v1.1.1 follows an ultra-minimal security architecture:**
+**This project follows an ultra-minimal security architecture:**
 
 - ✅ **NO monitoring HTTP endpoints** - Removed for maximum security
 - ✅ **NO exposed metrics ports** - All monitoring via `docker exec` only
@@ -61,7 +60,7 @@ PUBLIC PORTS:
 
 ### No Monitoring Ports
 
-**>=v1.1.1 has ZERO exposed monitoring services:**
+**ZERO exposed monitoring services:**
 
 - ❌ No metrics HTTP endpoints
 - ❌ No health check HTTP APIs
@@ -142,7 +141,7 @@ services:
 
 ### External Monitoring Access
 
-v1.1.1 uses external monitoring for maximum security and minimal image size:
+External monitoring is used for maximum security and minimal image size:
 
 #### Option 1: Docker Exec (Simplest)
 
@@ -383,7 +382,7 @@ docker stats tor-relay --no-stream
 
 ```dockerfile
 # Always specify explicit base version
-FROM alpine:3.22.2  # Pinned version for reproducibility
+FROM alpine:3.23.3  # Pinned version for reproducibility
 
 # Run as non-root user
 USER tor
@@ -486,7 +485,7 @@ chown tor:tor /var/lib/tor
 * ✅ Input validation for all ENV variables
 * ✅ OBFS4V_* whitelist to prevent command injection
 
-### Multi-Mode Support (>=v1.1.1)
+### Multi-Mode Support
 
 The container supports three relay modes:
 
@@ -587,7 +586,7 @@ If you receive abuse complaints:
 #!/bin/bash
 # security-audit.sh - Quick security audit for Tor Guard Relay
 
-echo "🔒 Tor Guard Relay v1.1.1 Security Audit"
+echo "🔒 Tor Guard Relay Security Audit"
 echo "==========================================="
 
 # Check container is using host networking
@@ -659,4 +658,4 @@ Security researchers who responsibly disclose vulnerabilities will be listed her
 
 ---
 
-*Last Updated: 2026-01-31 | Version: 1.1.5*
+*Last Updated: 2026-02-08 | Version: 1.1.6*

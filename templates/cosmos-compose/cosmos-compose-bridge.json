@@ -54,7 +54,7 @@
         "cosmos-description": "🧅 Tor obfs4 Bridge - ENV-based config",
         "cosmos-icon": "https://raw.githubusercontent.com/r3bo0tbx1/tor-guard-relay/refs/heads/main/src/obfs4.png",
         "cosmos-force-network-secured": "false",
-        "cosmos-version": "1.1.4"
+        "cosmos-version": "1.1.6"
       }
     }
   },

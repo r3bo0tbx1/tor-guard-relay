@@ -15,7 +15,6 @@ BRIDGE_CONTAINER="obfs4-bridge"
 GUARD_CONTAINER="TorGuardRelay"
 GUARD_TORRC_PATH="/home/akira/onion/relay.conf"
 
-# Test counters
 TESTS_PASSED=0
 TESTS_FAILED=0
 TESTS_WARNED=0
@@ -90,10 +89,8 @@ pre_migration_checks() {
   log "⚠️  DO NOT proceed to migration until all checks pass!"
   log ""
 
-  # Initialize state file
   > "$STATE_FILE"
 
-  # Check 1: Docker volumes exist
   log "📦 Checking Docker volumes..."
   if docker volume ls | grep -q "obfs4-data"; then
     success "Volume 'obfs4-data' exists"
@@ -119,7 +116,6 @@ pre_migration_checks() {
     return 1
   fi
 
-  # Check 2: Containers exist and running
   log ""
   log "🐳 Checking containers..."
   if docker ps -a --format '{{.Names}}' | grep -q "^${BRIDGE_CONTAINER}$"; then
@@ -150,7 +146,6 @@ pre_migration_checks() {
     save_state "GUARD_EXISTS" "no"
   fi
 
-  # Check 3: Save current fingerprints
   log ""
   log "🔑 Saving current fingerprints..."
   if docker ps --format '{{.Names}}' | grep -q "^${BRIDGE_CONTAINER}$"; then
@@ -179,11 +174,10 @@ pre_migration_checks() {
     warn "Cannot read guard fingerprint (container not running)"
   fi
 
-  # Check 4: Verify tor keys exist in volumes
   log ""
   log "🔐 Checking for Tor identity keys..."
-  if docker run --rm -v obfs4-data:/data alpine:3.22.2 test -d /data/keys; then
-    KEY_COUNT=$(docker run --rm -v obfs4-data:/data alpine:3.22.2 ls -1 /data/keys 2>/dev/null | wc -l)
+  if docker run --rm -v obfs4-data:/data alpine:3.23.3 test -d /data/keys; then
+    KEY_COUNT=$(docker run --rm -v obfs4-data:/data alpine:3.23.3 ls -1 /data/keys 2>/dev/null | wc -l)
     if [[ "$KEY_COUNT" -gt 0 ]]; then
       success "Bridge has $KEY_COUNT key files in /var/lib/tor/keys/"
       save_state "BRIDGE_KEYS_COUNT" "$KEY_COUNT"
@@ -194,8 +188,8 @@ pre_migration_checks() {
     warn "Bridge keys directory does not exist yet"
   fi
 
-  if docker run --rm -v tor-guard-data:/data alpine:3.22.2 test -d /data/keys; then
-    KEY_COUNT=$(docker run --rm -v tor-guard-data:/data alpine:3.22.2 ls -1 /data/keys 2>/dev/null | wc -l)
+  if docker run --rm -v tor-guard-data:/data alpine:3.23.3 test -d /data/keys; then
+    KEY_COUNT=$(docker run --rm -v tor-guard-data:/data alpine:3.23.3 ls -1 /data/keys 2>/dev/null | wc -l)
     if [[ "$KEY_COUNT" -gt 0 ]]; then
       success "Guard has $KEY_COUNT key files in /var/lib/tor/keys/"
       save_state "GUARD_KEYS_COUNT" "$KEY_COUNT"
@@ -206,13 +200,11 @@ pre_migration_checks() {
     warn "Guard keys directory does not exist yet"
   fi
 
-  # Check 5: Verify torrc file for guard relay
   log ""
   log "📄 Checking guard relay torrc file..."
   if [[ -f "$GUARD_TORRC_PATH" ]]; then
     success "Guard torrc found at: $GUARD_TORRC_PATH"
 
-    # Verify critical settings
     if grep -q "^ExitRelay 0" "$GUARD_TORRC_PATH"; then
       success "  ✓ ExitRelay 0 confirmed"
     else
@@ -225,7 +217,6 @@ pre_migration_checks() {
       warn "  ! ExitPolicy reject *:* not found in torrc"
     fi
 
-    # Save torrc backup
     cp "$GUARD_TORRC_PATH" "${BACKUP_DIR}/relay.conf.backup"
     success "Torrc backed up to: ${BACKUP_DIR}/relay.conf.backup"
   else
@@ -244,12 +235,11 @@ backup_all_data() {
 
   TIMESTAMP=$(date +%Y%m%d-%H%M%S)
 
-  # Backup bridge volume
   log "📦 Backing up obfs4-data..."
   docker run --rm \
     -v obfs4-data:/data \
     -v "${BACKUP_DIR}:/backup" \
-    alpine:3.22.2 \
+    alpine:3.23.3 \
     tar czf "/backup/obfs4-data-backup-${TIMESTAMP}.tar.gz" -C /data . 2>&1 | grep -v "tar:" || true
 
   if [[ -f "${BACKUP_DIR}/obfs4-data-backup-${TIMESTAMP}.tar.gz" ]]; then
@@ -261,13 +251,12 @@ backup_all_data() {
     return 1
   fi
 
-  # Backup guard data volume
   log ""
   log "📦 Backing up tor-guard-data..."
   docker run --rm \
     -v tor-guard-data:/data \
     -v "${BACKUP_DIR}:/backup" \
-    alpine:3.22.2 \
+    alpine:3.23.3 \
     tar czf "/backup/tor-guard-data-backup-${TIMESTAMP}.tar.gz" -C /data . 2>&1 | grep -v "tar:" || true
 
   if [[ -f "${BACKUP_DIR}/tor-guard-data-backup-${TIMESTAMP}.tar.gz" ]]; then
@@ -279,13 +268,12 @@ backup_all_data() {
     return 1
   fi
 
-  # Backup guard logs volume
   log ""
   log "📦 Backing up tor-guard-logs..."
   docker run --rm \
     -v tor-guard-logs:/data \
     -v "${BACKUP_DIR}:/backup" \
-    alpine:3.22.2 \
+    alpine:3.23.3 \
     tar czf "/backup/tor-guard-logs-backup-${TIMESTAMP}.tar.gz" -C /data . 2>&1 | grep -v "tar:" || true
 
   if [[ -f "${BACKUP_DIR}/tor-guard-logs-backup-${TIMESTAMP}.tar.gz" ]]; then
@@ -297,7 +285,6 @@ backup_all_data() {
     return 1
   fi
 
-  # Backup container configs
   log ""
   log "🐳 Backing up container configurations..."
   docker inspect "$BRIDGE_CONTAINER" > "${BACKUP_DIR}/bridge-config-${TIMESTAMP}.json" 2>/dev/null || warn "Could not backup bridge container config"
@@ -324,18 +311,15 @@ post_migration_checks() {
   log "Validating migrated containers and data integrity..."
   log ""
 
-  # Wait for containers to initialize
   log "⏳ Waiting 15 seconds for containers to initialize..."
   sleep 15
 
-  # Check 1: Volumes still exist
   log ""
   log "📦 Verifying volumes preserved..."
   docker volume ls | grep -q "obfs4-data" && success "Volume 'obfs4-data' preserved" || fail "Volume 'obfs4-data' MISSING"
   docker volume ls | grep -q "tor-guard-data" && success "Volume 'tor-guard-data' preserved" || fail "Volume 'tor-guard-data' MISSING"
   docker volume ls | grep -q "tor-guard-logs" && success "Volume 'tor-guard-logs' preserved" || fail "Volume 'tor-guard-logs' MISSING"
 
-  # Check 2: Containers running
   log ""
   log "🐳 Checking container status..."
   if docker ps --format '{{.Names}}' | grep -q "^${BRIDGE_CONTAINER}$"; then
@@ -352,7 +336,6 @@ post_migration_checks() {
     docker ps -a | grep "$GUARD_CONTAINER" || warn "Container not found at all"
   fi
 
-  # Check 3: Verify fingerprints match
   log ""
   log "🔑 Verifying fingerprints preserved..."
   SAVED_BRIDGE_FP=$(load_state "BRIDGE_FINGERPRINT")
@@ -392,12 +375,11 @@ post_migration_checks() {
     fi
   fi
 
-  # Check 4: Verify key counts match
   log ""
   log "🔐 Verifying Tor keys preserved..."
   SAVED_BRIDGE_KEYS=$(load_state "BRIDGE_KEYS_COUNT")
   if [[ -n "$SAVED_BRIDGE_KEYS" ]] && [[ "$SAVED_BRIDGE_KEYS" != "0" ]]; then
-    CURRENT_BRIDGE_KEYS=$(docker run --rm -v obfs4-data:/data alpine:3.22.2 ls -1 /data/keys 2>/dev/null | wc -l)
+    CURRENT_BRIDGE_KEYS=$(docker run --rm -v obfs4-data:/data alpine:3.23.3 ls -1 /data/keys 2>/dev/null | wc -l)
     if [[ "$CURRENT_BRIDGE_KEYS" -ge "$SAVED_BRIDGE_KEYS" ]]; then
       success "Bridge has $CURRENT_BRIDGE_KEYS key files (expected >= $SAVED_BRIDGE_KEYS)"
     else
@@ -409,7 +391,7 @@ post_migration_checks() {
 
   SAVED_GUARD_KEYS=$(load_state "GUARD_KEYS_COUNT")
   if [[ -n "$SAVED_GUARD_KEYS" ]] && [[ "$SAVED_GUARD_KEYS" != "0" ]]; then
-    CURRENT_GUARD_KEYS=$(docker run --rm -v tor-guard-data:/data alpine:3.22.2 ls -1 /data/keys 2>/dev/null | wc -l)
+    CURRENT_GUARD_KEYS=$(docker run --rm -v tor-guard-data:/data alpine:3.23.3 ls -1 /data/keys 2>/dev/null | wc -l)
     if [[ "$CURRENT_GUARD_KEYS" -ge "$SAVED_GUARD_KEYS" ]]; then
       success "Guard has $CURRENT_GUARD_KEYS key files (expected >= $SAVED_GUARD_KEYS)"
     else
@@ -419,7 +401,6 @@ post_migration_checks() {
     warn "No saved guard key count to compare"
   fi
 
-  # Check 5: Verify bridge configuration
   log ""
   log "🌉 Validating bridge configuration..."
   BRIDGE_TORRC=$(docker exec "$BRIDGE_CONTAINER" cat /etc/tor/torrc 2>/dev/null || echo "")
@@ -432,7 +413,6 @@ post_migration_checks() {
     fail "Could not read bridge torrc"
   fi
 
-  # Check 6: Verify guard relay configuration
   log ""
   log "🛡️  Validating guard relay configuration..."
   GUARD_TORRC=$(docker exec "$GUARD_CONTAINER" cat /etc/tor/torrc 2>/dev/null || echo "")
@@ -446,7 +426,6 @@ post_migration_checks() {
     fail "Could not read guard torrc"
   fi
 
-  # Check 7: Verify ports are listening
   log ""
   log "🔌 Checking network ports..."
   if ss -tulnp 2>/dev/null | grep -q ":9001 "; then
@@ -467,7 +446,6 @@ post_migration_checks() {
     warn "Guard DirPort 9030 not detected (may still be bootstrapping)"
   fi
 
-  # Check 8: Check logs for errors
   log ""
   log "📋 Checking container logs for errors..."
   BRIDGE_ERRORS=$(docker logs "$BRIDGE_CONTAINER" --since 5m 2>&1 | grep -i "error\|critical\|failed" | grep -v "Permission denied" | wc -l)
@@ -486,7 +464,6 @@ post_migration_checks() {
     info "Run: docker logs $GUARD_CONTAINER --since 5m | grep -i error"
   fi
 
-  # Check 9: Bootstrap status
   log ""
   log "🔄 Checking Tor bootstrap status..."
   BRIDGE_BOOTSTRAP=$(docker logs "$BRIDGE_CONTAINER" --since 10m 2>&1 | grep -i "Bootstrapped" | tail -n1 || echo "")
@@ -508,8 +485,6 @@ post_migration_checks() {
   else
     warn "Guard: No bootstrap status found yet"
   fi
-
-  # Check 10: Config source verification
   log ""
   log "📄 Verifying configuration source..."
   if docker logs "$BRIDGE_CONTAINER" --since 10m 2>&1 | grep -q "Configuration generated from ENV vars"; then
@@ -579,7 +554,6 @@ rollback_check() {
   log "Checking if you can safely rollback to v1.1.0..."
   log ""
 
-  # Check backups exist
   log "📦 Checking backups..."
   BRIDGE_BACKUP=$(load_state "BRIDGE_BACKUP_FILE")
   GUARD_DATA_BACKUP=$(load_state "GUARD_DATA_BACKUP_FILE")
@@ -609,7 +583,6 @@ rollback_check() {
     warn "Guard torrc backup not found"
   fi
 
-  # Show rollback commands
   log ""
   log "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
   log "🔙 ROLLBACK COMMANDS"
@@ -622,15 +595,15 @@ rollback_check() {
   log "sudo docker rm $BRIDGE_CONTAINER $GUARD_CONTAINER"
   log ""
   log "# 2. Restore bridge volume"
-  log "sudo docker run --rm -v obfs4-data:/data -v ${BACKUP_DIR}:/backup alpine:3.22.2 \\"
+  log "sudo docker run --rm -v obfs4-data:/data -v ${BACKUP_DIR}:/backup alpine:3.23.3 \\"
   log "  sh -c 'rm -rf /data/* && tar xzf /backup/${BRIDGE_BACKUP} -C /data'"
   log ""
   log "# 3. Restore guard data volume"
-  log "sudo docker run --rm -v tor-guard-data:/data -v ${BACKUP_DIR}:/backup alpine:3.22.2 \\"
+  log "sudo docker run --rm -v tor-guard-data:/data -v ${BACKUP_DIR}:/backup alpine:3.23.3 \\"
   log "  sh -c 'rm -rf /data/* && tar xzf /backup/${GUARD_DATA_BACKUP} -C /data'"
   log ""
   log "# 4. Restore guard logs volume"
-  log "sudo docker run --rm -v tor-guard-logs:/data -v ${BACKUP_DIR}:/backup alpine:3.22.2 \\"
+  log "sudo docker run --rm -v tor-guard-logs:/data -v ${BACKUP_DIR}:/backup alpine:3.23.3 \\"
   log "  sh -c 'rm -rf /data/* && tar xzf /backup/${GUARD_LOGS_BACKUP} -C /data'"
   log ""
   log "# 5. Re-import old v1.1.0 Cosmos JSON configs"
@@ -647,7 +620,7 @@ main() {
 
   log ""
   log "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-  log "🧅 Tor Relay Migration Validator v1.1.1"
+  log "🧅 Tor Relay Migration Validator v1.1.6"
   log "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
   log ""
 
@@ -668,7 +641,7 @@ main() {
       log "You can now proceed with migration:"
       log "  1. Stop containers: sudo docker stop $BRIDGE_CONTAINER $GUARD_CONTAINER"
       log "  2. Fix permissions (see migration guide)"
-      log "  3. Pull new image: sudo docker pull r3bo0tbx1/onion-relay:1.1.1"
+      log "  3. Pull new image: sudo docker pull r3bo0tbx1/onion-relay:latest"
       log "  4. Import new Cosmos JSON configs"
       log "  5. Run post-migration validation: sudo ./migration-validator.sh post-migration"
       log ""
@@ -696,5 +669,4 @@ main() {
   esac
 }
 
-# Run main function
 main "$@"
