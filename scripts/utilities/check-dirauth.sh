@@ -10,7 +10,7 @@ NC='\033[0m'
 BOLD='\033[1m'
 get_country_colors() {
     case "$1" in
-        US) printf "${RED}U${BLUE}S${NC}" ;;
+        US) printf "${BLUE}U${RED}S${NC}" ;;
         DE) printf "${RED}D${YELLOW}E${NC}" ;;
         NL) printf "${RED}N${BLUE}L${NC}" ;;
         AT) printf "${RED}A${NC}T" ;;
