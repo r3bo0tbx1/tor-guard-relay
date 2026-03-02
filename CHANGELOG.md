@@ -16,11 +16,59 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.7] - 2026-03-02
+
+### 🎉 Happy Family Support (Tor 0.4.9+)
+
+This release introduces full support for Tor's new **Happy Family** system (`FamilyId`), which replaces the legacy `MyFamily` fingerprint-exchange workflow. Relay operators can now link all their relays into a family using a single cryptographic key instead of manually listing every fingerprint on every relay.
+
+### ✨ Features
+
+- **New Tool: `gen-family`**: Generate or view Tor Happy Family keys inside the container. Supports `gen-family <Name>` (generate), `gen-family --show` (view existing), `gen-family --force` (overwrite without backup), and `gen-family --help`.
+- **`FamilyId` ENV Support**: New `TOR_FAMILY_ID` environment variable to set the `FamilyId` directive in generated torrc (guard/middle/exit modes).
+- **`MyFamily` ENV Support**: New `TOR_MY_FAMILY` environment variable (comma-separated fingerprints) for backward compatibility with the legacy `MyFamily` directive.
+- **Family Key Detection**: Phase 2 of the entrypoint now scans `/var/lib/tor/keys/*.secret_family_key` and logs detected keys at startup.
+- **Import Workflow**: Operators can import existing family keys from bare-metal Tor installations via `docker cp` + ownership fix (`chown 100:101`).
+
+### ⚙️ Changed
+
+- **Entrypoint** (`docker-entrypoint.sh`): Phase 2 now detects family keys; config generation for guard/middle and exit modes appends `FamilyId` and `MyFamily` lines when the corresponding ENV vars are set.
+- **Dockerfiles** (`Dockerfile`, `Dockerfile.edge`): Added `COPY` and `chmod +x` for the new `gen-family` tool.
+- **`status` Tool** (`tools/status`): Now displays family key count and Happy Family configuration status after the fingerprint section.
+- **Tool Count**: Increased from 5 to **6** diagnostic tools (status, health, fingerprint, bridge-line, gen-auth, **gen-family**).
+
+### 📚 Documentation
+
+- **README.md**: Added comprehensive "Happy Family (Tor 0.4.9+)" section with Option A (generate new key) and Option B (import existing key), persistence safety table, updated tools table (6 tools), updated features list, added gen-family to flowchart diagram, and added troubleshooting entries.
+- **docs/ARCHITECTURE.md**: Updated all mermaid diagrams - container lifecycle, Phase 2, config generation (guard + exit), diagnostic tools subgraph, directory structure. Updated tool characteristics table, references table, and bumped doc version to 1.1.0.
+- **docs/TOOLS.md**: Added full `gen-family` documentation section with usage, output examples, exit codes, and "Set Up Happy Family" workflow. Updated count from 5 → 6 tools and FAQ.
+- **docs/DEPLOYMENT.md**: Updated diagnostic tool count references (5 → 6) across 3 locations.
+- **docs/MIGRATION.md**: Added `gen-family --show` to post-migration diagnostic checklist.
+- **docs/MIGRATION-V1.1.X.md**: Added `gen-family` to diagnostic tool verification checklist.
+- **Example Configs**: Added commented `FamilyId` and `MyFamily` placeholders to `relay-guard.conf`, `relay-exit.conf`, and `relay-bridge.conf`.
+- **Docker Compose Templates**: Added `TOR_FAMILY_ID` and `TOR_MY_FAMILY` env vars to guard, exit, and multi-relay templates with setup instructions (Option A/B).
+- **Directory Authority Voting**: Added explanation of how Tor's 9 directory authorities vote on relay flags (Guard, Stable, Fast, HSDir) and that at least 5 of 9 must agree in consensus, across README, FAQ, DEPLOYMENT, and MULTI-MODE docs.
+- **CIISS v2 ContactInfo**: Added documentation for the [ContactInfo Information Sharing Specification v2](https://nusenu.github.io/ContactInfo-Information-Sharing-Specification/) with field reference table, generator link, and `proof:uri-rsa` verification explanation. Updated all `TOR_CONTACT_INFO` examples to use CIISS v2 format.
+
+### 🔁 CI/CD
+
+- **validate.yml**: Added `gen-family` to shell lint, ShellCheck, tool extension verification (threshold 5 → 6), integration tool checks, help-flags test, file-permissions test, and tool-executability test. Updated build summary.
+- **scripts/utilities/security-validation-tests.sh**: Added `gen-family` to tool security checks and syntax validation loops.
+- **scripts/utilities/quick-test.sh**: Added Test 4.5 for `gen-family --help` executability. Updated summary line.
+
+### 🛡️ Security
+
+- **SECURITY.md**: Updated supported versions table (1.1.7 active, 1.1.6 maintenance). Added `gen-family` to diagnostic tools list.
+
+> **BREAKING CHANGES:** None. The `TOR_FAMILY_ID` and `TOR_MY_FAMILY` environment variables are entirely optional. Existing deployments continue to work without changes.
+
+---
+
 ## [1.1.6] - 2026-02-08
 
 ### 🐛 Fixed
 * **Bind Mount Ownership:** Added startup detection for bind-mounted data/keys directories with incorrect ownership. The entrypoint now warns users with actionable `chown` commands when volumes are not writable by the `tor` user (UID 100, GID 101).
-* **DEBUG Flag:** Made the `DEBUG` environment variable case-insensitive — now accepts `true`, `TRUE`, `1`, `yes`, `YES`.
+* **DEBUG Flag:** Made the `DEBUG` environment variable case-insensitive - now accepts `true`, `TRUE`, `1`, `yes`, `YES`.
 * **Documentation Typo:** Fixed incorrect `chown 1000:1000` → `chown 100:101` in bridge migration troubleshooting guide.
 
 ### 🛡️ Security
@@ -455,7 +503,7 @@ BREAKING CHANGES: None
 ## 📊 Release Information
 
 * **🎉 First Release:** v1.0.0 (November 1, 2025)
-* **📦 Current Stable:** v1.1.6 (February 8, 2026)
+* **📦 Current Stable:** v1.1.7 (March 2, 2026)
 * **🔗 Latest Release:** [GitHub Releases](https://github.com/r3bo0tbx1/tor-guard-relay/releases/latest)
 * **🐳 Docker Images:**
 
@@ -468,14 +516,15 @@ BREAKING CHANGES: None
 
 | Version   | Status                | Support Level                               |
 | --------- | --------------------- | ------------------------------------------- |
-| **1.1.6** | 🟢 🛡️ **Active**     | Full support (current stable)               |
-| **1.1.5** | 🟡 🔧 **Maintenance** | Security + critical fixes only              |
+| **1.1.7** | 🟢 🛡️ **Active**     | Full support (current stable)               |
+| **1.1.6** | 🟡 🔧 **Maintenance** | Security + critical fixes only              |
 | **< 1.1.5** | 🔴 ❌ **Deprecated**   | Removed - contains CVE-2025-15467 (OpenSSL CVSS 9.8). Upgrade immediately. |
 
 ---
 
 ## 🔗 Release Links
 
+[1.1.7]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.1.7
 [1.1.6]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.1.6
 [1.1.5]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.1.5
 [1.1.4]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.1.4

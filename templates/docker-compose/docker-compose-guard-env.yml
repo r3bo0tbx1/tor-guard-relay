@@ -9,11 +9,15 @@ services:
     environment:
       TOR_RELAY_MODE: guard
       TOR_NICKNAME: MyGuardRelay
-      TOR_CONTACT_INFO: "your-email@example.com <0xYOUR_PGP_KEY>"
+      TOR_CONTACT_INFO: "email:your-email[]example.com url:https://example.com proof:uri-rsa ciissversion:2"
       TOR_ORPORT: 9001
       TOR_DIRPORT: 0
       TOR_BANDWIDTH_RATE: "50 MBytes"
       TOR_BANDWIDTH_BURST: "100 MBytes"
+      # Happy Family (Tor 0.4.9+) - generate with: docker exec tor-guard-relay gen-family MyRelays
+      # TOR_FAMILY_ID: "YOUR_FAMILY_ID_HERE"
+      # MyFamily (legacy, comma-separated fingerprints - keep during transition)
+      # TOR_MY_FAMILY: "FINGERPRINT1,FINGERPRINT2"
     volumes:
       - tor-guard-data:/var/lib/tor
       - tor-guard-logs:/var/log/tor

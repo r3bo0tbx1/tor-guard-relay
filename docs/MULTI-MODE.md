@@ -49,7 +49,7 @@ The Tor Guard Relay container now supports **three relay modes**:
 **Best for:**
 - Operators who want to contribute without legal complexity
 - Stable, high-bandwidth connections
-- Long-term operation (8+ days to earn Guard flag)
+- Long-term operation (8+ days to earn Guard flag - requires at least 5 of 9 directory authorities to vote in consensus)
 
 **Requirements:**
 - Public IP with ports 9001, 9030 accessible
@@ -491,7 +491,7 @@ nc -zv <your-ip> 9001
 **Normal for:**
 - New relays (2-8 weeks to build reputation)
 - Bridges (intentionally low visibility)
-- Guards without Guard flag (need 8+ days uptime)
+- Guards without Guard flag (need 8+ days uptime - at least 5 of 9 directory authorities must agree in consensus)
 
 **Check:**
 1. Verify relay is reachable: `docker exec <container> status`

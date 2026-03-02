@@ -60,6 +60,7 @@ COPY tools/health /usr/local/bin/health
 COPY tools/fingerprint /usr/local/bin/fingerprint
 COPY tools/bridge-line /usr/local/bin/bridge-line
 COPY tools/gen-auth /usr/local/bin/gen-auth
+COPY tools/gen-family /usr/local/bin/gen-family
 
 RUN set -eux \
  && chmod +x /usr/local/bin/docker-entrypoint.sh \
@@ -69,6 +70,7 @@ RUN set -eux \
               /usr/local/bin/fingerprint \
               /usr/local/bin/bridge-line \
               /usr/local/bin/gen-auth \
+              /usr/local/bin/gen-family \
  && echo "🧩 Registered diagnostic tools:" \
  && ls -lh /usr/local/bin/status /usr/local/bin/health /usr/local/bin/fingerprint /usr/local/bin/bridge-line
 

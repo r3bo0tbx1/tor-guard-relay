@@ -58,12 +58,14 @@ flowchart TD
     DiagTools -->|fingerprint| FingerprintTool[🆔 tools/fingerprint]
     DiagTools -->|bridge-line| BridgeTool[🌉 tools/bridge-line]
     DiagTools -->|gen-auth| GenAuthTool[🔑 tools/gen-auth]
+    DiagTools -->|gen-family| GenFamilyTool[👨‍👩‍👧 tools/gen-family]
 
     StatusTool --> Running
     HealthTool --> Running
     FingerprintTool --> Running
     BridgeTool --> Running
     GenAuthTool --> Running
+    GenFamilyTool --> Running
 
     Trap --> StopTail[🧽 Kill tail -F PID]
     StopTail --> StopTor[📨 Send SIGTERM to Tor]
@@ -94,6 +96,7 @@ flowchart TD
 
     subgraph P2["🔐 Phase 2: Permission Hardening"]
         P2_1[🔒 chmod 700 data dir] --> P2_2[📁 chmod 755 log dir]
+        P2_2 --> P2_3[👨‍👩‍👧 Detect family keys]
     end
 
     subgraph P3["⚙️ Phase 3: Configuration Setup"]
@@ -136,7 +139,7 @@ flowchart TD
 | Phase | Purpose | Key Operations | Error Handling |
 |-------|---------|----------------|----------------|
 | **1** | Directory Setup | `mkdir -p` data/log/run, show disk space | Fail if mkdir fails |
-| **2** | Permissions | `chmod 700` data, `chmod 755` log | Warn on failure (read-only mount) |
+| **2** | Permissions | `chmod 700` data, `chmod 755` log, detect family keys | Warn on failure (read-only mount) |
 | **3** | Configuration | Priority: mounted > ENV > error | Die if no config source |
 | **4** | Validation | `tor --verify-config` syntax check | Die if invalid config |
 | **5** | Build Info | Show version/arch/mode/source | Warn if missing |
@@ -351,8 +354,14 @@ flowchart TD
         G4 -->|Not set| G6
         G5 --> G6{TOR_BANDWIDTH_BURST?}
         G6 -->|Set| G7[Add RelayBandwidthBurst]
-        G6 -->|Not set| GuardDone
-        G7 --> GuardDone([Guard Config Done])
+        G6 -->|Not set| G8
+        G7 --> G8{TOR_FAMILY_ID?}
+        G8 -->|Set| G9[Add FamilyId]
+        G8 -->|Not set| G10
+        G9 --> G10{TOR_MY_FAMILY?}
+        G10 -->|Set| G11[Add MyFamily entries]
+        G10 -->|Not set| GuardDone
+        G11 --> GuardDone([🛡️ Guard Config Done])
     end
 
     subgraph ExitConfig["🚪 Exit Config (lines 260-273)"]
@@ -364,8 +373,14 @@ flowchart TD
         E5 -->|Not set| E7
         E6 --> E7{TOR_BANDWIDTH_BURST?}
         E7 -->|Set| E8[Add RelayBandwidthBurst]
-        E7 -->|Not set| ExitDone
-        E8 --> ExitDone([Exit Config Done])
+        E7 -->|Not set| E9
+        E8 --> E9{TOR_FAMILY_ID?}
+        E9 -->|Set| E10[Add FamilyId]
+        E9 -->|Not set| E11
+        E10 --> E11{TOR_MY_FAMILY?}
+        E11 -->|Set| E12[Add MyFamily entries]
+        E11 -->|Not set| ExitDone
+        E12 --> ExitDone([🚪 Exit Config Done])
     end
 
     subgraph BridgeConfig["🌉 Bridge Config (lines 276-343)"]
@@ -402,6 +417,7 @@ flowchart TD
 ```
 
 **Base Config Includes:** Nickname, ContactInfo, ORPort, SocksPort 0, DataDirectory, Logging
+**Family Config (guard/exit):** Optional FamilyId (Tor 0.4.9+) and MyFamily (legacy, comma-separated fingerprints via TOR_MY_FAMILY)
 
 **Code Reference:** `docker-entrypoint.sh` lines 222-350 (generate_config_from_env)
 
@@ -456,7 +472,7 @@ flowchart TD
     style Enable fill:#e3f2fd
 ```
 
-**Security Features (fixed in v1.1.1, improved through v1.1.6):**
+**Security Features (fixed in v1.1.1, improved through v1.1.7):**
 - **Newline detection:** `wc -l` instead of busybox-incompatible `grep -qE '[\x00\n\r]'`
 - **Control char detection:** `tr -d '[ -~]'` removes printable chars, leaves control chars
 - **Whitelist enforcement:** Only known-safe torrc options allowed
@@ -468,7 +484,7 @@ flowchart TD
 
 ## Diagnostic Tools
 
-Five busybox-only diagnostic tools provide observability:
+Six busybox-only diagnostic tools provide observability:
 
 ```mermaid
 flowchart TD
@@ -478,6 +494,7 @@ flowchart TD
     Choice -->|health| HealthFlow
     Choice -->|fingerprint| FingerprintFlow
     Choice -->|bridge-line| BridgeFlow
+    Choice -->|gen-family| FamilyFlow
 
     subgraph StatusFlow["📊 tools/status - Full Health Report"]
         S1[🔍 Check Tor process running] --> S2[📈 Read bootstrap %]
@@ -518,10 +535,25 @@ flowchart TD
     FingerprintFlow --> Output3([🟢 Fingerprint + URL])
     BridgeFlow --> Output4([🟢 Bridge line or error])
 
+    subgraph FamilyFlow["👨‍👩‍👧 tools/gen-family - Happy Family Management"]
+        FM1{Which action?}
+        FM1 -->|gen-family Name| FM2[🔑 Check Tor version]
+        FM2 --> FM3{Key already exists?}
+        FM3 -->|Yes| FM4[⚠️ Warn: key exists]
+        FM3 -->|No| FM5[🔐 tor --keygen-family Name]
+        FM5 --> FM6[📤 Output FamilyId + instructions]
+        FM1 -->|gen-family --show| FM7[🔍 Scan keys dir for .secret_family_key]
+        FM7 --> FM8[📝 Show FamilyId from torrc]
+        FM8 --> FM9[ℹ️ Show MyFamily status]
+    end
+
+    FamilyFlow --> Output5([🟢 Key + FamilyId or status])
+
     style Output1 fill:#b2fab4
     style Output2 fill:#b2fab4
     style Output3 fill:#b2fab4
     style Output4 fill:#b2fab4
+    style Output5 fill:#b2fab4
 ```
 
 **JSON Output Fields:** status, pid, uptime, bootstrap, reachable, errors, fingerprint, nickname
@@ -535,6 +567,7 @@ flowchart TD
 | **fingerprint** | Relay identity | Text + URL | busybox: cat, awk |
 | **bridge-line** | Bridge sharing | obfs4 bridge line | busybox: grep, sed, awk, wget |
 | **gen-auth** | Credential generation | Text (Pass + Hash) | busybox: head, tr, tor |
+| **gen-family** | Happy Family key mgmt | Text (Key + FamilyId) | busybox: tor --keygen-family, grep, basename |
 
 **All tools:**
 - Use `#!/bin/sh` (POSIX sh, not bash)
@@ -576,11 +609,13 @@ graph TD
         Lib["📁 /var/lib"]
         TorData["📦 /var/lib/tor VOLUME"]
         Keys["🔑 keys/"]
+        FamilyKey["👨‍👩‍👧 *.secret_family_key"]
         FingerprintFile["🆔 fingerprint"]
         PTState["🌀 pt_state/"]
         
         Lib --> TorData
         TorData --> Keys
+        Keys --> FamilyKey
         TorData --> FingerprintFile
         TorData --> PTState
     end
@@ -620,6 +655,7 @@ graph TD
         Fingerprint["🧬 fingerprint"]
         BridgeLine["🌉 bridge-line"]
         GenAuth["🔑 gen-auth"]
+        GenFamily["👨‍👩‍👧 gen-family"]
         
         UsrLocal --> Bin
         Bin --> Entrypoint
@@ -628,6 +664,8 @@ graph TD
         Bin --> Health
         Bin --> Fingerprint
         Bin --> BridgeLine
+        Bin --> GenAuth
+        Bin --> GenFamily
     end
     Usr --> UsrLocal
 
@@ -661,7 +699,7 @@ graph TD
 
     class TorData,TorLog volumeStyle
     class TorRC configStyle
-    class Entrypoint,Healthcheck,Status,Health,Fingerprint,BridgeLine scriptStyle
+    class Entrypoint,Healthcheck,Status,Health,Fingerprint,BridgeLine,GenAuth,GenFamily scriptStyle
     class TorBin,Lyrebird,Tini binaryStyle
     class TorPID runtimeStyle
     class TorRCSample deletedStyle
@@ -831,7 +869,7 @@ flowchart LR
 ```
 
 **Weekly Rebuild Strategy:**
-- Rebuilds use the **same version tag** as the last release (e.g., `1.1.6`)
+- Rebuilds use the **same version tag** as the last release (e.g., `1.1.7`)
 - Overwrites existing image with fresh Alpine packages (security updates)
 - No `-weekly` suffix needed - just updated packages
 - `:latest` always points to most recent release version
@@ -902,6 +940,7 @@ flowchart TD
 | `tools/fingerprint` | Show relay identity | ~50 |
 | `tools/bridge-line` | Generate bridge line | ~80 |
 | `tools/gen-auth` | Generate Control Port auth | ~30 |
+| `tools/gen-family` | Happy Family key management | ~180 |
 
 ### External Documentation
 
@@ -913,6 +952,6 @@ flowchart TD
 ---
 <div align="center">
 
-**Document Version:** 1.0.5 • **Last Updated:** 2026-02-08 • **Container Version:** v1.1.6
+**Document Version:** 1.1.0 • **Last Updated:** 2026-03-02 • **Container Version:** v1.1.7
 
 </div>

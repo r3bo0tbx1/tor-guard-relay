@@ -57,6 +57,24 @@ if [ -f "$TOR_DATA/fingerprint" ] && [ -r "$TOR_DATA/fingerprint" ]; then
     echo "🔑 Fingerprint: ${FP_START}...${FP_END}"
 fi
 
+# Happy Family status
+FAMILY_KEY_COUNT=0
+if [ -d "$TOR_DATA/keys" ]; then
+    for fk in "$TOR_DATA/keys"/*.secret_family_key; do
+        [ -f "$fk" ] || continue
+        FAMILY_KEY_COUNT=$((FAMILY_KEY_COUNT + 1))
+    done
+fi
+TORRC="${TOR_CONFIG:-/etc/tor/torrc}"
+if [ "$FAMILY_KEY_COUNT" -gt 0 ]; then
+    echo "👨‍👩‍👧 Family Key: $FAMILY_KEY_COUNT key(s) present"
+fi
+if [ -f "$TORRC" ] && grep -qi "^FamilyId " "$TORRC" 2>/dev/null; then
+    echo "✅ Happy Family: CONFIGURED"
+elif [ "$FAMILY_KEY_COUNT" -gt 0 ]; then
+    echo "⚠️  Happy Family: key present but FamilyId not in torrc"
+fi
+
 ERRORS=$(grep -c "\[err\]" "$TOR_LOG" 2>/dev/null || echo "0")
 ERRORS=$(sanitize_num "$ERRORS")
 WARNINGS=$(grep -c "\[warn\]" "$TOR_LOG" 2>/dev/null || echo "0")

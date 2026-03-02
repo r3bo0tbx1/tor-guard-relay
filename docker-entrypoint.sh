@@ -50,7 +50,7 @@ cleanup_and_exit() {
 
 startup_banner() {
   log "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-  log "🧅 Tor Guard Relay v1.1.6 - Initialization"
+  log "🧅 Tor Guard Relay v1.1.7 - Initialization"
   log "https://github.com/r3bo0tbx1/tor-guard-relay"
   log "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
   log ""
@@ -90,8 +90,22 @@ phase_2_permissions() {
   if [ -d "$TOR_DATA_DIR/keys" ] && [ ! -w "$TOR_DATA_DIR/keys" ]; then
     warn "Keys directory $TOR_DATA_DIR/keys has wrong ownership!"
     KEYS_OWNER=$(stat -c '%u:%g' "$TOR_DATA_DIR/keys" 2>/dev/null || echo "unknown")
-    warn "  Current owner: $KEYS_OWNER — Expected: $CURRENT_UID:$CURRENT_GID"
+    warn "  Current owner: $KEYS_OWNER - Expected: $CURRENT_UID:$CURRENT_GID"
     warn "  Fix on the host: chown -R $CURRENT_UID:$CURRENT_GID <host-keys-path>"
+  fi
+
+  # Check for Happy Family key files
+  FAMILY_KEY_COUNT=0
+  if [ -d "$TOR_DATA_DIR/keys" ]; then
+    for fk in "$TOR_DATA_DIR/keys"/*.secret_family_key; do
+      [ -f "$fk" ] || continue
+      FAMILY_KEY_COUNT=$((FAMILY_KEY_COUNT + 1))
+      FK_NAME=$(basename "$fk" .secret_family_key)
+      info "Found Happy Family key: $FK_NAME"
+    done
+  fi
+  if [ "$FAMILY_KEY_COUNT" -gt 0 ]; then
+    success "$FAMILY_KEY_COUNT family key(s) detected in keys directory"
   fi
 
   success "Permissions configured securely"
@@ -218,6 +232,19 @@ BridgeRelay 0
 EOF
       [ -n "${TOR_BANDWIDTH_RATE:-}" ] && echo "RelayBandwidthRate ${TOR_BANDWIDTH_RATE}" >> "$TOR_CONFIG"
       [ -n "${TOR_BANDWIDTH_BURST:-}" ] && echo "RelayBandwidthBurst ${TOR_BANDWIDTH_BURST}" >> "$TOR_CONFIG"
+
+      # Happy Family (Tor 0.4.9+)
+      [ -n "${TOR_FAMILY_ID:-}" ] && echo "" >> "$TOR_CONFIG" && echo "# Happy Family (Tor 0.4.9+)" >> "$TOR_CONFIG" && echo "FamilyId ${TOR_FAMILY_ID}" >> "$TOR_CONFIG"
+
+      # MyFamily (legacy, keep during transition)
+      if [ -n "${TOR_MY_FAMILY:-}" ]; then
+        echo "" >> "$TOR_CONFIG"
+        echo "# MyFamily (legacy - keep during transition to Happy Family)" >> "$TOR_CONFIG"
+        echo "$TOR_MY_FAMILY" | tr ',' '\n' | while IFS= read -r fp; do
+          fp=$(printf "%s" "$fp" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+          [ -n "$fp" ] && echo "MyFamily $fp" >> "$TOR_CONFIG"
+        done
+      fi
       ;;
 
     exit)
@@ -234,6 +261,19 @@ ${TOR_EXIT_POLICY:-ExitPolicy reject *:*}
 EOF
       [ -n "${TOR_BANDWIDTH_RATE:-}" ] && echo "RelayBandwidthRate ${TOR_BANDWIDTH_RATE}" >> "$TOR_CONFIG"
       [ -n "${TOR_BANDWIDTH_BURST:-}" ] && echo "RelayBandwidthBurst ${TOR_BANDWIDTH_BURST}" >> "$TOR_CONFIG"
+
+      # Happy Family (Tor 0.4.9+)
+      [ -n "${TOR_FAMILY_ID:-}" ] && echo "" >> "$TOR_CONFIG" && echo "# Happy Family (Tor 0.4.9+)" >> "$TOR_CONFIG" && echo "FamilyId ${TOR_FAMILY_ID}" >> "$TOR_CONFIG"
+
+      # MyFamily (legacy, keep during transition)
+      if [ -n "${TOR_MY_FAMILY:-}" ]; then
+        echo "" >> "$TOR_CONFIG"
+        echo "# MyFamily (legacy - keep during transition to Happy Family)" >> "$TOR_CONFIG"
+        echo "$TOR_MY_FAMILY" | tr ',' '\n' | while IFS= read -r fp; do
+          fp=$(printf "%s" "$fp" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+          [ -n "$fp" ] && echo "MyFamily $fp" >> "$TOR_CONFIG"
+        done
+      fi
       ;;
 
     bridge)

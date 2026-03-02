@@ -78,7 +78,7 @@ jobs:
           else
             # Check all files in tools/ (no .sh extension)
             TOOL_COUNT=0
-            for script in tools/status tools/health tools/fingerprint tools/bridge-line tools/gen-auth; do
+            for script in tools/status tools/health tools/fingerprint tools/bridge-line tools/gen-auth tools/gen-family; do
               if [ -f "$script" ]; then
                 echo "📄 Checking $(basename "$script")..."
                 sh -n "$script" || exit 1
@@ -115,7 +115,7 @@ jobs:
           if [ -d "tools" ]; then
             echo ""
             echo "🔍 ShellCheck: tools/*"
-            for tool in tools/status tools/health tools/fingerprint tools/bridge-line tools/gen-auth; do
+            for tool in tools/status tools/health tools/fingerprint tools/bridge-line tools/gen-auth tools/gen-family; do
               if [ -f "$tool" ]; then
                 echo "  Checking $(basename $tool)..."
                 shellcheck -S warning "$tool" || true
@@ -168,8 +168,8 @@ jobs:
           if [ $HAS_SH_EXT -eq 1 ]; then
             echo "❌ Some tools have .sh extension (should not have it)"
             exit 1
-          elif [ $NO_EXT_COUNT -lt 4 ]; then
-            echo "❌ Expected 5 tools (status, health, fingerprint, bridge-line, gen-auth)"
+          elif [ $NO_EXT_COUNT -lt 5 ]; then
+            echo "❌ Expected 6 tools (status, health, fingerprint, bridge-line, gen-auth, gen-family)"
             exit 1
           else
             echo "✅ All tools have correct format (no .sh extension)"
@@ -335,7 +335,7 @@ jobs:
           docker run --rm --entrypoint /bin/sh tor-relay:test -c "ls -la /usr/local/bin/" || exit 1
           echo ""
           echo "🛠️ Available diagnostic tools:"
-          docker run --rm --entrypoint /bin/sh tor-relay:test -c "ls -1 /usr/local/bin/status /usr/local/bin/health /usr/local/bin/fingerprint /usr/local/bin/bridge-line /usr/local/bin/gen-auth" || exit 1
+          docker run --rm --entrypoint /bin/sh tor-relay:test -c "ls -1 /usr/local/bin/status /usr/local/bin/health /usr/local/bin/fingerprint /usr/local/bin/bridge-line /usr/local/bin/gen-auth /usr/local/bin/gen-family" || exit 1
 
       - name: 🧅 Verify Tor Installation
         run: |
@@ -564,7 +564,7 @@ jobs:
         if: matrix.test-case == 'help-flags'
         run: |
           echo "🧪 Testing tool existence..."
-          for tool in status health fingerprint bridge-line; do
+          for tool in status health fingerprint bridge-line gen-auth gen-family; do
             TOOL_PATH="/usr/local/bin/$tool"
             if docker run --rm --entrypoint /bin/sh tor-relay:test -c "test -f $TOOL_PATH"; then
               echo "✅ $tool exists at $TOOL_PATH"
@@ -579,7 +579,7 @@ jobs:
         run: |
           echo "🔐 Verifying file permissions for tools..."
           docker run --rm --entrypoint /bin/sh tor-relay:test -c "
-            for tool in /usr/local/bin/status /usr/local/bin/health /usr/local/bin/fingerprint /usr/local/bin/bridge-line /usr/local/bin/gen-auth; do
+            for tool in /usr/local/bin/status /usr/local/bin/health /usr/local/bin/fingerprint /usr/local/bin/bridge-line /usr/local/bin/gen-auth /usr/local/bin/gen-family; do
               if [ -f \"\$tool\" ]; then
                 test -x \"\$tool\" && echo \"✅ \$(basename \$tool) is executable\" || exit 1
               fi
@@ -607,7 +607,7 @@ jobs:
         run: |
           echo "🔧 Testing tool execution..."
           docker run --rm --entrypoint /bin/sh tor-relay:test -c "
-            for tool in /usr/local/bin/status /usr/local/bin/health /usr/local/bin/fingerprint /usr/local/bin/bridge-line /usr/local/bin/gen-auth; do
+            for tool in /usr/local/bin/status /usr/local/bin/health /usr/local/bin/fingerprint /usr/local/bin/bridge-line /usr/local/bin/gen-auth /usr/local/bin/gen-family; do
               if [ -f \"\$tool\" ]; then
                 BASENAME=\$(basename \"\$tool\")
                 echo \"🔍 Testing \$BASENAME...\"
@@ -653,7 +653,7 @@ jobs:
           - 🏗️ Docker image build (multi-arch ready)
           - 🚀 Container smoke test
           - 🧅 Tor installation verification
-          - 🔧 Tool availability check (status, health, fingerprint, bridge-line, gen-auth)
+          - 🔧 Tool availability check (status, health, fingerprint, bridge-line, gen-auth, gen-family)
           - 🔐 Permission verification
           - 🛡️ Security scanning with Trivy
           - 🧪 Test matrix execution

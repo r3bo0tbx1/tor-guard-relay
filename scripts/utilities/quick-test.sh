@@ -231,6 +231,13 @@ else
   warn "bridge-line tool not ready yet (needs full bootstrap - 10-30 minutes)"
 fi
 
+# Test 4.5: gen-family tool (help flag)
+if docker exec test-tools gen-family --help >/dev/null 2>&1; then
+  success "gen-family tool works"
+else
+  warn "gen-family tool not available (requires Tor 0.4.9+)"
+fi
+
 # Cleanup
 docker stop test-tools >/dev/null 2>&1
 docker rm test-tools >/dev/null 2>&1
@@ -306,7 +313,7 @@ echo "✅ OBFS4V_* variables are processed correctly"
 echo "✅ Bridge mode auto-detected from PT_PORT"
 echo "✅ TOR_* ENV naming works (TOR_ORPORT, TOR_CONTACT_INFO, etc.)"
 echo "✅ Guard/Exit/Bridge modes configured correctly"
-echo "✅ Diagnostic tools work (status, health, fingerprint, bridge-line)"
+echo "✅ Diagnostic tools work (status, health, fingerprint, bridge-line, gen-family)"
 echo "✅ Mixed ENV naming works (can combine official + TOR_* prefix)"
 echo ""
 echo "🎯 Your image is fully compatible with thetorproject/obfs4-bridge!"

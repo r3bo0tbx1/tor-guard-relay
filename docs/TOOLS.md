@@ -1,6 +1,6 @@
 # 🛠️ Tools Reference Guide
 
-**Tor Guard Relay 1.1.3** includes 5 essential diagnostic tools built directly into the ultra-optimized ~20 MB container. All tools are busybox-compatible, executable without file extensions, and designed for production use.
+**Tor Guard Relay 1.1.3** includes 6 essential diagnostic tools built directly into the ultra-optimized ~20 MB container. All tools are busybox-compatible, executable without file extensions, and designed for production use.
 
 ---
 
@@ -13,6 +13,7 @@
 | **fingerprint** | Display relay fingerprint | Text | With Tor Metrics link |
 | **bridge-line** | Get obfs4 bridge line | Text | Bridge mode only |
 | gen-auth | Generate Control Port auth | Text | Password + Hash |
+| gen-family | Generate/view Happy Family key | Text | Tor 0.4.9+ only |
 
 ---
 
@@ -224,6 +225,53 @@ When to use:
 
 ---
 
+### `gen-family`
+
+**Purpose:** Generate or view a Tor Happy Family key (Tor 0.4.9+). This replaces the old `MyFamily` fingerprint-exchange workflow with a single shared `FamilyId`.
+
+**Usage:**
+```bash
+# Generate a new family key
+docker exec tor-relay gen-family MyRelays
+
+# View existing family key and FamilyId
+docker exec tor-relay gen-family --show
+
+# Show help
+docker exec tor-relay gen-family --help
+```
+
+**Output Example (generate):**
+```
+════════════════════════════════════════════════════════════
+Tor Happy Family Key Generator (Tor 0.4.9+)
+════════════════════════════════════════════════════════════
+
+✓ Generated family key: MyRelays
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Your FamilyId (add to torrc or TOR_FAMILY_ID env var):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+   FamilyId wweKJrJxUDs1EdtFFHCDtvVgTKftOC/crUl1mYJv830
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+💡 Copy the secret key file to all relays in this family.
+   Then set TOR_FAMILY_ID in each relay's environment.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+**Exit Codes:**
+- `0` - Key generated or displayed successfully
+- `1` - Error (key already exists, Tor not found, etc.)
+
+**When to use:**
+- When linking multiple relays (guard, exit, middle) into a family
+- Run once to generate, then copy the key file to all family members
+- Replaces the old manual fingerprint exchange (`MyFamily`)
+
+---
+
 ## 🚀 Common Workflows
 
 ### 1. Quick Health Check
@@ -270,7 +318,21 @@ docker exec tor-bridge bridge-line
 # Share ONLY with trusted users, NOT publicly
 ```
 
-### 5. Automated Monitoring
+### 5. Set Up Happy Family (Tor 0.4.9+)
+```bash
+# Generate a family key on one relay
+docker exec tor-relay gen-family MyRelays
+
+# Copy the key file to all other family members
+docker cp tor-relay:/var/lib/tor/keys/MyRelays.secret_family_key ./
+docker cp ./MyRelays.secret_family_key tor-relay-2:/var/lib/tor/keys/
+docker exec -u 0 tor-relay-2 chown 100:101 /var/lib/tor/keys/MyRelays.secret_family_key
+
+# Set TOR_FAMILY_ID on each relay and restart
+# (use the FamilyId from gen-family --show output)
+```
+
+### 6. Automated Monitoring
 ```bash
 # Simple monitoring script
 while true; do
@@ -288,7 +350,7 @@ while true; do
 done
 ```
 
-### 6. Check Logs
+### 7. Check Logs
 ```bash
 # View recent logs
 docker logs --tail 100 tor-relay
@@ -322,7 +384,7 @@ docker logs tor-relay 2>&1 | grep -i warn
 # Verify tools exist
 docker exec tor-relay ls -la /usr/local/bin/
 
-# Should show: status, health, fingerprint, bridge-line, gen-auth
+# Should show: status, health, fingerprint, bridge-line, gen-auth, gen-family
 
 # Check PATH
 docker exec tor-relay echo $PATH
@@ -401,18 +463,22 @@ docker logs tor-relay | grep -i obfs4
 
 ## ❓ FAQ
 
-**Q: Why only 5 tools instead of 9?**
-A: The v1.1.3 build remains ultra-light (~16.8 MB). These 5 tools cover all essential operations including health checks, identity, and authentication setup.
+**Q: Why only 6 tools instead of 9?**
+
+A: The v1.1.3 build remains ultra-light (~16.8 MB). These 6 tools cover all essential operations including health checks, identity, authentication setup, and Happy Family key management.
 
 **Q: Where are metrics/monitoring endpoints?**
+
 A: Removed to achieve ultra-small image size. Use `health` tool with external monitoring systems or check `/var/log/tor/notices.log` directly.
 
 **Q: Can I still use Prometheus?**
+
 A: Yes! Use `gen-auth` to configure the Control Port, then run a separate `prometheus-tor-exporter` container alongside this one.
 
 **Q: What happened to the dashboard?**
+
 A: Removed (required Python/Flask). Use `status` tool for visual output or build your own dashboard using `health` JSON.
 
 ---
 
-**Last Updated:** December 2025 | **Version:** 1.1.3
+**Last Updated:** March 2026 | **Version:** 1.1.7

@@ -49,7 +49,7 @@ docker run -d \
   --security-opt no-new-privileges:true \  
   -e TOR_RELAY_MODE=bridge \
   -e TOR_NICKNAME=MyBridge \
-  -e TOR_CONTACT_INFO=admin@example.com \
+  -e TOR_CONTACT_INFO="email:admin[]example.com ciissversion:2" \
   -e TOR_ORPORT=9001 \
   -e TOR_OBFS4_PORT=9002 \
   -v tor-data:/var/lib/tor \
@@ -61,7 +61,7 @@ docker run -d \
 # Core (required for ENV-based config)
 TOR_RELAY_MODE=guard|exit|bridge   # Relay mode
 TOR_NICKNAME=MyRelay                # Relay nickname (1-19 chars, alphanumeric)
-TOR_CONTACT_INFO=admin@example.com  # Contact email
+TOR_CONTACT_INFO="email:admin[]example.com ciissversion:2"  # Contact info (CIISS v2)
 
 # Ports (configurable)
 TOR_ORPORT=9001         # ORPort for relay traffic (default: 9001)
@@ -127,7 +127,7 @@ We support **BOTH** naming conventions for maximum compatibility:
 ```bash
 TOR_RELAY_MODE=bridge
 TOR_NICKNAME=MyBridge
-TOR_CONTACT_INFO=admin@example.com
+TOR_CONTACT_INFO="email:admin[]example.com ciissversion:2"
 TOR_ORPORT=9001
 TOR_OBFS4_PORT=9002
 ```
@@ -296,6 +296,6 @@ If you still see this error after updating to the latest version:
 
 ---
 
-**Version:** 1.1.6
-**Last Updated:** 2026-02-08
+**Version:** 1.1.7
+**Last Updated:** 2026-03-02
 **Maintainer:** rE-Bo0t.bx1 <r3bo0tbx1@brokenbotnet.com>

@@ -14,9 +14,9 @@ We actively support the following versions with security updates:
 
 | Version   | Status                | Support Level                               |
 | --------- | --------------------- | ------------------------------------------- |
-| **1.1.6** | 🟢 🛡️ **Active**     | Full support (current stable)               |
-| **1.1.5** | 🟡 🔧 **Maintenance** | Security + critical fixes only              |
-| **< 1.1.5** | 🔴 ❌ **Deprecated**   | Removed — contains CVE-2025-15467 (OpenSSL CVSS 9.8). Upgrade immediately. |
+| **1.1.7** | 🟢 🛡️ **Active**     | Full support (current stable)               |
+| **1.1.6** | 🟡 🔧 **Maintenance** | Security + critical fixes only              |
+| **< 1.1.5** | 🔴 ❌ **Deprecated**   | Removed - contains CVE-2025-15467 (OpenSSL CVSS 9.8). Upgrade immediately. |
 
 ---
 
@@ -74,6 +74,7 @@ docker exec tor-relay health        # JSON health output
 docker exec tor-relay fingerprint   # Display fingerprint
 docker exec tor-relay bridge-line   # Get bridge line (bridge mode)
 docker exec tor-relay gen-auth      # Generate Control Port hash
+docker exec tor-relay gen-family    # Generate/view Happy Family key (Tor 0.4.9+)
 ```
 
 ### Network Architecture
@@ -324,12 +325,14 @@ chown root:root /path/to/relay.conf
 #### Contact Information
 
 ```conf
-# Use a dedicated email for relay operations
-ContactInfo tor-relay@example.com <0xPGP_FINGERPRINT>
+# CIISS v2 format (recommended) - generate at https://torcontactinfogenerator.netlify.app/
+ContactInfo email:tor-relay[]example.com url:https://example.com proof:uri-rsa pgp:EF6E286DDA85EA2A4BA7DE684E2C6E8793298290 ciissversion:2
 
-# Optionally include abuse contact
-ContactInfo your-email proof:uri-rsa abuse:abuse@example.com
+# With abuse contact (recommended for exits)
+ContactInfo email:tor-relay[]example.com abuse:abuse[]example.com url:https://example.com proof:uri-rsa ciissversion:2
 ```
+
+> 📝 **CIISS v2:** The [ContactInfo Information Sharing Specification](https://nusenu.github.io/ContactInfo-Information-Sharing-Specification/) provides a machine-readable, verifiable format. The `proof:uri-rsa` method lets tools verify your relay ownership by checking `https://your-domain/.well-known/tor-relay/rsa-fingerprint.txt` for your relay's fingerprint.
 
 #### Network Security
 
@@ -658,4 +661,4 @@ Security researchers who responsibly disclose vulnerabilities will be listed her
 
 ---
 
-*Last Updated: 2026-02-08 | Version: 1.1.6*
+*Last Updated: 2026-03-02 | Version: 1.1.7*

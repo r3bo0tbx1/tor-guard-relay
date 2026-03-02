@@ -620,7 +620,7 @@ main() {
 
   log ""
   log "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-  log "🧅 Tor Relay Migration Validator v1.1.6"
+  log "🧅 Tor Relay Migration Validator v1.1.7"
   log "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
   log ""
 

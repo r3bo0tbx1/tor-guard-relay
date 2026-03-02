@@ -178,6 +178,7 @@ After any migration:
   - `docker exec <container> status`
   - `docker exec <container> health`
   - `docker exec <container> fingerprint`
+  - `docker exec <container> gen-family --show` (if using Happy Family)
 - [ ] Tor Metrics shows relay (after 1-2 hours)
 
 ---

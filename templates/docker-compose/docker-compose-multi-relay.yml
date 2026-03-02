@@ -1,5 +1,26 @@
 version: '3.8'
 
+# Happy Family Setup (Tor 0.4.9+):
+#
+# Option A - Generate a new key:
+#   1. Start relay-1, then run: docker exec guard-relay-1 gen-family MyRelays
+#   2. Copy the .secret_family_key to all relay volumes:
+#      docker cp guard-relay-1:/var/lib/tor/keys/MyRelays.secret_family_key .
+#      docker cp MyRelays.secret_family_key guard-relay-2:/var/lib/tor/keys/
+#      docker cp MyRelays.secret_family_key guard-relay-3:/var/lib/tor/keys/
+#   3. Fix ownership: docker exec -u 0 <container> chown 100:101 /var/lib/tor/keys/MyRelays.secret_family_key
+#   4. Add 'FamilyId <value>' to each relay's torrc
+#   5. Keep MyFamily lines during the transition period
+#   6. Restart all relays
+#
+# Option B - Import an existing key from a non-Docker setup:
+#   1. Copy your .secret_family_key to the Docker host
+#   2. docker cp MyRelays.secret_family_key guard-relay-1:/var/lib/tor/keys/
+#      (repeat for each relay container)
+#   3. Fix ownership: docker exec -u 0 <container> chown 100:101 /var/lib/tor/keys/MyRelays.secret_family_key
+#   4. Add 'FamilyId <value>' to each relay's torrc
+#   5. Restart all relays
+
 services:
   tor-relay-1:
     image: r3bo0tbx1/onion-relay:latest

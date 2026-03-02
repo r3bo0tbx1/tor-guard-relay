@@ -54,7 +54,7 @@ nano relay-guard.conf
 
 **Minimum required edits:**
 - `Nickname` - Your relay name
-- `ContactInfo` - Your email
+- `ContactInfo` - Your contact info ([CIISS v2](https://nusenu.github.io/ContactInfo-Information-Sharing-Specification/) format recommended)
 - `ORPort` - Usually 9001 or 443
 - `RelayBandwidthRate` - Your bandwidth limit
 
@@ -91,7 +91,7 @@ docker ps | grep tor-relay
 # Check logs and bootstrap progress
 docker logs -f tor-relay
 
-# Run diagnostics (5 tools available)
+# Run diagnostics (6 tools available)
 docker exec tor-relay status         # Full health report with emojis
 docker exec tor-relay health         # JSON health data
 docker exec tor-relay fingerprint    # Show fingerprint + Tor Metrics URL
@@ -128,7 +128,7 @@ nano relay.conf
 
 Edit at minimum:
 - `Nickname`
-- `ContactInfo`
+- `ContactInfo` ([CIISS v2](https://nusenu.github.io/ContactInfo-Information-Sharing-Specification/) format recommended)
 - `RelayBandwidthRate`
 
 ### Step 4: Deploy
@@ -194,7 +194,7 @@ Paste your relay configuration (see [example config](../examples/relay-guard.con
 
 **Important**: Edit at minimum:
 - `Nickname` - Your relay name
-- `ContactInfo` - Your email
+- `ContactInfo` - Your contact info ([CIISS v2](https://nusenu.github.io/ContactInfo-Information-Sharing-Specification/) format recommended)
 - `RelayBandwidthRate` - Your bandwidth limit
 
 Save and set permissions:
@@ -347,7 +347,7 @@ docker run -d \
   --network host \
   -e TOR_RELAY_MODE=guard \
   -e TOR_NICKNAME=MyGuardRelay \
-  -e TOR_CONTACT_INFO=tor@example.com \
+  -e TOR_CONTACT_INFO="email:tor[]example.com ciissversion:2" \
   -e TOR_ORPORT=9001 \
   -v tor-data:/var/lib/tor \
   r3bo0tbx1/onion-relay:latest
@@ -370,7 +370,7 @@ docker run -d \
   --network host \
   -e TOR_RELAY_MODE=exit \
   -e TOR_NICKNAME=MyExitRelay \
-  -e TOR_CONTACT_INFO=tor@example.com \
+  -e TOR_CONTACT_INFO="email:tor[]example.com ciissversion:2" \
   -e TOR_ORPORT=9001 \
   -e TOR_EXIT_POLICY="accept *:80,accept *:443,reject *:*" \
   -v tor-data:/var/lib/tor \
@@ -394,7 +394,7 @@ docker run -d \
   --network host \
   -e TOR_RELAY_MODE=bridge \
   -e TOR_NICKNAME=MyBridge \
-  -e TOR_CONTACT_INFO=tor@example.com \
+  -e TOR_CONTACT_INFO="email:tor[]example.com ciissversion:2" \
   -e TOR_ORPORT=9001 \
   -e TOR_OBFS4_PORT=9002 \
   -v tor-data:/var/lib/tor \
@@ -420,7 +420,7 @@ Full configuration via environment variables is supported (no config file needed
 #### Core Configuration
 - `TOR_RELAY_MODE` - guard, exit, or bridge (default: guard)
 - `TOR_NICKNAME` - Relay nickname (required for ENV config)
-- `TOR_CONTACT_INFO` - Contact email (required for ENV config)
+- `TOR_CONTACT_INFO` - Contact info ([CIISS v2](https://nusenu.github.io/ContactInfo-Information-Sharing-Specification/) format recommended, required for ENV config)
 - `TOR_ORPORT` - ORPort (default: 9001)
 - `TOR_DIRPORT` - DirPort for guard/exit (default: 0 - disabled)
 - `TOR_OBFS4_PORT` - obfs4 port for bridge mode (default: 9002)
@@ -453,7 +453,7 @@ services:
     environment:
       TOR_RELAY_MODE: guard
       TOR_NICKNAME: MyRelay
-      TOR_CONTACT_INFO: tor@example.com
+      TOR_CONTACT_INFO: "email:tor[]example.com ciissversion:2"
       TOR_ORPORT: 9001
       TOR_BANDWIDTH_RATE: 50 MBytes
       TOR_BANDWIDTH_BURST: 100 MBytes
@@ -510,7 +510,7 @@ abc123def456   r3bo0tbx1/onion-relay:latest    Up 5 minutes (healthy)
 
 ### 2. Run Diagnostics
 
-The image provides **5 diagnostic tools**:
+The image provides **6 diagnostic tools**:
 
 ```bash
 # Full health report with emojis
@@ -561,6 +561,8 @@ docker exec tor-relay health
 - **1-2 hours**: Relay appears on Tor Metrics
 - **24-48 hours**: Full statistics available
 - **8+ days**: Eligible for Guard flag (guard relays only)
+
+> 🗳️ **How flags are assigned:** Tor's **9 Directory Authorities** vote every hour on relay flags (Guard, Stable, Fast, HSDir, etc.). Your relay only receives a flag when **at least 5 of 9** authorities reach consensus. New relays start as unmeasured middle relays and earn flags over time as authorities observe stable uptime and sufficient bandwidth.
 
 Search for your relay:
 - **Clearnet**: https://metrics.torproject.org/rs.html
@@ -964,7 +966,7 @@ After successful deployment:
 ## Support
 
 - 📖 [Main README](../README.md)
-- 🔧 [Tools Documentation](TOOLS.md) - Complete guide to the 5 diagnostic tools
+- 🔧 [Tools Documentation](TOOLS.md) - Complete guide to the 6 diagnostic tools
 - 📊 [Monitoring Guide](MONITORING.md) - External monitoring integration
 - 🐛 [Report Issues](https://github.com/r3bo0tbx1/tor-guard-relay/issues)
 - 💬 [Tor Project Forum](https://forum.torproject.net/)

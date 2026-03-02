@@ -4,7 +4,7 @@
 
 set -e
 
-echo "🔐 Security Validation Tests - Tor Guard Relay v1.1.6"
+echo "🔐 Security Validation Tests - Tor Guard Relay v1.1.7"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 
@@ -126,7 +126,7 @@ echo "Test 3: Tool Scripts Security"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
 # Check for 4 essential tools
-for tool in status health fingerprint bridge-line; do
+for tool in status health fingerprint bridge-line gen-family; do
   if [ -f "tools/$tool" ]; then
     if head -1 "tools/$tool" | grep -q "^#!/bin/sh"; then
       test_pass "tools/$tool uses busybox sh"
@@ -303,7 +303,7 @@ echo ""
 echo "Test 8: Shell Script Syntax"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-for script in docker-entrypoint.sh tools/status tools/health tools/fingerprint tools/bridge-line; do
+for script in docker-entrypoint.sh tools/status tools/health tools/fingerprint tools/bridge-line tools/gen-family; do
   if [ -f "$script" ]; then
     if sh -n "$script" 2>/dev/null; then
       test_pass "$script has valid POSIX sh syntax"

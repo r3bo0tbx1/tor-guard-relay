@@ -436,7 +436,7 @@ docker rm obfs4-bridge
 - [ ] Fingerprint matches backup
 - [ ] Container starts without errors
 - [ ] Bootstrap reaches 100%
-- [ ] Diagnostic tools work (status, health, fingerprint)
+- [ ] Diagnostic tools work (status, health, fingerprint, gen-family)
 - [ ] Monitoring updated (if applicable)
 
 ---

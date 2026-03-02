@@ -30,7 +30,7 @@
 - 🛡️ **Security-First** - Hardened Alpine Linux, non-root operation, and minimized port exposure
 - 🪶 **Very light** - Ultra-minimal 16.8 MB image
 - 🎯 **Simple** - One command to deploy, minimal configuration needed
-- 📊 **Observable** - 5 busybox-only diagnostic tools with JSON health API
+- 📊 **Observable** - 6 busybox-only diagnostic tools with JSON health API
 - 🌉 **Multi-Mode** - Supports guard, exit, and bridge (obfs4) relays
 - 🔄 **Automated** - Weekly security rebuilds, CI/CD ready
 - 📚 **Documented** - Comprehensive guides for deployment, monitoring, backup, and more
@@ -157,11 +157,11 @@ We offer **two build variants** to match your risk tolerance and requirements:
 ```bash
 # Pull from Docker Hub (easiest)
 docker pull r3bo0tbx1/onion-relay:latest
-docker pull r3bo0tbx1/onion-relay:1.1.6
+docker pull r3bo0tbx1/onion-relay:1.1.7
 
 # Pull from GHCR
 docker pull ghcr.io/r3bo0tbx1/onion-relay:latest
-docker pull ghcr.io/r3bo0tbx1/onion-relay:1.1.6
+docker pull ghcr.io/r3bo0tbx1/onion-relay:1.1.7
 ```
 
 ### Edge Variant (Testing Only)
@@ -180,7 +180,7 @@ docker pull r3bo0tbx1/onion-relay:edge
 
 # Pull from GHCR
 docker pull ghcr.io/r3bo0tbx1/onion-relay:edge
-docker pull ghcr.io/r3bo0tbx1/onion-relay:1.1.6-edge
+docker pull ghcr.io/r3bo0tbx1/onion-relay:1.1.7-edge
 ```
 
 **When to use edge:**
@@ -230,7 +230,7 @@ See [Deployment Guide](docs/DEPLOYMENT.md) for complete instructions.
 
 ## 🔧 Diagnostic Tools
 
-Five busybox-only diagnostic tools are included (since v1.1.1).
+Six busybox-only diagnostic tools are included.
 
 | Tool | Purpose | Usage |
 |------|---------|--------|
@@ -239,6 +239,7 @@ Five busybox-only diagnostic tools are included (since v1.1.1).
 | fingerprint | Show fingerprint | `docker exec tor-relay fingerprint` |
 | bridge-line | obfs4 line | `docker exec tor-relay bridge-line` |
 | gen-auth | Credentials for Nyx | `docker exec tor-relay gen-auth` |
+| gen-family | Happy Family key gen | `docker exec tor-relay gen-family MyRelays` |
 
 ```bash
 # Full health report with emojis
@@ -263,7 +264,7 @@ Example JSON:
 }
 ```
 
-> 📖 **Complete reference:** See [Tools Documentation](docs/TOOLS.md) for all 5 tools with examples, JSON schema, and integration guides.
+> 📖 **Complete reference:** See [Tools Documentation](docs/TOOLS.md) for all 6 tools with examples, JSON schema, and integration guides.
 
 ---
 
@@ -340,10 +341,11 @@ STATUS=$(echo "$HEALTH" | jq -r '.status')
 - ✅ Graceful shutdown with cleanup
 
 ### Operations & Automation
-- ✅ **5 busybox-only diagnostic tools** (status, health, fingerprint, bridge-line, gen-auth)
+- ✅ **6 busybox-only diagnostic tools** (status, health, fingerprint, bridge-line, gen-auth, gen-family)
 - ✅ **JSON health API** for monitoring integration
 - ✅ **Multi-mode support** (guard, exit, bridge with obfs4)
-- ✅ **ENV-based config** (TOR_RELAY_MODE, TOR_NICKNAME, etc.)
+- ✅ **Happy Family support** (Tor 0.4.9+ key-based relay families)
+- ✅ **ENV-based config** (TOR_RELAY_MODE, TOR_NICKNAME, TOR_FAMILY_ID, etc.)
 - ✅ **Multi-architecture** builds (AMD64, ARM64)
 - ✅ **Weekly security rebuilds** via GitHub Actions
 - ✅ **Docker Compose templates** for single/multi-relay
@@ -383,7 +385,7 @@ STATUS=$(echo "$HEALTH" | jq -r '.status')
 
 ### Technical Reference
 - **[Architecture](docs/ARCHITECTURE.md)** - ⭐ **NEW!** Technical architecture with Mermaid diagrams
-- **[Tools Reference](docs/TOOLS.md)** - ✨ **UPDATED!** Complete guide to all 5 diagnostic tools
+- **[Tools Reference](docs/TOOLS.md)** - ✨ **UPDATED!** Complete guide to all 6 diagnostic tools
 - **[Monitoring Guide](docs/MONITORING.md)** - ✨ **UPDATED!** External monitoring integration, JSON health API, alerts, and observability
 - **[Control Port Guide](docs/CONTROL-PORT.md)** - ⭐ **NEW!** Authentication setup and Nyx integration
 - **[Backup Guide](docs/BACKUP.md)** - Data persistence, recovery, and disaster planning
@@ -409,7 +411,7 @@ STATUS=$(echo "$HEALTH" | jq -r '.status')
 
 ```ini
 Nickname MyTorRelay
-ContactInfo your-email@example.com
+ContactInfo email:your-email[]example.com url:https://example.com proof:uri-rsa ciissversion:2
 ORPort 9001
 ORPort [::]:9001
 DirPort 0
@@ -418,6 +420,8 @@ SocksPort 0
 DataDirectory /var/lib/tor
 Log notice file /var/log/tor/notices.log
 ```
+
+> 📝 **ContactInfo format:** We recommend the [ContactInfo Information Sharing Specification (CIISS) v2](https://nusenu.github.io/ContactInfo-Information-Sharing-Specification/), a machine-readable format that replaces `@` with `[]` and includes structured fields like `email:`, `url:`, `proof:`, `pgp:`, `hoster:`, and more. Use the [CIISS Generator](https://torcontactinfogenerator.netlify.app/) to create yours.
 
 ### Production Configuration
 
@@ -437,6 +441,109 @@ Examples are found in the [`examples/`](examples/) directory for complete, annot
 - Additional examples for specific use cases
 
 > 📖 **Configuration help:** See [Deployment Guide](docs/DEPLOYMENT.md#configuration) for complete reference.
+
+### Happy Family (Tor 0.4.9+)
+
+Tor 0.4.9 introduces **Happy Families**, a cryptographic key-based replacement for `MyFamily`. Instead of listing every relay fingerprint in every relay's config, all relays in a family share one secret key.
+
+**Why upgrade?**
+- Eliminates huge `MyFamily` lists that waste bandwidth and memory
+- Simpler to maintain - one key file instead of N×N fingerprint entries
+- Required for future Arti Relay compatibility
+
+#### Option A: Generate a new family key in Docker
+
+Use this if you don't already have a family key from another setup.
+
+```bash
+# 1. Generate a family key (run on any ONE relay container)
+docker exec tor-relay gen-family MyRelays
+
+# 2. Note the FamilyId output - you need it for your torrc
+#    FamilyId <value>
+
+# 3. Copy the key to all your other relay containers
+docker cp tor-relay:/var/lib/tor/keys/MyRelays.secret_family_key .
+docker cp MyRelays.secret_family_key other-relay:/var/lib/tor/keys/
+
+# 4. Fix ownership and permissions inside the target container
+docker exec -u 0 other-relay chown 100:101 /var/lib/tor/keys/MyRelays.secret_family_key
+docker exec -u 0 other-relay chmod 600 /var/lib/tor/keys/MyRelays.secret_family_key
+
+# 5. Add FamilyId to each relay's torrc, then restart
+docker restart tor-relay other-relay
+```
+
+#### Option B: Import an existing family key into Docker
+
+Use this if you already generated a family key on a bare-metal or source-built Tor relay and want to use the same key for your Docker relays.
+
+```bash
+# 1. Transfer the .secret_family_key file to your Docker host
+#    (via scp, sftp, or any secure method)
+scp user@source-server:/var/lib/tor/keys/MyRelays.secret_family_key ~/tor-keys/
+
+# 2. Copy the key into each running container (no restart needed yet)
+docker cp ~/tor-keys/MyRelays.secret_family_key tor-relay:/var/lib/tor/keys/
+
+# 3. Fix ownership and permissions inside the container
+#    The tor user in the container runs as UID 100, GID 101
+docker exec -u 0 tor-relay chown 100:101 /var/lib/tor/keys/MyRelays.secret_family_key
+docker exec -u 0 tor-relay chmod 600 /var/lib/tor/keys/MyRelays.secret_family_key
+
+# 4. Verify the key is in place
+docker exec tor-relay ls -la /var/lib/tor/keys/MyRelays.secret_family_key
+
+# 5. Add the FamilyId line to your torrc (same value from your source server)
+#    FamilyId <your-family-id-value>
+#    Keep your existing MyFamily lines during the transition period
+
+# 6. Restart the container to pick up the config change
+docker restart tor-relay
+```
+
+Repeat steps 2-6 for each container that should be in the family.
+
+> **This is safe for running containers.** `docker cp` writes directly into the named Docker volume. Your relay identity keys, family key, and all data persist in the volume across container restarts, image updates, and `docker compose up --force-recreate`. Volumes are **only** deleted if you explicitly run `docker volume rm` or `docker compose down -v`.
+
+#### Torrc configuration
+
+During the transition period, configure **both** `FamilyId` and `MyFamily` in your torrc:
+
+```ini
+# Happy Family (Tor 0.4.9+)
+FamilyId wweKJrJxUDs1EdtFFHCDtvVgTKftOC/crUl1mYJv830
+
+# MyFamily (legacy - keep during transition)
+MyFamily 9A2B5C7D8E1F3A4B6C8D0E2F4A6B8C0D2E4F6A8B
+MyFamily 1F3E5D7C9B0A2F4E6D8C0B2A4F6E8D0C2B4A6F8E
+```
+
+The Tor Project will announce when `MyFamily` can be removed.
+
+#### ENV-based config (alternative to mounted torrc)
+
+```yaml
+environment:
+  TOR_FAMILY_ID: "wweKJrJxUDs1EdtFFHCDtvVgTKftOC/crUl1mYJv830"
+  TOR_MY_FAMILY: "FINGERPRINT1,FINGERPRINT2,FINGERPRINT3"
+```
+
+#### Key persistence
+
+The `.secret_family_key` file lives in `/var/lib/tor/keys/` inside your data volume. It persists across container restarts and image updates automatically.
+
+| Scenario | Identity preserved? | Family key preserved? |
+|----------|:---:|:---:|
+| `docker restart` | ✅ | ✅ |
+| `docker compose up --force-recreate` | ✅ | ✅ |
+| `docker compose down` then `up` | ✅ | ✅ |
+| `docker compose down -v` | ❌ | ❌ |
+| `docker volume rm <volume>` | ❌ | ❌ |
+
+> ⚠️ **Treat the `.secret_family_key` like a private key.** Anyone with this file can claim their relay belongs to your family. Back it up securely - losing it means regenerating for all relays.
+
+> 📖 **Official docs:** [Tor Happy Family Guide](https://community.torproject.org/relay/setup/post-install/family-ids/)
 
 ---
 
@@ -475,6 +582,8 @@ Search by:
 | First Statistics | 24-48 hours | Bandwidth graphs appear |
 | Guard Flag | 8+ days | Trusted for entry connections |
 
+> 🗳️ **How relay flags work:** Tor has **9 Directory Authorities** that vote every hour on relay flags (Guard, Stable, Fast, HSDir, etc.). A relay only receives a flag when **at least 5 of 9** authorities agree in the consensus. This is why flags take time - your relay must prove itself to a majority of independent authorities.
+
 > 📖 **Detailed monitoring:** See [Monitoring Guide](docs/MONITORING.md) for complete observability setup with Prometheus and Grafana.
 
 ---
@@ -498,6 +607,10 @@ docker exec tor-relay bridge-line
 
 # Generate Control Port hash
 docker exec tor-relay gen-auth
+
+# Generate/view Happy Family key
+docker exec tor-relay gen-family MyRelays
+docker exec tor-relay gen-family --show
 ```
 
 ### Common Issues
@@ -520,7 +633,7 @@ If you use **host bind mounts** (e.g. `-v /my/path:/var/lib/tor`) instead of nam
 [warn] Failed to parse/validate config: Couldn't access private data directory "/var/lib/tor//keys"
 ```
 
-**Fix — set correct ownership on the host:**
+**Fix - set correct ownership on the host:**
 ```bash
 chown -R 100:101 /path/to/your/tor-data
 chown -R 100:101 /path/to/your/tor-keys   # if mounted separately
@@ -537,7 +650,7 @@ chown -R 100:101 /path/to/your/tor-keys   # if mounted separately
 > 📐 **NEW:** See the complete [Architecture Documentation](docs/ARCHITECTURE.md) for detailed technical design with Mermaid diagrams covering:
 > - Container lifecycle and initialization flow (6 phases)
 > - ENV compatibility layer and configuration priority
-> - Config generation for guard/exit/bridge modes
+> - Config generation for guard/exit/bridge modes with Happy Family support
 > - OBFS4V security validation
 > - Diagnostic tools architecture
 > - Signal handling and graceful shutdown
@@ -627,6 +740,10 @@ flowchart TB
         ━━━━━━━━━━
         Generate Control
         Port Auth Data"]
+        Tools --> GenFamily["👨‍👩‍👧 gen-family
+        ━━━━━━━━━━
+        Happy Family Key
+        Generation & Import"]
     end
 
     Running -->|docker stop SIGTERM| Shutdown
@@ -659,6 +776,7 @@ flowchart TB
     style Finger fill:#4DD0E1,stroke:#0097A7,stroke-width:2px,color:#000
     style BLine fill:#4DD0E1,stroke:#0097A7,stroke-width:2px,color:#000
     style GenAuth fill:#4DD0E1,stroke:#0097A7,stroke-width:2px,color:#000
+    style GenFamily fill:#4DD0E1,stroke:#0097A7,stroke-width:2px,color:#000
     
     style Graceful fill:#FFB74D,stroke:#F57C00,stroke-width:2px,color:#000
     style End fill:#E57373,stroke:#C62828,stroke-width:2px,color:#fff
@@ -766,7 +884,7 @@ See [`examples/`](examples/) directory for relay configurations.
 
 ✅ Store `relay.conf` with restricted permissions (`chmod 600`)  
 ✅ Never commit configs with sensitive info to Git  
-✅ Use PGP key in ContactInfo for verification  
+✅ Use [CIISS v2](https://nusenu.github.io/ContactInfo-Information-Sharing-Specification/) format in ContactInfo for verification  
 ✅ Regularly update Docker image for security patches  
 ✅ Monitor logs for suspicious activity  
 ✅ Configure firewall properly  
@@ -782,14 +900,14 @@ Images are automatically rebuilt on separate schedules to include security patch
 **Stable Variant** (`:latest`)
 - **Schedule:** Every Sunday at 18:30 UTC
 - **Includes:** Latest Tor + Alpine 3.23.3 updates
-- **Strategy:** Overwrites last release version (e.g., `:1.1.6`) with updated packages
-- **Tags Updated:** `:latest` and version tags (e.g., `:1.1.6`)
+- **Strategy:** Overwrites last release version (e.g., `:1.1.7`) with updated packages
+- **Tags Updated:** `:latest` and version tags (e.g., `:1.1.7`)
 
 **Edge Variant** (`:edge`)
 - **Schedule:** Every 3 days at 12:00 UTC (independent schedule)
 - **Includes:** Latest Tor + Alpine edge (bleeding-edge) updates
-- **Strategy:** Overwrites last release version (e.g., `:1.1.6-edge`) with updated packages
-- **Tags Updated:** `:edge` and version tags (e.g., `:1.1.6-edge`)
+- **Strategy:** Overwrites last release version (e.g., `:1.1.7-edge`) with updated packages
+- **Tags Updated:** `:edge` and version tags (e.g., `:1.1.7-edge`)
 - **Frequency:** ~2-3x more frequent updates than stable
 
 All images auto-published to Docker Hub and GitHub Container Registry
@@ -824,7 +942,7 @@ All images auto-published to Docker Hub and GitHub Container Registry
 ![GitHub Repo stars](https://img.shields.io/github/stars/r3bo0tbx1/tor-guard-relay?style=for-the-badge)
 ![GitHub Issues](https://img.shields.io/github/issues/r3bo0tbx1/tor-guard-relay?style=for-the-badge)
 
-**Current Version:** v1.1.6 • **Status:** Production Ready  
+**Current Version:** v1.1.7 • **Status:** Production Ready  
 **Image Size:** 16.8 MB • **Retention:** Last 7 Releases  
 **Registries:** Docker Hub • GHCR  
 

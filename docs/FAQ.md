@@ -32,7 +32,7 @@ Built on Alpine Linux 3.23.0 with a minimal 20MB image size, busybox-only tools,
 |---------|--------------|-----------------|
 | **Image size** | ~16.8 MB | ~100+ MB |
 | **Base** | Alpine 3.23.0 | Debian |
-| **Diagnostics** | 5 busybox tools + JSON API | None |
+| **Diagnostics** | 6 busybox tools + JSON API | None |
 | **Multi-mode** | Guard/Exit/Bridge in one image | Separate images |
 | **Weekly rebuilds** | ✅ Automated | ❌ Manual |
 | **ENV configuration** | ✅ Full support | Limited |
@@ -72,7 +72,7 @@ docker run -d \
   --network host \
   -e TOR_RELAY_MODE=guard \
   -e TOR_NICKNAME=MyGuardRelay \
-  -e TOR_CONTACT_INFO="admin@example.com" \
+  -e TOR_CONTACT_INFO="email:admin[]example.com ciissversion:2" \
   -e TOR_ORPORT=9001 \
   -e TOR_DIRPORT=9030 \
   -v tor-data:/var/lib/tor \
@@ -89,6 +89,37 @@ docker run -d \
   ghcr.io/r3bo0tbx1/onion-relay:latest
 ```
 
+### What is the ContactInfo Information Sharing Specification (CIISS)?
+
+The [CIISS v2](https://nusenu.github.io/ContactInfo-Information-Sharing-Specification/) is a machine-readable format for the Tor relay `ContactInfo` field. Instead of a plain email, it uses structured `key:value` pairs that tools can parse and verify automatically.
+
+**Format:**
+```
+email:your-email[]example.com url:https://example.com proof:uri-rsa ciissversion:2
+```
+
+**Key fields:**
+| Field | Purpose | Example |
+|-------|---------|---------|
+| `email:` | Contact email (`@` → `[]`) | `email:tor[]example.com` |
+| `url:` | Operator website | `url:https://example.com` |
+| `proof:` | URL ownership verification | `proof:uri-rsa` |
+| `pgp:` | 40-char PGP fingerprint | `pgp:EF6E286DDA85EA2A4BA7DE684E2C6E8793298290` |
+| `abuse:` | Abuse contact (exits) | `abuse:abuse[]example.com` |
+| `hoster:` | Hosting provider domain | `hoster:www.example-hoster.com` |
+| `uplinkbw:` | Uplink bandwidth (Mbit/s) | `uplinkbw:1000` |
+| `ciissversion:` | Spec version (**mandatory**) | `ciissversion:2` |
+
+**Why use it?**
+- Tools like [Tor Metrics](https://metrics.torproject.org/) can parse your info automatically
+- `proof:uri-rsa` lets anyone verify you own the URL (place relay fingerprints at `https://your-domain/.well-known/tor-relay/rsa-fingerprint.txt`)
+- Helps detect impersonation - operators can't fake verified URLs
+- Improves trust and visibility in the Tor network
+
+**Generate your string:** Use the [CIISS Generator](https://torcontactinfogenerator.netlify.app/) - fill in the fields and copy the result into your `ContactInfo` line or `TOR_CONTACT_INFO` env var.
+
+> 📖 **Full spec:** [nusenu.github.io/ContactInfo-Information-Sharing-Specification](https://nusenu.github.io/ContactInfo-Information-Sharing-Specification/)
+
 ### What's the difference between TOR_* and official bridge naming?
 
 Both work identically - we support two naming conventions for compatibility:
@@ -97,7 +128,7 @@ Both work identically - we support two naming conventions for compatibility:
 ```bash
 TOR_RELAY_MODE=bridge
 TOR_NICKNAME=MyBridge
-TOR_CONTACT_INFO=admin@example.com
+TOR_CONTACT_INFO=email:admin[]example.com ciissversion:2
 TOR_ORPORT=9001
 TOR_OBFS4_PORT=9002
 ```
@@ -195,6 +226,8 @@ sudo ufw allow 9002/tcp
 | First statistics | 24-48 hours | Bandwidth graphs appear |
 | Guard flag | 8+ days | Relay trusted for entry connections |
 
+> 🗳️ **Directory Authority Voting:** Tor has **9 Directory Authorities** that vote hourly on relay flags. A relay only earns a flag (Guard, Stable, Fast, HSDir, etc.) when **at least 5 of 9** authorities agree in the consensus. This is why flags aren't instant - your relay must prove itself to a majority of independent authorities.
+
 **Troubleshooting:**
 1. **Check bootstrap:** `docker exec tor-relay status`
    - Must show "Bootstrapped 100%"
@@ -247,7 +280,7 @@ docker logs tor-bridge | grep "bridge line"
 **Factors affecting bandwidth:**
 1. **Relay age** - New relays are untrusted
 2. **Uptime percentage** - Must maintain 99%+ for Guard flag
-3. **Relay flags** - Guard, Fast, Stable flags increase usage
+3. **Relay flags** - Guard, Fast, Stable flags increase usage (assigned by directory authority consensus - at least 5 of 9 authorities must vote for each flag)
 4. **Configured bandwidth** - Tor won't exceed your limits
 5. **Exit policy** - Exit relays typically get more traffic
 
@@ -426,7 +459,7 @@ docker run -d --name tor-relay ...  # Same config
 **Verify upgrade:**
 ```bash
 docker exec tor-relay cat /build-info.txt
-# Should show: Version: 1.1.6
+# Should show: Version: 1.1.7
 
 docker exec tor-relay fingerprint
 # Verify fingerprint unchanged
@@ -537,5 +570,5 @@ See [CONTRIBUTING.md](../CONTRIBUTING.md) for guidelines.
 
 ---
 
-**Last Updated:** Feburary 2026 (v1.1.6)
+**Last Updated:** March 2026 (v1.1.7)
 **Maintained by:** [@r3bo0tbx1](https://github.com/r3bo0tbx1)
