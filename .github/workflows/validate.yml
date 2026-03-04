@@ -424,7 +424,7 @@ jobs:
         uses: aquasecurity/trivy-action@0.34.1
         with:
           image-ref: 'tor-relay:test'
-          version: 'v0.69.2'
+          version: 'v0.69.3'
           format: 'sarif'
           output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH,MEDIUM'
@@ -462,7 +462,7 @@ jobs:
         uses: aquasecurity/trivy-action@0.34.1
         with:
           image-ref: 'tor-relay:test'
-          version: 'v0.69.2'
+          version: 'v0.69.3'
           format: 'table'
           severity: 'CRITICAL,HIGH'
           vuln-type: 'os,library'
@@ -472,7 +472,7 @@ jobs:
         uses: aquasecurity/trivy-action@0.34.1
         with:
           image-ref: 'tor-relay:test'
-          version: 'v0.69.2'
+          version: 'v0.69.3'
           format: 'json'
           output: 'trivy-full-report.json'
           severity: 'UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL'
@@ -483,7 +483,7 @@ jobs:
         uses: aquasecurity/trivy-action@0.34.1
         with:
           image-ref: 'tor-relay:test'
-          version: 'v0.69.2'
+          version: 'v0.69.3'
           scanners: 'secret'
           format: 'table'
         continue-on-error: true
@@ -492,7 +492,7 @@ jobs:
         uses: aquasecurity/trivy-action@0.34.1
         with:
           image-ref: 'tor-relay:test'
-          version: 'v0.69.2'
+          version: 'v0.69.3'
           scanners: 'config'
           format: 'table'
         continue-on-error: true
@@ -502,7 +502,7 @@ jobs:
         with:
           scan-type: 'fs'
           scan-ref: '.'
-          version: 'v0.69.2'
+          version: 'v0.69.3'
           format: 'table'
           severity: 'CRITICAL,HIGH'
           scanners: 'vuln,secret,config,license'
