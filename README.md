@@ -469,7 +469,50 @@ docker cp MyRelays.secret_family_key other-relay:/var/lib/tor/keys/
 # 4. Fix ownership and permissions inside the target container
 docker exec -u 0 other-relay chown 100:101 /var/lib/tor/keys/MyRelays.secret_family_key
 docker exec -u 0 other-relay chmod 600 /var/lib/tor/keys/MyRelays.secret_family_key
+
+# ⚠️ If you get a permissions error here (common with Docker volumes or bind mounts),
+# follow the "Troubleshooting: Family Key Permissions" section below to set permissions on the host instead.
+
+# 5. **Add FamilyId to each relay's torrc, then restart**
+docker restart tor-relay other-relay
 ```
+---
+
+#### Option B: Import an existing family key into Docker
+
+Use this if you already generated a family key on a bare-metal or source-built Tor relay and want to use the same key for your Docker relays.
+
+```bash
+# 1. Transfer the .secret_family_key file to your Docker host
+#    (via scp, sftp, or any secure method)
+scp user@source-server:/var/lib/tor/keys/MyRelays.secret_family_key ~/tor-keys/
+
+# 2. Copy the key into each running container (no restart needed yet)
+docker cp ~/tor-keys/MyRelays.secret_family_key tor-relay:/var/lib/tor/keys/
+
+# 3. Fix ownership and permissions inside the container
+#    The tor user in the container runs as UID 100, GID 101
+docker exec -u 0 tor-relay chown 100:101 /var/lib/tor/keys/MyRelays.secret_family_key
+docker exec -u 0 tor-relay chmod 600 /var/lib/tor/keys/MyRelays.secret_family_key
+
+# ⚠️ If you get a permissions error here (common with Docker volumes or bind mounts),
+# follow the "Troubleshooting: Family Key Permissions" section below to set permissions on the host instead.
+
+# 4. Verify the key is in place
+docker exec tor-relay ls -la /var/lib/tor/keys/MyRelays.secret_family_key
+
+# 5. Add the FamilyId line to your torrc (same value from your source server)
+#    FamilyId <your-family-id-value>
+#    Keep your existing MyFamily lines during the transition period
+
+# 6. Restart the container to pick up the config change
+docker restart tor-relay
+```
+
+Repeat steps 2-6 for each container that should be in the family.
+
+> **This is safe for running containers.** `docker cp` writes directly into the named Docker volume. Your relay identity keys, family key, and all data persist in the volume across container restarts, image updates, and `docker compose up --force-recreate`. Volumes are **only** deleted if you explicitly run `docker volume rm` or `docker compose down -v`.
+
 ---
 
 ### Troubleshooting: Family Key Permissions (Docker Volumes & Bind Mounts)
@@ -510,48 +553,7 @@ Docker containers may not be able to change file permissions on mounted volumes,
 
 > **Tip:** Always replace `<relay>`, `<container>`, `<volume>`, and `<keyfile>` with your actual names.
 
-
-# 5. Add FamilyId to each relay's torrc, then restart
-```
-docker restart tor-relay other-relay
-```
-
 ---
-
-#### Option B: Import an existing family key into Docker
-
-Use this if you already generated a family key on a bare-metal or source-built Tor relay and want to use the same key for your Docker relays.
-
-```bash
-# 1. Transfer the .secret_family_key file to your Docker host
-#    (via scp, sftp, or any secure method)
-scp user@source-server:/var/lib/tor/keys/MyRelays.secret_family_key ~/tor-keys/
-
-# 2. Copy the key into each running container (no restart needed yet)
-docker cp ~/tor-keys/MyRelays.secret_family_key tor-relay:/var/lib/tor/keys/
-
-# 3. Fix ownership and permissions inside the container
-#    The tor user in the container runs as UID 100, GID 101
-docker exec -u 0 tor-relay chown 100:101 /var/lib/tor/keys/MyRelays.secret_family_key
-docker exec -u 0 tor-relay chmod 600 /var/lib/tor/keys/MyRelays.secret_family_key
-
-# ⚠️ If you get a permissions error here (common with Docker volumes or bind mounts),
-# follow the "Troubleshooting: Family Key Permissions" section above to set permissions on the host instead.
-
-# 4. Verify the key is in place
-docker exec tor-relay ls -la /var/lib/tor/keys/MyRelays.secret_family_key
-
-# 5. Add the FamilyId line to your torrc (same value from your source server)
-#    FamilyId <your-family-id-value>
-#    Keep your existing MyFamily lines during the transition period
-
-# 6. Restart the container to pick up the config change
-docker restart tor-relay
-```
-
-Repeat steps 2-6 for each container that should be in the family.
-
-> **This is safe for running containers.** `docker cp` writes directly into the named Docker volume. Your relay identity keys, family key, and all data persist in the volume across container restarts, image updates, and `docker compose up --force-recreate`. Volumes are **only** deleted if you explicitly run `docker volume rm` or `docker compose down -v`.
 
 #### Torrc configuration
 
