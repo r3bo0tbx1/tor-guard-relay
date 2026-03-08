@@ -469,10 +469,54 @@ docker cp MyRelays.secret_family_key other-relay:/var/lib/tor/keys/
 # 4. Fix ownership and permissions inside the target container
 docker exec -u 0 other-relay chown 100:101 /var/lib/tor/keys/MyRelays.secret_family_key
 docker exec -u 0 other-relay chmod 600 /var/lib/tor/keys/MyRelays.secret_family_key
+```
+---
+
+### Troubleshooting: Family Key Permissions (Docker Volumes & Bind Mounts)
+
+If you see a permissions error when running the in-container `chmod` or `chown` commands, set the permissions directly on the host:
+
+How to fix:
+
+1. **Find your volume name**  
+  Replace `<relay>` with part of your relay/container name:
+  ```bash
+  docker volume ls | grep -i <relay>
+  ```
+
+2. **Get the volume name for `/var/lib/tor`**  
+  Replace `<container>` with your container name:
+  ```bash
+  docker inspect <container> --format '{{range .Mounts}}{{if eq .Destination "/var/lib/tor"}}{{.Name}}{{end}}{{end}}'
+  ```
+
+3. **Set permissions on the host**  
+  Replace `<volume>` and `<keyfile>` with your actual values:
+  ```bash
+  sudo chmod 600 "$(docker volume inspect <volume> --format '{{.Mountpoint}}')/keys/<keyfile>"
+  ```
+
+4. **Verify inside the container**  
+  ```bash
+  docker exec <container> ls -la /var/lib/tor/keys/<keyfile>
+  ```
+  You should see:
+  ```
+  -rw-------    1 tor      tor
+  ```
+
+**Why is this needed?**  
+Docker containers may not be able to change file permissions on mounted volumes, depending on your host OS or Docker setup. Setting permissions on the host ensures Tor can read the key securely.
+
+> **Tip:** Always replace `<relay>`, `<container>`, `<volume>`, and `<keyfile>` with your actual names.
+
 
 # 5. Add FamilyId to each relay's torrc, then restart
+```
 docker restart tor-relay other-relay
 ```
+
+---
 
 #### Option B: Import an existing family key into Docker
 
@@ -490,6 +534,9 @@ docker cp ~/tor-keys/MyRelays.secret_family_key tor-relay:/var/lib/tor/keys/
 #    The tor user in the container runs as UID 100, GID 101
 docker exec -u 0 tor-relay chown 100:101 /var/lib/tor/keys/MyRelays.secret_family_key
 docker exec -u 0 tor-relay chmod 600 /var/lib/tor/keys/MyRelays.secret_family_key
+
+# ⚠️ If you get a permissions error here (common with Docker volumes or bind mounts),
+# follow the "Troubleshooting: Family Key Permissions" section above to set permissions on the host instead.
 
 # 4. Verify the key is in place
 docker exec tor-relay ls -la /var/lib/tor/keys/MyRelays.secret_family_key
@@ -578,11 +625,21 @@ Search by:
 | Milestone | Time | What to Expect |
 |-----------|------|----------------|
 | Bootstrap Complete | 10-30 min | Logs show "Bootstrapped 100%" |
-| Appears on Metrics | 1-2 hours | Relay visible in search |
-| First Statistics | 24-48 hours | Bandwidth graphs appear |
-| Guard Flag | 8+ days | Trusted for entry connections |
+| Appears in Consensus | 1-3 hours | Relay visible in Tor Metrics search |
+| Bandwidth Cap Lifted | ~3 days | bwauths measure you; 20 KB/s cap removed, traffic ramps up |
+| First Statistics | 24-48 hours | Bandwidth graphs appear on Tor Metrics |
+| Guard Flag | **8+ days** | Eligible for entry guard selection by clients |
 
-> 🗳️ **How relay flags work:** Tor has **9 Directory Authorities** that vote every hour on relay flags (Guard, Stable, Fast, HSDir, etc.). A relay only receives a flag when **at least 5 of 9** authorities agree in the consensus. This is why flags take time - your relay must prove itself to a majority of independent authorities.
+> 🗳️ **How relay flags work:** Tor has **9 Directory Authorities (DAs)** that vote every hour to update the consensus. A consensus document is valid if more than half of the authorities signed it, meaning **5 of 9** must agree for a flag to appear. This is why flags take time: your relay must prove itself to a majority of independent, geographically distributed authorities.
+>
+> **To receive the Guard flag**, three criteria must all be met:
+> - **Bandwidth** - must have a sufficient consensus weight as measured by bandwidth authorities
+> - **Weighted Fractional Uptime (WFU)** - must demonstrate consistent, reliable uptime
+> - **Time Known** - you're first eligible for the Guard flag on day eight
+>
+> The **Stable** flag is a prerequisite for Guard. Only stable and reliable relays can be used as guards.
+>
+> ⚠️ **Expect a traffic dip after getting Guard:** Once you get the Guard flag, all the rest of the clients back off from using you for middle hops, because when they see the Guard flag, they assume you already have plenty of load from clients using you as their first hop. This is normal, traffic will recover as clients rotate you in as their guard node.
 
 > 📖 **Detailed monitoring:** See [Monitoring Guide](docs/MONITORING.md) for complete observability setup with Prometheus and Grafana.
 
