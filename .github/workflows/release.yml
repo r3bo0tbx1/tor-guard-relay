@@ -64,12 +64,19 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: 🏷️ Fetch All Tags
+        run: git fetch --tags --force
+
       - name: 🔍 Detect Version and Build Type
         id: version
         run: |
           set -e
           echo "🔍 Determining version context..."
           BUILD_VARIANTS="both"
+
+          latest_semver_tag() {
+            git tag --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1 || echo "v1.0.0"
+          }
 
           if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
             VERSION="${GITHUB_REF#refs/tags/v}"
@@ -80,7 +87,7 @@ jobs:
           elif [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
             BUILD_MODE="${{ github.event.inputs.build_mode }}"
             BUILD_VARIANTS="${{ github.event.inputs.variants }}"
-            LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v1.0.0")
+            LATEST_TAG=$(latest_semver_tag)
 
             if [[ "${BUILD_MODE}" == "rebuild" ]]; then
               VERSION="${LATEST_TAG#v}"
@@ -96,7 +103,7 @@ jobs:
               echo "   Variants: ${BUILD_VARIANTS}"
             fi
           elif [[ "${GITHUB_EVENT_NAME}" == "schedule" ]]; then
-            LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v1.0.0")
+            LATEST_TAG=$(latest_semver_tag)
             VERSION="${LATEST_TAG#v}"
             IS_RELEASE="false"
 
@@ -111,13 +118,14 @@ jobs:
               echo "⚡ Edge-only rebuild of last release: ${VERSION} (edge variant with updated packages)"
             fi
           else
-            LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v1.0.0")
+            LATEST_TAG=$(latest_semver_tag)
             VERSION="${LATEST_TAG#v}"
             BUILD_TYPE="unknown"
             IS_RELEASE="false"
             BUILD_VARIANTS="both"
             echo "⚠️ Unknown trigger: ${VERSION}"
           fi
+
           BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
           SHORT_SHA=$(git rev-parse --short HEAD)
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
@@ -444,6 +452,9 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: 🏷️ Fetch All Tags
+        run: git fetch --tags --force
+
       - name: 📝 Generate Notes
         run: |
           VERSION="${{ needs.determine-version.outputs.version }}"
@@ -467,7 +478,6 @@ jobs:
             ' CHANGELOG.md > tmp_notes.txt
 
             if [ -s tmp_notes.txt ]; then
-              # Strip trailing blank lines and --- separators from changelog extract
               while [ -s tmp_notes.txt ]; do
                 LAST_LINE=$(tail -1 tmp_notes.txt)
                 case "$(printf '%s' "$LAST_LINE" | tr -d '[:space:]')" in
@@ -493,9 +503,7 @@ jobs:
             if [ -x scripts/release/generate-release-notes.sh ]; then
               chmod +x scripts/release/generate-release-notes.sh
               ./scripts/release/generate-release-notes.sh --format github "${VERSION}" > tmp_auto_notes.md
-              # Strip title (release 'name' already shows it) and footer (workflow appends its own)
               sed '/^## 🧅/d; /^\*\*Full Changelog\*\*/d' tmp_auto_notes.md > release_notes.md
-              # Remove trailing --- and blank lines left by the script footer
               while [ -s release_notes.md ]; do
                 LAST_LINE=$(tail -1 release_notes.md)
                 case "$(printf '%s' "$LAST_LINE" | tr -d '[:space:]')" in
@@ -507,7 +515,7 @@ jobs:
             else
               echo "### Changes" > release_notes.md
               echo "" >> release_notes.md
-              PREV_TAG=$(git tag --sort=-v:refname | grep -v "^v${VERSION}$" | head -1)
+              PREV_TAG=$(git tag --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | grep -v "^v${VERSION}$" | head -1)
               [ -z "$PREV_TAG" ] && PREV_TAG=$(git rev-list --max-parents=0 HEAD)
               git log --pretty=format:"- %s (\`%h\`) by %an" "${PREV_TAG}..HEAD" >> release_notes.md || echo "- Initial release" >> release_notes.md
               echo "" >> release_notes.md
@@ -565,7 +573,7 @@ jobs:
           echo "" >> release_notes.md
           echo "---" >> release_notes.md
           echo "" >> release_notes.md
-          PREV_TAG=$(git tag --sort=-v:refname | grep -v "^v${VERSION}$" | head -1)
+          PREV_TAG=$(git tag --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | grep -v "^v${VERSION}$" | head -1)
           [ -z "$PREV_TAG" ] && PREV_TAG="v1.0.0"
           echo "**Full Changelog**: https://github.com/${{ github.repository }}/compare/${PREV_TAG}...v${VERSION}" >> release_notes.md
 
