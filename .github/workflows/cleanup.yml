@@ -43,7 +43,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 📥 Checkout Repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: 🪄 Clean Docker Hub Tags
         env:
@@ -66,7 +66,6 @@ jobs:
           ALL_TAGS=$(curl -s -H "Authorization: JWT $TOKEN" \
             "https://hub.docker.com/v2/repositories/$REPOSITORY/tags/?page_size=100")
 
-          # Filter out moving tags and count only the real version tags
           VERSION_TAGS=$(echo "$ALL_TAGS" | jq -r '.results | sort_by(.last_updated) | reverse | .[].name' | grep -E -v "^(latest|edge)$" || true)
 
           COUNT=$(echo "$VERSION_TAGS" | wc -w)

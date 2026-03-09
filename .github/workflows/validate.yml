@@ -40,7 +40,7 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: 🐳 Lint Dockerfile with Hadolint
         uses: hadolint/hadolint-action@v3.3.0
@@ -61,8 +61,6 @@ jobs:
           echo "🔍 Checking Shell Script Syntax"
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo ""
-          
-          # Check main entrypoint script
           if [ -f docker-entrypoint.sh ]; then
             echo "📄 Checking docker-entrypoint.sh..."
             sh -n docker-entrypoint.sh || exit 1
@@ -72,11 +70,9 @@ jobs:
           echo ""
           echo "📁 Checking tools directory (no .sh extension)..."
 
-          # Check if tools directory exists
           if [ ! -d "tools" ]; then
             echo "   ⚠️  tools/ directory not found"
           else
-            # Check all files in tools/ (no .sh extension)
             TOOL_COUNT=0
             for script in tools/status tools/health tools/fingerprint tools/bridge-line tools/gen-auth tools/gen-family; do
               if [ -f "$script" ]; then
@@ -89,7 +85,7 @@ jobs:
             echo ""
             echo "   ✅ All $TOOL_COUNT tool scripts validated"
           fi
-          
+
           echo ""
           echo "🎉 Shell script syntax validation complete"
 
@@ -104,14 +100,11 @@ jobs:
           echo "🔎 Running ShellCheck Static Analysis"
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo ""
-          
-          # ShellCheck main scripts
           if [ -f docker-entrypoint.sh ]; then
             echo "🔍 ShellCheck: docker-entrypoint.sh"
             shellcheck -S warning docker-entrypoint.sh || true
           fi
 
-          # ShellCheck all tools (no .sh extension)
           if [ -d "tools" ]; then
             echo ""
             echo "🔍 ShellCheck: tools/*"
@@ -122,7 +115,7 @@ jobs:
               fi
             done
           fi
-          
+
           echo ""
           echo "✅ ShellCheck analysis complete"
 
@@ -141,15 +134,12 @@ jobs:
           HAS_SH_EXT=0
           NO_EXT_COUNT=0
 
-          # Check all files in tools/
           for file in tools/*; do
             [ -f "$file" ] || continue
 
             filename=$(basename "$file")
 
-            # Check if it's a shell script (has shebang)
             if head -1 "$file" 2>/dev/null | grep -q "^#!/"; then
-              # Tools should NOT have .sh extension
               if echo "$filename" | grep -q '\.sh$'; then
                 echo "❌ Tool should NOT have .sh extension: $filename"
                 HAS_SH_EXT=1
@@ -168,7 +158,7 @@ jobs:
           if [ $HAS_SH_EXT -eq 1 ]; then
             echo "❌ Some tools have .sh extension (should not have it)"
             exit 1
-          elif [ $NO_EXT_COUNT -lt 5 ]; then
+          elif [ $NO_EXT_COUNT -lt 6 ]; then
             echo "❌ Expected 6 tools (status, health, fingerprint, bridge-line, gen-auth, gen-family)"
             exit 1
           else
@@ -257,7 +247,7 @@ jobs:
 
     steps:
       - name: 📥 Checkout Repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: 🖥️ Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -288,7 +278,7 @@ jobs:
           echo "📦 Image size: $(du -h /tmp/tor-relay-test.tar | cut -f1)"
 
       - name: ⬆️ Upload Image Artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v4
         with:
           name: docker-image
           path: /tmp/tor-relay-test.tar
@@ -301,10 +291,10 @@ jobs:
 
     steps:
       - name: 📥 Checkout Repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: ⬇️ Download Docker Image
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v4
         with:
           name: docker-image
           path: /tmp
@@ -409,10 +399,10 @@ jobs:
 
     steps:
       - name: 📥 Checkout Repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: ⬇️ Download Docker Image
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v4
         with:
           name: docker-image
           path: /tmp
@@ -510,7 +500,7 @@ jobs:
         continue-on-error: true
 
       - name: ⬆️ Upload Full Report Artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v4
         with:
           name: trivy-security-report
           path: trivy-full-report.json
@@ -555,10 +545,10 @@ jobs:
 
     steps:
       - name: 📥 Checkout Repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: ⬇️ Download Docker Image
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v4
         with:
           name: docker-image
           path: /tmp
@@ -617,7 +607,6 @@ jobs:
               if [ -f \"\$tool\" ]; then
                 BASENAME=\$(basename \"\$tool\")
                 echo \"🔍 Testing \$BASENAME...\"
-                # Tools require Tor to be running, just verify they're executable
                 test -x \"\$tool\" && echo \"  ✅ \$BASENAME is executable\" || exit 1
               fi
             done
@@ -680,4 +669,3 @@ jobs:
         run: |
           echo "❌ Build pipeline failed - check logs above for details"
           exit 1
-

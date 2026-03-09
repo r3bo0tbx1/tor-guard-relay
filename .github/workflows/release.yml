@@ -29,12 +29,12 @@ on:
           - major
           - minor
           - patch
+  workflow_run:
+    workflows: ['🗑️🧹']
+    types: [completed]
   schedule:
     - cron: '30 18 * * 0'
     - cron: '0 12 */3 * *'
-  push:
-    tags:
-      - 'v*.*.*'
 
 permissions:
   contents: read
@@ -57,10 +57,11 @@ jobs:
       build_date: ${{ steps.version.outputs.build_date }}
       short_sha: ${{ steps.version.outputs.short_sha }}
       build_variants: ${{ steps.version.outputs.build_variants }}
+      skip: ${{ steps.version.outputs.skip }}
 
     steps:
       - name: 📥 Checkout Repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -78,12 +79,25 @@ jobs:
             git tag --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1 || echo "v1.0.0"
           }
 
-          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
-            VERSION="${GITHUB_REF#refs/tags/v}"
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_run" && "${{ github.event.workflow_run.conclusion }}" == "success" ]]; then
+            if [[ "${{ github.event.workflow_run.event }}" != "push" ]]; then
+              echo "⏭️ Cleanup was triggered by '${{ github.event.workflow_run.event }}', not a tag push — skipping"
+              echo "skip=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            TRIGGER_SHA="${{ github.event.workflow_run.head_sha }}"
+            VERSION=$(git tag --sort=-v:refname --points-at "${TRIGGER_SHA}" | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1 || true)
+            if [ -z "${VERSION}" ]; then
+              echo "⏭️ No semver tag on triggering commit — skipping"
+              echo "skip=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            VERSION="${VERSION#v}"
             BUILD_TYPE="release"
             IS_RELEASE="true"
             BUILD_VARIANTS="both"
-            echo "🏷️ Release tag detected: v${VERSION}"
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+            echo "🏷️ Release tag detected via cleanup completion: v${VERSION}"
           elif [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
             BUILD_MODE="${{ github.event.inputs.build_mode }}"
             BUILD_VARIANTS="${{ github.event.inputs.variants }}"
@@ -152,8 +166,9 @@ jobs:
       contents: read
       packages: write
     if: |
-      github.event_name != 'workflow_run' ||
-      github.event.workflow_run.conclusion == 'success'
+      needs.determine-version.outputs.skip != 'true' &&
+      (github.event_name != 'workflow_run' ||
+      github.event.workflow_run.conclusion == 'success')
     strategy:
       fail-fast: false
       matrix:
@@ -173,7 +188,7 @@ jobs:
 
     steps:
       - name: 📥 Checkout Repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: 🎯 Check if variant should be built
         id: should_build
@@ -448,7 +463,7 @@ jobs:
 
     steps:
       - name: 📥 Checkout Repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
