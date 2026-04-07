@@ -16,6 +16,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.8] - 2026-04-03
+
+### ⚡ Improvements
+
+- **HEALTHCHECK Interval**: Reduced Docker healthcheck interval from 10 minutes to 5 minutes for faster failure detection. Container unhealthy state now detected in ~15 minutes (5m × 3 retries) instead of 30 minutes.
+- **Health Tool Enhancement**: Added `tor_version` and `relay_mode` fields to JSON output of the `health` diagnostic tool for better monitoring and automation support.
+- **README Optimization**: Trimmed README.md from 1,084 lines to 749 lines (31% reduction) for better scannability. Removed redundant content (Mermaid flowchart, gallery, star history) already available in dedicated documentation files. All information remains accessible through documentation links.
+
+### 🔒 Validation
+
+- **TOR_FAMILY_ID Validation**: Added strict validation for the `TOR_FAMILY_ID` environment variable. The entrypoint now validates that FamilyId values are exactly 52 characters and properly base32-encoded (uppercase A-Z and digits 2-7 only). Invalid values fail fast with clear error messages.
+
+### 🐛 Fixed
+
+- **Exit Mode ENV Config**: Fixed `TOR_EXIT_POLICY` environment variable handling in exit mode. The entrypoint now correctly generates `ExitPolicy` directives in torrc (e.g., `ExitPolicy reject *:*`) instead of bare policy rules. Exit relays now work with ENV-based configuration.
+- **mktemp Portability**: Fixed `mktemp` usage in entrypoint to be POSIX-compliant by removing non-portable `-t` flag, improving compatibility across different shell environments.
+
+### ⚙️ Changed
+
+- **Version Bump**: Updated version string from v1.1.7 to v1.1.8 in startup banner and documentation.
+
+> **BREAKING CHANGES:** None. All changes are backward compatible. `TOR_FAMILY_ID` validation only applies to ENV-based configurations; mounted torrc files are unaffected.
+
+---
+
 ## [1.1.7] - 2026-03-02
 
 ### 🎉 Happy Family Support (Tor 0.4.9+)
@@ -503,7 +528,7 @@ BREAKING CHANGES: None
 ## 📊 Release Information
 
 * **🎉 First Release:** v1.0.0 (November 1, 2025)
-* **📦 Current Stable:** v1.1.7 (March 2, 2026)
+* **📦 Current Stable:** v1.1.8 (April 3, 2026)
 * **🔗 Latest Release:** [GitHub Releases](https://github.com/r3bo0tbx1/tor-guard-relay/releases/latest)
 * **🐳 Docker Images:**
 
@@ -516,7 +541,8 @@ BREAKING CHANGES: None
 
 | Version   | Status                | Support Level                               |
 | --------- | --------------------- | ------------------------------------------- |
-| **1.1.7** | 🟢 🛡️ **Active**     | Full support (current stable)               |
+| **1.1.8** | 🟢 🛡️ **Active**     | Full support (current stable)               |
+| **1.1.7** | 🟡 📦 **Maintenance** | Security updates only                       |
 | **1.1.6** | 🟡 🔧 **Maintenance** | Security + critical fixes only              |
 | **< 1.1.5** | 🔴 ❌ **Deprecated**   | Removed - contains CVE-2025-15467 (OpenSSL CVSS 9.8). Upgrade immediately. |
 
@@ -524,6 +550,7 @@ BREAKING CHANGES: None
 
 ## 🔗 Release Links
 
+[1.1.8]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.1.8
 [1.1.7]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.1.7
 [1.1.6]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.1.6
 [1.1.5]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.1.5

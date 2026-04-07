@@ -9,7 +9,7 @@
       "environment": [
         "TOR_RELAY_MODE=exit",
         "TOR_NICKNAME=MyExitRelay",
-        "TOR_CONTACT_INFO=email:admin[]example.com ciissversion:2",
+        "TOR_CONTACT_INFO=email:admin[]example.com ciissversion:3",
         "TOR_ORPORT=9001",
         "TOR_DIRPORT=0",
         "TOR_BANDWIDTH_RATE=50 MBytes",
@@ -58,7 +58,7 @@
         "cosmos-icon": "https://raw.githubusercontent.com/r3bo0tbx1/tor-guard-relay/refs/heads/main/src/exit.png",
         "cosmos-auto-update": "true",
         "cosmos-force-network-secured": "false",
-        "cosmos-version": "1.1.7"
+        "cosmos-version": "1.1.8"
       }
     }
   },

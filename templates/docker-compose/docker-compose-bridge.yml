@@ -9,7 +9,7 @@ services:
     environment:
       TOR_RELAY_MODE: bridge
       TOR_NICKNAME: MyTorBridge
-      TOR_CONTACT_INFO: "email:your-email[]example.com ciissversion:2"
+      TOR_CONTACT_INFO: "email:your-email[]example.com ciissversion:3"
       TOR_ORPORT: 9001
       TOR_OBFS4_PORT: 9002
       TOR_BANDWIDTH_RATE: "10 MBytes"
@@ -36,7 +36,7 @@ services:
     labels:
       com.centurylinklabs.watchtower.enable: "true"
       description: "Tor obfs4 Bridge"
-      version: "1.1.7"
+      version: "1.1.8"
       maintainer: "rE-Bo0t.bx1 <r3bo0tbx1@brokenbotnet.com>"
 
 volumes:

@@ -50,7 +50,7 @@ cleanup_and_exit() {
 
 startup_banner() {
   log "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-  log "🧅 Tor Guard Relay v1.1.7 - Initialization"
+  log "🧅 Tor Guard Relay v1.1.8 - Initialization"
   log "https://github.com/r3bo0tbx1/tor-guard-relay"
   log "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
   log ""
@@ -177,6 +177,16 @@ validate_relay_config() {
       fi
     fi
   done
+
+  if [ -n "${TOR_FAMILY_ID:-}" ]; then
+    family_id_len=$(printf "%s" "$TOR_FAMILY_ID" | wc -c)
+    if [ "$family_id_len" -ne 52 ]; then
+      die "TOR_FAMILY_ID must be exactly 52 characters (got: $family_id_len)"
+    fi
+    if ! printf "%s" "$TOR_FAMILY_ID" | grep -qE '^[A-Z2-7]{52}$'; then
+      die "TOR_FAMILY_ID must be base32-encoded (uppercase A-Z and digits 2-7 only)"
+    fi
+  fi
 }
 
 phase_3_configuration() {
@@ -255,7 +265,7 @@ ExitRelay 1
 BridgeRelay 0
 
 # Exit policy (default: reduced exit)
-${TOR_EXIT_POLICY:-ExitPolicy reject *:*}
+ExitPolicy ${TOR_EXIT_POLICY:-reject *:*}
 
 # Bandwidth (optional)
 EOF
@@ -352,7 +362,7 @@ phase_4_validation() {
   }
   trap cleanup_verify_tmp EXIT
 
-  VERIFY_TMP=$(mktemp -t tor-verify.XXXXXX)
+  VERIFY_TMP=$(mktemp /tmp/tor-verify.XXXXXX)
 
   if ! tor --verify-config -f "$TOR_CONFIG" >"$VERIFY_TMP" 2>&1; then
     warn "Configuration validation failed!"

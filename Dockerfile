@@ -93,7 +93,7 @@ USER tor
 
 EXPOSE 9001 9002
 
-HEALTHCHECK --interval=10m --timeout=15s --start-period=30s --retries=3 \
+HEALTHCHECK --interval=5m --timeout=15s --start-period=30s --retries=3 \
   CMD /usr/local/bin/healthcheck.sh
 
 ENTRYPOINT ["/sbin/tini", "--", "/usr/local/bin/docker-entrypoint.sh"]

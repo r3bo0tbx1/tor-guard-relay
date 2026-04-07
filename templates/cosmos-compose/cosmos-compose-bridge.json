@@ -9,7 +9,7 @@
       "environment": [
         "TOR_RELAY_MODE=bridge",
         "TOR_NICKNAME=MyTorBridge",
-        "TOR_CONTACT_INFO=email:admin[]example.com ciissversion:2",
+        "TOR_CONTACT_INFO=email:admin[]example.com ciissversion:3",
         "TOR_ORPORT=9001",
         "TOR_OBFS4_PORT=9002"
       ],
@@ -54,7 +54,7 @@
         "cosmos-description": "🧅 Tor obfs4 Bridge - ENV-based config",
         "cosmos-icon": "https://raw.githubusercontent.com/r3bo0tbx1/tor-guard-relay/refs/heads/main/src/obfs4.png",
         "cosmos-force-network-secured": "false",
-        "cosmos-version": "1.1.7"
+        "cosmos-version": "1.1.8"
       }
     }
   },

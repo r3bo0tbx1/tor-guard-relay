@@ -163,7 +163,7 @@ Auto-update version numbers across all documentation, templates, and configurati
    - Format: `## [v1.1.2] - 2025-01-14`
 
 3. **templates/*.yml** (Docker Compose)
-   - `image:` tags from `onion-relay:1.1.6` → `onion-relay:1.1.7`
+   - `image:` tags from `onion-relay:1.1.6` → `onion-relay:1.1.8`
 
 4. **templates/*.json** (Cosmos Cloud)
    - `"image":` fields in JSON templates
@@ -515,13 +515,13 @@ sed -i 's/1.1.1/1.1.2/g' path/to/file
 **Solution:**
 ```bash
 # Ensure image exists locally or in registry
-docker pull ghcr.io/r3bo0tbx1/onion-relay:1.1.7
+docker pull ghcr.io/r3bo0tbx1/onion-relay:1.1.8
 
 # Generate SBOM locally for testing
 docker run --rm \
   -v /var/run/docker.sock:/var/run/docker.sock \
   anchore/syft:latest \
-  ghcr.io/r3bo0tbx1/onion-relay:1.1.7 \
+  ghcr.io/r3bo0tbx1/onion-relay:1.1.8 \
   -o cyclonedx-json
 ```
 

@@ -4,7 +4,7 @@
 
 set -e
 
-echo "🔐 Security Validation Tests - Tor Guard Relay v1.1.7"
+echo "🔐 Security Validation Tests - Tor Guard Relay v1.1.8"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 
@@ -25,9 +25,6 @@ test_warn() {
   echo "  ⚠️  WARN: $1"
 }
 
-# ============================================================================
-# Test 1: Dockerfile Security
-# ============================================================================
 echo "Test 1: Dockerfile Security Configuration"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
@@ -49,7 +46,6 @@ else
   test_fail "No init system - zombie processes possible"
 fi
 
-# Check for minimal dependencies (busybox-only for tools)
 if grep -q "python3\|py3-pip\|bash" Dockerfile; then
   test_fail "Bloated dependencies detected (python3/bash)"
 else
@@ -64,9 +60,6 @@ fi
 
 echo ""
 
-# ============================================================================
-# Test 2: Entrypoint Script Security
-# ============================================================================
 echo "Test 2: Entrypoint Script Security"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
@@ -95,14 +88,12 @@ if [ -f docker-entrypoint.sh ]; then
     test_fail "No config validation - may start with bad config"
   fi
 
-  # Check for secure temp file handling
   if grep -q "mktemp" docker-entrypoint.sh; then
     test_pass "Using mktemp for temporary files"
   else
     test_warn "May use predictable temp file paths"
   fi
 
-  # Check for proper permission setting
   if grep -q "chmod.*chown" docker-entrypoint.sh; then
     chmod_line=$(grep -n "chmod.*TOR_DATA_DIR" docker-entrypoint.sh | head -1 | cut -d: -f1 || echo "999")
     chown_line=$(grep -n "chown.*TOR_DATA_DIR" docker-entrypoint.sh | head -1 | cut -d: -f1 || echo "1")
@@ -119,13 +110,9 @@ fi
 
 echo ""
 
-# ============================================================================
-# Test 3: Tool Scripts Security
-# ============================================================================
 echo "Test 3: Tool Scripts Security"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-# Check for 4 essential tools
 for tool in status health fingerprint bridge-line gen-family; do
   if [ -f "tools/$tool" ]; then
     if head -1 "tools/$tool" | grep -q "^#!/bin/sh"; then
@@ -133,8 +120,6 @@ for tool in status health fingerprint bridge-line gen-family; do
     else
       test_fail "tools/$tool not POSIX-compliant"
     fi
-
-    # Check for numeric sanitization (prevents "bad number" errors)
     if grep -q "sanitize_num\|tr -cd '0-9'" "tools/$tool"; then
       test_pass "tools/$tool has numeric sanitization"
     else
@@ -145,7 +130,6 @@ for tool in status health fingerprint bridge-line gen-family; do
   fi
 done
 
-# Check for no .sh extensions (cleaner UX)
 if ls tools/*.sh >/dev/null 2>&1; then
   test_fail "Tools have .sh extensions (should be removed)"
 else
@@ -154,26 +138,20 @@ fi
 
 echo ""
 
-# ============================================================================
-# Test 4: Configuration File Security
-# ============================================================================
 echo "Test 4: Configuration File Security"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-# Check example configs
 for mode in guard exit bridge; do
   config="examples/relay-${mode}.conf"
   if [ -f "$config" ]; then
     test_pass "$config exists"
 
-    # Check for required directives
     if grep -q "^Nickname" "$config" && grep -q "^ContactInfo" "$config"; then
       test_pass "$config has required directives"
     else
       test_warn "$config missing Nickname or ContactInfo"
     fi
 
-    # Exit relay should have ExitPolicy
     if [ "$mode" = "exit" ]; then
       if grep -q "^ExitPolicy" "$config"; then
         test_pass "$config has ExitPolicy (exit relay)"
@@ -182,7 +160,6 @@ for mode in guard exit bridge; do
       fi
     fi
 
-    # Bridge should have BridgeRelay and ExitPolicy reject
     if [ "$mode" = "bridge" ]; then
       if grep -q "^BridgeRelay 1" "$config"; then
         test_pass "$config configured as bridge"
@@ -200,36 +177,29 @@ done
 
 echo ""
 
-# ============================================================================
-# Test 5: Docker Compose Security
-# ============================================================================
 echo "Test 5: Docker Compose Templates"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
 for template in templates/docker-compose-*.yml; do
   if [ -f "$template" ]; then
-    # Check for network_mode: host (Tor best practice)
     if grep -q "network_mode: host" "$template"; then
       test_pass "$(basename "$template"): uses host networking"
     else
       test_warn "$(basename "$template"): not using host networking"
     fi
 
-    # Check for volume mounts
     if grep -q "/var/lib/tor" "$template" && grep -q "/var/log/tor" "$template"; then
       test_pass "$(basename "$template"): has data/log volumes"
     else
       test_warn "$(basename "$template"): missing volume mounts"
     fi
 
-    # Check for :ro on config mount
     if grep -q "/etc/tor/torrc:ro" "$template"; then
       test_pass "$(basename "$template"): config mounted read-only"
     else
       test_warn "$(basename "$template"): config not read-only"
     fi
 
-    # Check for removed monitoring vars
     if grep -q "ENABLE_METRICS\|ENABLE_NET_CHECK\|METRICS_PORT" "$template"; then
       test_fail "$(basename "$template"): has old monitoring ENV vars"
     else
@@ -240,9 +210,6 @@ done
 
 echo ""
 
-# ============================================================================
-# Test 6: .gitattributes Line Endings
-# ============================================================================
 echo "Test 6: Line Ending Configuration"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
@@ -266,9 +233,6 @@ fi
 
 echo ""
 
-# ============================================================================
-# Test 7: Documentation Security
-# ============================================================================
 echo "Test 7: Documentation"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
@@ -287,7 +251,6 @@ else
 fi
 
 if [ -f docs/TOOLS.md ]; then
-  # Should mention 4 tools, not 9
   if grep -q "4.*tools\|four.*tools" docs/TOOLS.md; then
     test_pass "TOOLS.md documents 4 tools"
   else
@@ -297,9 +260,6 @@ fi
 
 echo ""
 
-# ============================================================================
-# Test 8: Syntax Validation
-# ============================================================================
 echo "Test 8: Shell Script Syntax"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
@@ -334,9 +294,6 @@ fi
 
 echo ""
 
-# ============================================================================
-# Test 9: No Sensitive Data in Repo
-# ============================================================================
 echo "Test 9: Sensitive Data Check"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
@@ -356,7 +313,6 @@ else
   test_fail ".gitignore missing"
 fi
 
-# Check for accidentally committed secrets
 if [ -f .secrets ] || [ -f .env ]; then
   test_fail "Secrets file found in repo!"
 else
@@ -365,9 +321,6 @@ fi
 
 echo ""
 
-# ============================================================================
-# Test 10: Build Optimization
-# ============================================================================
 echo "Test 10: Build Optimization"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
@@ -391,9 +344,6 @@ fi
 
 echo ""
 
-# ============================================================================
-# Summary
-# ============================================================================
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "Test Results Summary"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

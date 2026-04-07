@@ -13,7 +13,7 @@
 
 **A hardened, production-ready Tor relay with built-in diagnostics and monitoring**
 
-[Quick Start](#-quick-start) • [Features](#-key-features) • [Documentation](#-documentation) • [FAQ](docs/FAQ.md) • [Architecture](docs/ARCHITECTURE.md) • [Tools](#-diagnostic-tools) • [Contributing](#-contributing)
+[Quick Start](#-quick-start) • [Features](#-key-features) • [Documentation](#-documentation) • [Gallery](#️-gallery) • [FAQ](docs/FAQ.md) • [Architecture](docs/ARCHITECTURE.md) • [Tools](#-diagnostic-tools) • [Contributing](#-contributing)
 
 </div>
 
@@ -157,11 +157,11 @@ We offer **two build variants** to match your risk tolerance and requirements:
 ```bash
 # Pull from Docker Hub (easiest)
 docker pull r3bo0tbx1/onion-relay:latest
-docker pull r3bo0tbx1/onion-relay:1.1.7
+docker pull r3bo0tbx1/onion-relay:1.1.8
 
 # Pull from GHCR
 docker pull ghcr.io/r3bo0tbx1/onion-relay:latest
-docker pull ghcr.io/r3bo0tbx1/onion-relay:1.1.7
+docker pull ghcr.io/r3bo0tbx1/onion-relay:1.1.8
 ```
 
 ### Edge Variant (Testing Only)
@@ -180,7 +180,7 @@ docker pull r3bo0tbx1/onion-relay:edge
 
 # Pull from GHCR
 docker pull ghcr.io/r3bo0tbx1/onion-relay:edge
-docker pull ghcr.io/r3bo0tbx1/onion-relay:1.1.7-edge
+docker pull ghcr.io/r3bo0tbx1/onion-relay:1.1.8-edge
 ```
 
 **When to use edge:**
@@ -188,17 +188,6 @@ docker pull ghcr.io/r3bo0tbx1/onion-relay:1.1.7-edge
 - 🛡️ Security research requiring latest packages
 - 🧪 Non-production test environments
 - 🚀 Early adopters willing to accept potential breakage
-
-**Stability comparison:**
-
-| Feature | Stable | Edge |
-|---------|--------|------|
-| Production ready | ✅ Yes | ❌ No |
-| Breaking changes | ❌ Rare | ⚠️ Possible |
-| Security updates | Weekly | Every 3 days |
-| Package versions | 3.23.3 | Bleeding edge |
-| Docker Hub | ✅ Yes | ✅ Yes |
-| GHCR | ✅ Yes | ✅ Yes |
 
 > 💡 **Our recommendation:** Use **stable** for production relays, **edge** only for testing or when you specifically need the latest package versions.
 
@@ -270,12 +259,6 @@ Example JSON:
 
 ## 📊 Monitoring and Observability
 
-<br>
-<div align="center">
-  <img src="src/screenshots/nyx.png" alt="Nyx Monitor Interface"/>
-</div>
-<br>
-
 **Real-time CLI monitoring and external observability** are supported for minimal image size and maximum security.
 
 ### Real-Time Monitoring (Nyx)
@@ -304,26 +287,6 @@ docker exec tor-relay health | jq .
 ```
 
 > **Note:** `jq` must be installed on your HOST machine (`apt install jq` / `brew install jq`), NOT in the container.
-
-### Integration Examples
-
-**Prometheus Node Exporter:**
-```bash
-# Use textfile collector (requires jq on host)
-docker exec tor-relay health | jq -r '
-  "tor_bootstrap_percent \(.bootstrap)",
-  "tor_reachable \(if .reachable == "true" then 1 else 0 end)"
-' > /var/lib/node_exporter/tor.prom
-```
-
-**Nagios/Icinga:**
-```bash
-#!/bin/bash
-# Requires jq on host machine
-HEALTH=$(docker exec tor-relay health)
-STATUS=$(echo "$HEALTH" | jq -r '.status')
-[ "$STATUS" = "healthy" ] && exit 0 || exit 2
-```
 
 > 📖 **Complete guide:** See [Monitoring Documentation](docs/MONITORING.md) for Prometheus, Grafana, alert integration, and observability setup.
 
@@ -377,22 +340,22 @@ STATUS=$(echo "$HEALTH" | jq -r '.status')
 **Comprehensive documentation** organized by topic:
 
 ### Getting Started
-- **[FAQ](docs/FAQ.md)** - ⭐ **NEW!** Frequently asked questions with factual answers
-- **[Quick Start Script](scripts/utilities/quick-start.sh)** - ⭐ **NEW!** Interactive relay deployment wizard
-- **[Migration Assistant](scripts/migration/migrate-from-official.sh)** - ⭐ **NEW!** Automated migration from thetorproject/obfs4-bridge
-- **[Deployment Guide](docs/DEPLOYMENT.md)** - ✨ **UPDATED!** Complete installation for Docker CLI, Compose, Cosmos Cloud, and Portainer
+- **[FAQ](docs/FAQ.md)** - Frequently asked questions with factual answers
+- **[Quick Start Script](scripts/utilities/quick-start.sh)** - Interactive relay deployment wizard
+- **[Migration Assistant](scripts/migration/migrate-from-official.sh)** - Automated migration from thetorproject/obfs4-bridge
+- **[Deployment Guide](docs/DEPLOYMENT.md)** - Complete installation for Docker CLI, Compose, Cosmos Cloud, and Portainer
 - **[Migration Guide](docs/MIGRATION-V1.1.X.md)** - Upgrade to latest or migrate from other Tor setups
 
 ### Technical Reference
-- **[Architecture](docs/ARCHITECTURE.md)** - ⭐ **NEW!** Technical architecture with Mermaid diagrams
-- **[Tools Reference](docs/TOOLS.md)** - ✨ **UPDATED!** Complete guide to all 6 diagnostic tools
-- **[Monitoring Guide](docs/MONITORING.md)** - ✨ **UPDATED!** External monitoring integration, JSON health API, alerts, and observability
-- **[Control Port Guide](docs/CONTROL-PORT.md)** - ⭐ **NEW!** Authentication setup and Nyx integration
+- **[Architecture](docs/ARCHITECTURE.md)** - Technical architecture with Mermaid diagrams
+- **[Tools Reference](docs/TOOLS.md)** - Complete guide to all 6 diagnostic tools
+- **[Monitoring Guide](docs/MONITORING.md)** - External monitoring integration, JSON health API, alerts, and observability
+- **[Control Port Guide](docs/CONTROL-PORT.md)** - Authentication setup and Nyx integration
 - **[Backup Guide](docs/BACKUP.md)** - Data persistence, recovery, and disaster planning
 - **[Performance Guide](docs/PERFORMANCE.md)** - Optimization, tuning, and resource management
 
 ### Legal & Community
-- **[Legal Considerations](docs/LEGAL.md)** - ✨ **UPDATED!** Legal aspects of running a Tor relay
+- **[Legal Considerations](docs/LEGAL.md)** - Legal aspects of running a Tor relay
 - **[Documentation Index](docs/README.md)** - Complete documentation navigation
 
 ### Project Info
@@ -411,7 +374,7 @@ STATUS=$(echo "$HEALTH" | jq -r '.status')
 
 ```ini
 Nickname MyTorRelay
-ContactInfo email:your-email[]example.com url:https://example.com proof:uri-rsa ciissversion:2
+ContactInfo email:your-email[]example.com url:https://example.com proof:uri-familyid-ed25519 ciissversion:3
 ORPort 9001
 ORPort [::]:9001
 DirPort 0
@@ -421,7 +384,7 @@ DataDirectory /var/lib/tor
 Log notice file /var/log/tor/notices.log
 ```
 
-> 📝 **ContactInfo format:** We recommend the [ContactInfo Information Sharing Specification (CIISS) v2](https://nusenu.github.io/ContactInfo-Information-Sharing-Specification/), a machine-readable format that replaces `@` with `[]` and includes structured fields like `email:`, `url:`, `proof:`, `pgp:`, `hoster:`, and more. Use the [CIISS Generator](https://torcontactinfogenerator.netlify.app/) to create yours.
+> 📝 **ContactInfo format:** We recommend the [ContactInfo Information Sharing Specification (CIISS) v3](https://nusenu.github.io/ContactInfo-Information-Sharing-Specification/), a machine-readable format that replaces `@` with `[]` and includes structured fields like `email:`, `url:`, `proof:`, `pgp:`, `hoster:`, and more. Use the [CIISS Generator](https://torcontactinfogenerator.netlify.app/) to create yours.
 
 ### Production Configuration
 
@@ -451,113 +414,27 @@ Tor 0.4.9 introduces **Happy Families**, a cryptographic key-based replacement f
 - Simpler to maintain - one key file instead of N×N fingerprint entries
 - Required for future Arti Relay compatibility
 
-#### Option A: Generate a new family key in Docker
-
-Use this if you don't already have a family key from another setup.
+**Quick setup:**
 
 ```bash
 # 1. Generate a family key (run on any ONE relay container)
 docker exec tor-relay gen-family MyRelays
 
-# 2. Note the FamilyId output - you need it for your torrc
-#    FamilyId <value>
-
-# 3. Copy the key to all your other relay containers
+# 2. Copy the key to other relay containers
 docker cp tor-relay:/var/lib/tor/keys/MyRelays.secret_family_key .
 docker cp MyRelays.secret_family_key other-relay:/var/lib/tor/keys/
 
-# 4. Fix ownership and permissions inside the target container
+# 3. Fix permissions inside the target container
 docker exec -u 0 other-relay chown 100:101 /var/lib/tor/keys/MyRelays.secret_family_key
 docker exec -u 0 other-relay chmod 600 /var/lib/tor/keys/MyRelays.secret_family_key
 
-# ⚠️ If you get a permissions error here (common with Docker volumes or bind mounts),
-# follow the "Troubleshooting: Family Key Permissions" section below to set permissions on the host instead.
-
-# 5. **Add FamilyId to each relay's torrc, then restart**
+# 4. Add FamilyId to each relay's torrc, then restart
 docker restart tor-relay other-relay
 ```
----
 
-#### Option B: Import an existing family key into Docker
+**Torrc configuration:**
 
-Use this if you already generated a family key on a bare-metal or source-built Tor relay and want to use the same key for your Docker relays.
-
-```bash
-# 1. Transfer the .secret_family_key file to your Docker host
-#    (via scp, sftp, or any secure method)
-scp user@source-server:/var/lib/tor/keys/MyRelays.secret_family_key ~/tor-keys/
-
-# 2. Copy the key into each running container (no restart needed yet)
-docker cp ~/tor-keys/MyRelays.secret_family_key tor-relay:/var/lib/tor/keys/
-
-# 3. Fix ownership and permissions inside the container
-#    The tor user in the container runs as UID 100, GID 101
-docker exec -u 0 tor-relay chown 100:101 /var/lib/tor/keys/MyRelays.secret_family_key
-docker exec -u 0 tor-relay chmod 600 /var/lib/tor/keys/MyRelays.secret_family_key
-
-# ⚠️ If you get a permissions error here (common with Docker volumes or bind mounts),
-# follow the "Troubleshooting: Family Key Permissions" section below to set permissions on the host instead.
-
-# 4. Verify the key is in place
-docker exec tor-relay ls -la /var/lib/tor/keys/MyRelays.secret_family_key
-
-# 5. Add the FamilyId line to your torrc (same value from your source server)
-#    FamilyId <your-family-id-value>
-#    Keep your existing MyFamily lines during the transition period
-
-# 6. Restart the container to pick up the config change
-docker restart tor-relay
-```
-
-Repeat steps 2-6 for each container that should be in the family.
-
-> **This is safe for running containers.** `docker cp` writes directly into the named Docker volume. Your relay identity keys, family key, and all data persist in the volume across container restarts, image updates, and `docker compose up --force-recreate`. Volumes are **only** deleted if you explicitly run `docker volume rm` or `docker compose down -v`.
-
----
-
-### Troubleshooting: Family Key Permissions (Docker Volumes & Bind Mounts)
-
-If you see a permissions error when running the in-container `chmod` or `chown` commands, set the permissions directly on the host:
-
-How to fix:
-
-1. **Find your volume name**  
-  Replace `<relay>` with part of your relay/container name:
-  ```bash
-  docker volume ls | grep -i <relay>
-  ```
-
-2. **Get the volume name for `/var/lib/tor`**  
-  Replace `<container>` with your container name:
-  ```bash
-  docker inspect <container> --format '{{range .Mounts}}{{if eq .Destination "/var/lib/tor"}}{{.Name}}{{end}}{{end}}'
-  ```
-
-3. **Set permissions on the host**  
-  Replace `<volume>` and `<keyfile>` with your actual values:
-  ```bash
-  sudo chmod 600 "$(docker volume inspect <volume> --format '{{.Mountpoint}}')/keys/<keyfile>"
-  ```
-
-4. **Verify inside the container**  
-  ```bash
-  docker exec <container> ls -la /var/lib/tor/keys/<keyfile>
-  ```
-  You should see:
-  ```
-  -rw-------    1 tor      tor
-  ```
-
-**Why is this needed?**  
-Docker containers may not be able to change file permissions on mounted volumes, depending on your host OS or Docker setup. Setting permissions on the host ensures Tor can read the key securely.
-
-> **Tip:** Always replace `<relay>`, `<container>`, `<volume>`, and `<keyfile>` with your actual names.
-
----
-
-#### Torrc configuration
-
-During the transition period, configure **both** `FamilyId` and `MyFamily` in your torrc:
+During the transition period, configure **both** `FamilyId` and `MyFamily`:
 
 ```ini
 # Happy Family (Tor 0.4.9+)
@@ -570,7 +447,7 @@ MyFamily 1F3E5D7C9B0A2F4E6D8C0B2A4F6E8D0C2B4A6F8E
 
 The Tor Project will announce when `MyFamily` can be removed.
 
-#### ENV-based config (alternative to mounted torrc)
+**ENV-based config (alternative to mounted torrc):**
 
 ```yaml
 environment:
@@ -578,21 +455,9 @@ environment:
   TOR_MY_FAMILY: "FINGERPRINT1,FINGERPRINT2,FINGERPRINT3"
 ```
 
-#### Key persistence
-
-The `.secret_family_key` file lives in `/var/lib/tor/keys/` inside your data volume. It persists across container restarts and image updates automatically.
-
-| Scenario | Identity preserved? | Family key preserved? |
-|----------|:---:|:---:|
-| `docker restart` | ✅ | ✅ |
-| `docker compose up --force-recreate` | ✅ | ✅ |
-| `docker compose down` then `up` | ✅ | ✅ |
-| `docker compose down -v` | ❌ | ❌ |
-| `docker volume rm <volume>` | ❌ | ❌ |
-
 > ⚠️ **Treat the `.secret_family_key` like a private key.** Anyone with this file can claim their relay belongs to your family. Back it up securely - losing it means regenerating for all relays.
 
-> 📖 **Official docs:** [Tor Happy Family Guide](https://community.torproject.org/relay/setup/post-install/family-ids/)
+> 📖 **Full guide with troubleshooting:** See [Deployment Guide](docs/DEPLOYMENT.md#happy-family) | **Official docs:** [Tor Happy Family Guide](https://community.torproject.org/relay/setup/post-install/family-ids/)
 
 ---
 
@@ -677,28 +542,10 @@ docker exec tor-relay gen-family --show
 | Problem | Quick Fix |
 |---------|-----------|
 | Container won't start | Check logs: `docker logs tor-relay` |
-| Permission / ownership errors | See **Bind Mount Ownership** below |
+| Permission / ownership errors | See [Deployment Guide](docs/DEPLOYMENT.md#bind-mount-ownership) |
 | ORPort not reachable | Verify firewall: `sudo ufw allow 9001/tcp` |
 | Not on Tor Metrics | Wait 24h, verify bootstrap complete |
 | Low/no traffic | Normal for new relays (2-8 weeks to build reputation) |
-
-### Bind Mount Ownership
-
-If you use **host bind mounts** (e.g. `-v /my/path:/var/lib/tor`) instead of named Docker volumes, the mounted directories must be owned by the container's `tor` user (**UID 100, GID 101**). Tor will refuse to start if directories have incorrect ownership.
-
-**Symptoms:**
-```
-[warn] /var/lib/tor//keys is not owned by this user (tor, 100) but by <unknown> (99)
-[warn] Failed to parse/validate config: Couldn't access private data directory "/var/lib/tor//keys"
-```
-
-**Fix - set correct ownership on the host:**
-```bash
-chown -R 100:101 /path/to/your/tor-data
-chown -R 100:101 /path/to/your/tor-keys   # if mounted separately
-```
-
-> 💡 **Tip:** Named Docker volumes (e.g. `-v tor-guard-data:/var/lib/tor`) handle ownership automatically and avoid this issue entirely. We recommend using named volumes unless you have a specific reason to use bind mounts.
 
 > 📖 **Full troubleshooting:** See [Tools Documentation](docs/TOOLS.md#troubleshooting) for detailed diagnostic procedures.
 
@@ -706,146 +553,13 @@ chown -R 100:101 /path/to/your/tor-keys   # if mounted separately
 
 ## 🏢 Architecture and Design
 
-> 📐 **NEW:** See the complete [Architecture Documentation](docs/ARCHITECTURE.md) for detailed technical design with Mermaid diagrams covering:
+> 📐 **See the complete [Architecture Documentation](docs/ARCHITECTURE.md)** for detailed technical design with Mermaid diagrams covering:
 > - Container lifecycle and initialization flow (6 phases)
 > - ENV compatibility layer and configuration priority
 > - Config generation for guard/exit/bridge modes with Happy Family support
 > - OBFS4V security validation
 > - Diagnostic tools architecture
 > - Signal handling and graceful shutdown
-
-### Flowchart
-
-```mermaid
-flowchart TB
-    Start([🐳 docker run]) --> Init
-
-    subgraph Init["⚙️ INITIALIZATION"]
-        direction TB
-        Check{"📄 Config File
-        at /etc/tor/torrc?"}
-        
-        Check -->|✅ Mounted| Mount["📁 Use Mounted Config
-        Full Tor Control"]
-        Check -->|❌ No File| Env{"🌐 ENV Variables?
-        NICKNAME + CONTACT_INFO"}
-        
-        Env -->|✅ Set| Generate["⚙️ Auto-Generate torrc
-        from ENV Variables"]
-        Env -->|❌ Missing| Error["❌ ERROR
-        No Configuration Found"]
-        
-        Mount --> Validate
-        Generate --> Validate
-        Validate["🧪 Validate Config
-        tor --verify-config"]
-        Validate -->|❌ Invalid| Error
-    end
-
-    Init -->|✅ Valid Config| ModeSelect
-
-    subgraph ModeSelect["🎯 RELAY MODE SELECTION"]
-        direction LR
-        Mode{TOR_RELAY_MODE}
-        
-        Mode -->|guard| Guard["🛡️ GUARD/MIDDLE
-        ━━━━━━━━━━
-        Routes Traffic
-        ExitRelay 0
-        DirPort Disabled"]
-        Mode -->|exit| Exit["🚪 EXIT RELAY
-        ━━━━━━━━━━
-        Last Hop to Internet
-        ExitRelay 1
-        Custom Exit Policy"]
-        Mode -->|bridge| Bridge["🌉 BRIDGE + obfs4
-        ━━━━━━━━━━
-        Censorship Resistant
-        BridgeRelay 1
-        Lyrebird Transport"]
-    end
-
-    Guard --> Running
-    Exit --> Running
-    Bridge --> Running
-
-    Running(["🟢 TOR RELAY RUNNING"])
-    
-    Running --> Ops
-
-    subgraph Ops["🛠️ OPERATIONS"]
-        direction TB
-        Tools["🔧 Diagnostic Tools
-        via docker exec"]
-        
-        Tools --> Status["📊 status
-        ━━━━━━━━━━
-        Full Health Report
-        Bootstrap Progress
-        Reachability Status"]
-        Tools --> Health["💚 health
-        ━━━━━━━━━━
-        JSON Health API
-        For Monitoring Systems"]
-        Tools --> Finger["🆔 fingerprint
-        ━━━━━━━━━━
-        Show Relay Identity
-        Tor Metrics URL"]
-        Tools --> BLine["🌉 bridge-line
-        ━━━━━━━━━━
-        Get obfs4 Bridge Line
-        Share with Users"]
-        Tools --> GenAuth["🔑 gen-auth
-        ━━━━━━━━━━
-        Generate Control
-        Port Auth Data"]
-        Tools --> GenFamily["👨‍👩‍👧 gen-family
-        ━━━━━━━━━━
-        Happy Family Key
-        Generation & Import"]
-    end
-
-    Running -->|docker stop SIGTERM| Shutdown
-
-    subgraph Shutdown["🧹 GRACEFUL SHUTDOWN"]
-        direction TB
-        Graceful["Close Circuits Cleanly
-        Notify Directory Authorities
-        Save State to Disk
-        Exit Gracefully"]
-    end
-
-    Error --> End([⛔ Container Exits])
-    Graceful --> End2([✅ Clean Stop])
-
-    style Start fill:#4FC3F7,stroke:#0288D1,stroke-width:3px,color:#000
-    style Running fill:#66BB6A,stroke:#388E3C,stroke-width:3px,color:#fff
-    
-    style Mount fill:#81C784,stroke:#388E3C,stroke-width:2px,color:#000
-    style Generate fill:#81C784,stroke:#388E3C,stroke-width:2px,color:#000
-    style Validate fill:#FFD54F,stroke:#F57C00,stroke-width:2px,color:#000
-    style Error fill:#E57373,stroke:#C62828,stroke-width:3px,color:#fff
-    
-    style Guard fill:#64B5F6,stroke:#1976D2,stroke-width:2px,color:#000
-    style Exit fill:#F06292,stroke:#C2185B,stroke-width:2px,color:#fff
-    style Bridge fill:#BA68C8,stroke:#7B1FA2,stroke-width:2px,color:#fff
-    
-    style Status fill:#4DD0E1,stroke:#0097A7,stroke-width:2px,color:#000
-    style Health fill:#4DD0E1,stroke:#0097A7,stroke-width:2px,color:#000
-    style Finger fill:#4DD0E1,stroke:#0097A7,stroke-width:2px,color:#000
-    style BLine fill:#4DD0E1,stroke:#0097A7,stroke-width:2px,color:#000
-    style GenAuth fill:#4DD0E1,stroke:#0097A7,stroke-width:2px,color:#000
-    style GenFamily fill:#4DD0E1,stroke:#0097A7,stroke-width:2px,color:#000
-    
-    style Graceful fill:#FFB74D,stroke:#F57C00,stroke-width:2px,color:#000
-    style End fill:#E57373,stroke:#C62828,stroke-width:2px,color:#fff
-    style End2 fill:#66BB6A,stroke:#388E3C,stroke-width:2px,color:#fff
-    
-    style Init fill:#FFF9C4,stroke:#F9A825,stroke-width:2px
-    style ModeSelect fill:#E1BEE7,stroke:#8E24AA,stroke-width:2px
-    style Ops fill:#B2EBF2,stroke:#00ACC1,stroke-width:2px
-    style Shutdown fill:#FFCCBC,stroke:#E64A19,stroke-width:2px
-```
 
 ### Why Host Network Mode?
 
@@ -906,29 +620,6 @@ See [Contributing Guide](CONTRIBUTING.md) for detailed instructions.
 
 ---
 
-## 📦 Templates and Examples
-
-All templates are in the [`templates/`](templates/) directory:
-
-### Docker Compose
-- [docker-compose.yml](templates/docker-compose/docker-compose.yml) - Single relay
-- [docker-compose-multi-relay.yml](templates/docker-compose/docker-compose-multi-relay.yml) - 3 relays + monitoring
-
-### Cosmos Cloud
-- [cosmos-compose.json](templates/cosmos-compose/cosmos-compose.json) - Single relay
-- [cosmos-compose-multi-relay.json](templates/cosmos-compose/cosmos-compose-multi-relay.json) - Multi-relay stack
-
-### Tor Exit Notice
-You can find them in [`templates/tor-exit-notice`](templates/tor-exit-notice) directory
-
-### Monitoring
-See [Monitoring Guide](docs/MONITORING.md) for external monitoring integration examples with Prometheus, Nagios, and other tools
-
-### Configuration Examples
-See [`examples/`](examples/) directory for relay configurations.
-
----
-
 ## 🔐 Security
 
 ### ⚠️ Version Deprecation Notice
@@ -959,14 +650,14 @@ Images are automatically rebuilt on separate schedules to include security patch
 **Stable Variant** (`:latest`)
 - **Schedule:** Every Sunday at 18:30 UTC
 - **Includes:** Latest Tor + Alpine 3.23.3 updates
-- **Strategy:** Overwrites last release version (e.g., `:1.1.7`) with updated packages
-- **Tags Updated:** `:latest` and version tags (e.g., `:1.1.7`)
+- **Strategy:** Overwrites last release version (e.g., `:1.1.8`) with updated packages
+- **Tags Updated:** `:latest` and version tags (e.g., `:1.1.8`)
 
 **Edge Variant** (`:edge`)
 - **Schedule:** Every 3 days at 12:00 UTC (independent schedule)
 - **Includes:** Latest Tor + Alpine edge (bleeding-edge) updates
-- **Strategy:** Overwrites last release version (e.g., `:1.1.7-edge`) with updated packages
-- **Tags Updated:** `:edge` and version tags (e.g., `:1.1.7-edge`)
+- **Strategy:** Overwrites last release version (e.g., `:1.1.8-edge`) with updated packages
+- **Tags Updated:** `:edge` and version tags (e.g., `:1.1.8-edge`)
 - **Frequency:** ~2-3x more frequent updates than stable
 
 All images auto-published to Docker Hub and GitHub Container Registry
@@ -1001,7 +692,7 @@ All images auto-published to Docker Hub and GitHub Container Registry
 ![GitHub Repo stars](https://img.shields.io/github/stars/r3bo0tbx1/tor-guard-relay?style=for-the-badge)
 ![GitHub Issues](https://img.shields.io/github/issues/r3bo0tbx1/tor-guard-relay?style=for-the-badge)
 
-**Current Version:** v1.1.7 • **Status:** Production Ready  
+**Current Version:** v1.1.8 • **Status:** Production Ready  
 **Image Size:** 16.8 MB • **Retention:** Last 7 Releases  
 **Registries:** Docker Hub • GHCR  
 
@@ -1050,22 +741,6 @@ Or via **[AnonPay](https://trocador.app/anonpay?ticker_to=xmr&network_to=Mainnet
 - 📖 Improve documentation  
 - 🤝 Submit patches  
 - 🧅 Run a relay  
-
----
-
-## ⭐ Star History
-
-<div align="center">
-
-<a href="https://www.star-history.com/#r3bo0tbx1/tor-guard-relay&type=date&legend=top-left">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=r3bo0tbx1/tor-guard-relay&type=date&theme=dark&legend=top-left" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=r3bo0tbx1/tor-guard-relay&type=date&legend=top-left" />
-   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=r3bo0tbx1/tor-guard-relay&type=date&legend=top-left" />
- </picture>
-</a>
-
-</div>
 
 ---
 

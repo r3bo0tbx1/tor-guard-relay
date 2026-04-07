@@ -48,6 +48,19 @@ if [ -f "$TOR_DATA/fingerprint" ]; then
     FINGERPRINT=$(cat "$TOR_DATA/fingerprint" | awk '{print $2}')
 fi
 
+TOR_VERSION=$(tor --version 2>/dev/null | head -n1 | sed 's/Tor version //' || echo "unknown")
+
+RELAY_MODE="${TOR_RELAY_MODE:-unknown}"
+if [ -f "/etc/tor/torrc" ]; then
+    if grep -q "^BridgeRelay 1" /etc/tor/torrc 2>/dev/null; then
+        RELAY_MODE="bridge"
+    elif grep -q "^ExitRelay 1" /etc/tor/torrc 2>/dev/null; then
+        RELAY_MODE="exit"
+    elif grep -q "^ExitRelay 0" /etc/tor/torrc 2>/dev/null; then
+        RELAY_MODE="guard"
+    fi
+fi
+
 cat <<EOF
 {
   "status": "up",
@@ -57,6 +70,8 @@ cat <<EOF
   "reachable": "$REACHABLE",
   "errors": $ERRORS,
   "nickname": "$NICKNAME",
-  "fingerprint": "$FINGERPRINT"
+  "fingerprint": "$FINGERPRINT",
+  "tor_version": "$TOR_VERSION",
+  "relay_mode": "$RELAY_MODE"
 }
 EOF

@@ -72,7 +72,7 @@ docker run -d \
   --network host \
   -e TOR_RELAY_MODE=guard \
   -e TOR_NICKNAME=MyGuardRelay \
-  -e TOR_CONTACT_INFO="email:admin[]example.com ciissversion:2" \
+  -e TOR_CONTACT_INFO="email:admin[]example.com ciissversion:3" \
   -e TOR_ORPORT=9001 \
   -e TOR_DIRPORT=9030 \
   -v tor-data:/var/lib/tor \
@@ -91,11 +91,11 @@ docker run -d \
 
 ### What is the ContactInfo Information Sharing Specification (CIISS)?
 
-The [CIISS v2](https://nusenu.github.io/ContactInfo-Information-Sharing-Specification/) is a machine-readable format for the Tor relay `ContactInfo` field. Instead of a plain email, it uses structured `key:value` pairs that tools can parse and verify automatically.
+The [CIISS v3](https://nusenu.github.io/ContactInfo-Information-Sharing-Specification/) is a machine-readable format for the Tor relay `ContactInfo` field. Instead of a plain email, it uses structured `key:value` pairs that tools can parse and verify automatically.
 
 **Format:**
 ```
-email:your-email[]example.com url:https://example.com proof:uri-rsa ciissversion:2
+email:your-email[]example.com url:https://example.com proof:uri-familyid-ed25519 ciissversion:3
 ```
 
 **Key fields:**
@@ -103,16 +103,16 @@ email:your-email[]example.com url:https://example.com proof:uri-rsa ciissversion
 |-------|---------|---------|
 | `email:` | Contact email (`@` → `[]`) | `email:tor[]example.com` |
 | `url:` | Operator website | `url:https://example.com` |
-| `proof:` | URL ownership verification | `proof:uri-rsa` |
+| `proof:` | URL ownership verification | `proof:uri-familyid-ed25519` |
 | `pgp:` | 40-char PGP fingerprint | `pgp:EF6E286DDA85EA2A4BA7DE684E2C6E8793298290` |
 | `abuse:` | Abuse contact (exits) | `abuse:abuse[]example.com` |
 | `hoster:` | Hosting provider domain | `hoster:www.example-hoster.com` |
 | `uplinkbw:` | Uplink bandwidth (Mbit/s) | `uplinkbw:1000` |
-| `ciissversion:` | Spec version (**mandatory**) | `ciissversion:2` |
+| `ciissversion:` | Spec version (**mandatory**) | `ciissversion:3` |
 
 **Why use it?**
 - Tools like [Tor Metrics](https://metrics.torproject.org/) can parse your info automatically
-- `proof:uri-rsa` lets anyone verify you own the URL (place relay fingerprints at `https://your-domain/.well-known/tor-relay/rsa-fingerprint.txt`)
+- `proof:uri-familyid-ed25519` lets anyone verify you own the URL (place your Happy Family ID at `https://your-domain/.well-known/tor-relay/ed25519-family-id.txt`)
 - Helps detect impersonation - operators can't fake verified URLs
 - Improves trust and visibility in the Tor network
 
@@ -128,7 +128,7 @@ Both work identically - we support two naming conventions for compatibility:
 ```bash
 TOR_RELAY_MODE=bridge
 TOR_NICKNAME=MyBridge
-TOR_CONTACT_INFO=email:admin[]example.com ciissversion:2
+TOR_CONTACT_INFO=email:admin[]example.com ciissversion:3
 TOR_ORPORT=9001
 TOR_OBFS4_PORT=9002
 ```
@@ -459,7 +459,7 @@ docker run -d --name tor-relay ...  # Same config
 **Verify upgrade:**
 ```bash
 docker exec tor-relay cat /build-info.txt
-# Should show: Version: 1.1.7
+# Should show: Version: 1.1.8
 
 docker exec tor-relay fingerprint
 # Verify fingerprint unchanged
@@ -570,5 +570,5 @@ See [CONTRIBUTING.md](../CONTRIBUTING.md) for guidelines.
 
 ---
 
-**Last Updated:** March 2026 (v1.1.7)
+**Last Updated:** April 2026 (v1.1.8)
 **Maintained by:** [@r3bo0tbx1](https://github.com/r3bo0tbx1)

@@ -14,7 +14,8 @@ We actively support the following versions with security updates:
 
 | Version   | Status                | Support Level                               |
 | --------- | --------------------- | ------------------------------------------- |
-| **1.1.7** | 🟢 🛡️ **Active**     | Full support (current stable)               |
+| **1.1.8** | 🟢 🛡️ **Active**     | Full support (current stable)               |
+| **1.1.7** | 🟡 📦 **Maintenance** | Security updates only                       |
 | **1.1.6** | 🟡 🔧 **Maintenance** | Security + critical fixes only              |
 | **< 1.1.5** | 🔴 ❌ **Deprecated**   | Removed - contains CVE-2025-15467 (OpenSSL CVSS 9.8). Upgrade immediately. |
 
@@ -325,14 +326,14 @@ chown root:root /path/to/relay.conf
 #### Contact Information
 
 ```conf
-# CIISS v2 format (recommended) - generate at https://torcontactinfogenerator.netlify.app/
-ContactInfo email:tor-relay[]example.com url:https://example.com proof:uri-rsa pgp:EF6E286DDA85EA2A4BA7DE684E2C6E8793298290 ciissversion:2
+# CIISS v3 format (recommended) - generate at https://torcontactinfogenerator.netlify.app/
+ContactInfo email:tor-relay[]example.com url:https://example.com proof:uri-familyid-ed25519 pgp:EF6E286DDA85EA2A4BA7DE684E2C6E8793298290 ciissversion:3
 
 # With abuse contact (recommended for exits)
-ContactInfo email:tor-relay[]example.com abuse:abuse[]example.com url:https://example.com proof:uri-rsa ciissversion:2
+ContactInfo email:tor-relay[]example.com abuse:abuse[]example.com url:https://example.com proof:uri-familyid-ed25519 ciissversion:3
 ```
 
-> 📝 **CIISS v2:** The [ContactInfo Information Sharing Specification](https://nusenu.github.io/ContactInfo-Information-Sharing-Specification/) provides a machine-readable, verifiable format. The `proof:uri-rsa` method lets tools verify your relay ownership by checking `https://your-domain/.well-known/tor-relay/rsa-fingerprint.txt` for your relay's fingerprint.
+> 📝 **CIISS v3:** The [ContactInfo Information Sharing Specification](https://nusenu.github.io/ContactInfo-Information-Sharing-Specification/) provides a machine-readable, verifiable format. The `proof:uri-familyid-ed25519` method lets tools verify your relay ownership by checking `https://your-domain/.well-known/tor-relay/ed25519-family-id.txt` for your Happy Family ID (Tor 0.4.9+).
 
 #### Network Security
 
@@ -661,4 +662,4 @@ Security researchers who responsibly disclose vulnerabilities will be listed her
 
 ---
 
-*Last Updated: 2026-03-02 | Version: 1.1.7*
+*Last Updated: 2026-04-03 | Version: 1.1.8*

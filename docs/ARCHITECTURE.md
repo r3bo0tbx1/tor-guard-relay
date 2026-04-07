@@ -869,7 +869,7 @@ flowchart LR
 ```
 
 **Weekly Rebuild Strategy:**
-- Rebuilds use the **same version tag** as the last release (e.g., `1.1.7`)
+- Rebuilds use the **same version tag** as the last release (e.g., `1.1.8`)
 - Overwrites existing image with fresh Alpine packages (security updates)
 - No `-weekly` suffix needed - just updated packages
 - `:latest` always points to most recent release version
@@ -952,6 +952,6 @@ flowchart TD
 ---
 <div align="center">
 
-**Document Version:** 1.1.0 • **Last Updated:** 2026-03-02 • **Container Version:** v1.1.7
+**Document Version:** 1.1.0 • **Last Updated:** 2026-04-03 • **Container Version:** v1.1.8
 
 </div>

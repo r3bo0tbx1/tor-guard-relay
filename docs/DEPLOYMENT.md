@@ -347,7 +347,7 @@ docker run -d \
   --network host \
   -e TOR_RELAY_MODE=guard \
   -e TOR_NICKNAME=MyGuardRelay \
-  -e TOR_CONTACT_INFO="email:tor[]example.com ciissversion:2" \
+  -e TOR_CONTACT_INFO="email:tor[]example.com ciissversion:3" \
   -e TOR_ORPORT=9001 \
   -v tor-data:/var/lib/tor \
   r3bo0tbx1/onion-relay:latest
@@ -370,7 +370,7 @@ docker run -d \
   --network host \
   -e TOR_RELAY_MODE=exit \
   -e TOR_NICKNAME=MyExitRelay \
-  -e TOR_CONTACT_INFO="email:tor[]example.com ciissversion:2" \
+  -e TOR_CONTACT_INFO="email:tor[]example.com ciissversion:3" \
   -e TOR_ORPORT=9001 \
   -e TOR_EXIT_POLICY="accept *:80,accept *:443,reject *:*" \
   -v tor-data:/var/lib/tor \
@@ -394,7 +394,7 @@ docker run -d \
   --network host \
   -e TOR_RELAY_MODE=bridge \
   -e TOR_NICKNAME=MyBridge \
-  -e TOR_CONTACT_INFO="email:tor[]example.com ciissversion:2" \
+  -e TOR_CONTACT_INFO="email:tor[]example.com ciissversion:3" \
   -e TOR_ORPORT=9001 \
   -e TOR_OBFS4_PORT=9002 \
   -v tor-data:/var/lib/tor \
@@ -453,7 +453,7 @@ services:
     environment:
       TOR_RELAY_MODE: guard
       TOR_NICKNAME: MyRelay
-      TOR_CONTACT_INFO: "email:tor[]example.com ciissversion:2"
+      TOR_CONTACT_INFO: "email:tor[]example.com ciissversion:3"
       TOR_ORPORT: 9001
       TOR_BANDWIDTH_RATE: 50 MBytes
       TOR_BANDWIDTH_BURST: 100 MBytes

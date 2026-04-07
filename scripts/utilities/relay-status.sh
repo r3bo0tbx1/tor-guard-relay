@@ -1,27 +1,23 @@
 #!/bin/bash
 #
 # relay-status.sh - Tor relay/bridge status checker with security validation
-# Version: 1.1.7
+# Version: 1.1.8
 # Automatically detects Tor containers or uses specified container name
 #
 
 set -euo pipefail
 
-# Configuration
-CONTAINER="${1:-}"  # Accept container name as first argument
+CONTAINER="${1:-}"
 readonly FINGERPRINT_PATH="/var/lib/tor/fingerprint"
 readonly TORRC_PATH="/etc/tor/torrc"
-readonly VERSION="1.1.7"
-
-# Colors for output
+readonly VERSION="1.1.8"
 readonly RED='\033[0;31m'
 readonly GREEN='\033[0;32m'
 readonly YELLOW='\033[1;33m'
 readonly BLUE='\033[0;34m'
 readonly CYAN='\033[0;36m'
-readonly NC='\033[0m' # No Color
+readonly NC='\033[0m'
 
-# Helper functions
 print_header() {
     echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo -e "${BLUE}$1${NC}"
@@ -48,7 +44,6 @@ print_info() {
     echo -e "${BLUE}ℹ${NC} $1"
 }
 
-# Detect Tor container automatically
 detect_tor_container() {
     local containers
     containers=$(sudo docker ps --format '{{.Names}}' | grep -iE 'tor|relay|bridge|onion' || true)
@@ -81,7 +76,6 @@ detect_tor_container() {
     fi
 }
 
-# Check if container is running
 check_container() {
     print_section "Container Status"
     
@@ -91,22 +85,19 @@ check_container() {
     fi
     
     print_success "Container '${CONTAINER}' is running"
-    
-    # Show uptime
+
     local uptime
     uptime=$(sudo docker inspect -f '{{.State.StartedAt}}' "${CONTAINER}" 2>/dev/null)
     if [[ -n "${uptime}" ]]; then
         echo -e "  ${BLUE}Started:${NC} ${uptime}"
     fi
-    
-    # Show image version
+
     local image
     image=$(sudo docker inspect -f '{{.Config.Image}}' "${CONTAINER}" 2>/dev/null)
     if [[ -n "${image}" ]]; then
         echo -e "  ${BLUE}Image:${NC} ${image}"
     fi
-    
-    # Check build info if available
+
     local build_info
     build_info=$(sudo docker exec "${CONTAINER}" cat /build-info.txt 2>/dev/null || echo "")
     if [[ -n "${build_info}" ]]; then
@@ -115,19 +106,15 @@ check_container() {
     fi
 }
 
-# Validate port security configuration
 check_port_security() {
     print_section "Port Security Validation"
-    
-    # Check exposed ports
     local exposed_ports
     exposed_ports=$(sudo docker port "${CONTAINER}" 2>/dev/null || echo "")
     
     if [[ -n "${exposed_ports}" ]]; then
         echo -e "  ${BLUE}Exposed ports:${NC}"
         echo "${exposed_ports}" | sed 's/^/    /'
-        
-        # Validate only 9001 and 9030 are exposed
+
         if echo "${exposed_ports}" | grep -qE "^9001/tcp"; then
             print_success "ORPort 9001 properly exposed"
         else
@@ -137,8 +124,7 @@ check_port_security() {
         if echo "${exposed_ports}" | grep -qE "^9030/tcp"; then
             print_success "DirPort 9030 properly exposed"
         fi
-        
-        # Check for improperly exposed internal ports
+
         if echo "${exposed_ports}" | grep -qE "^903[5-9]/tcp"; then
             print_error "SECURITY ISSUE: Internal metrics port exposed externally!"
             echo -e "  ${RED}Fix: Ensure metrics bind to 127.0.0.1 only${NC}"
@@ -146,15 +132,12 @@ check_port_security() {
     else
         print_info "Using host network mode - checking port bindings..."
     fi
-    
-    # Check internal service bindings
+
     local internal_bindings
     internal_bindings=$(sudo docker exec "${CONTAINER}" netstat -tlnp 2>/dev/null | grep -E "9035|9036|9037" || echo "")
     
     if [[ -n "${internal_bindings}" ]]; then
         echo -e "\n  ${BLUE}Internal services:${NC}"
-        
-        # Validate localhost-only bindings
         while IFS= read -r line; do
             if echo "${line}" | grep -q "127.0.0.1"; then
                 local port
@@ -171,13 +154,11 @@ check_port_security() {
     fi
 }
 
-# Display recent logs
 show_logs() {
     print_section "Recent Logs (last 15 lines)"
     sudo docker logs --tail 15 "${CONTAINER}" 2>&1 | sed 's/^/  /'
 }
 
-# Show bootstrap progress
 show_bootstrap() {
     print_section "Bootstrap Progress"
     
@@ -186,8 +167,6 @@ show_bootstrap() {
     
     if [[ -n "${bootstrap_logs}" ]]; then
         echo "${bootstrap_logs}" | sed 's/^/  /'
-        
-        # Check if fully bootstrapped
         if echo "${bootstrap_logs}" | grep -q "Bootstrapped 100%"; then
             echo
             print_success "Relay is fully bootstrapped!"
@@ -198,7 +177,6 @@ show_bootstrap() {
     fi
 }
 
-# Check if relay is reachable
 check_reachability() {
     print_section "Reachability Status"
     
@@ -217,7 +195,6 @@ check_reachability() {
     fi
 }
 
-# Display fingerprint
 show_fingerprint() {
     print_section "Relay Fingerprint"
     
@@ -234,7 +211,6 @@ show_fingerprint() {
     fi
 }
 
-# Show ORPort configuration
 show_orport() {
     print_section "ORPort Configuration"
     
@@ -243,8 +219,6 @@ show_orport() {
     
     if [[ -n "${orport_config}" ]]; then
         echo "${orport_config}" | sed 's/^/  /'
-        
-        # Validate port numbers
         if echo "${orport_config}" | grep -q "ORPort 9001"; then
             print_success "ORPort configured correctly (9001)"
         fi
@@ -257,7 +231,6 @@ show_orport() {
     fi
 }
 
-# Show relay type and settings
 show_relay_info() {
     print_section "Relay Information"
     
@@ -266,8 +239,6 @@ show_relay_info() {
     
     if [[ -n "${relay_info}" ]]; then
         echo "${relay_info}" | sed 's/^/  /'
-        
-        # Validate relay type
         if echo "${relay_info}" | grep -q "ExitRelay 0"; then
             print_success "Configured as guard/middle relay (not exit)"
         elif echo "${relay_info}" | grep -q "ExitRelay 1"; then
@@ -278,7 +249,6 @@ show_relay_info() {
     fi
 }
 
-# Check for errors
 check_errors() {
     print_section "Recent Errors/Warnings"
     
@@ -292,7 +262,6 @@ check_errors() {
     fi
 }
 
-# Show resource usage
 show_resources() {
     print_section "Resource Usage"
     
@@ -306,20 +275,17 @@ show_resources() {
     fi
 }
 
-# Show network diagnostics
 show_network_diagnostics() {
     print_section "Network Diagnostics"
 
     print_info "Basic network connectivity check..."
-
-    # IPv4 check
+\
     if sudo docker exec "${CONTAINER}" curl -4 -s --max-time 5 https://icanhazip.com &>/dev/null; then
         print_success "IPv4 connectivity OK"
     else
         print_warning "IPv4 connectivity issues"
     fi
 
-    # IPv6 check
     if sudo docker exec "${CONTAINER}" curl -6 -s --max-time 5 https://icanhazip.com &>/dev/null; then
         print_success "IPv6 connectivity OK"
     else
@@ -327,7 +293,6 @@ show_network_diagnostics() {
     fi
 }
 
-# Show quick help
 show_help() {
     cat << EOF
 ${BLUE}Tor Relay Status Checker v${VERSION}${NC}
@@ -356,27 +321,22 @@ Security Checks:
 EOF
 }
 
-# Show version
 show_version() {
     echo "relay-status.sh version ${VERSION}"
-    echo "Part of Tor Guard Relay v1.1.7"
+    echo "Part of Tor Guard Relay v1.1.8"
 }
 
-# Main execution
 main() {
-    # Check for help flag
     if [[ "${1:-}" =~ ^(-h|--help)$ ]]; then
         show_help
         exit 0
     fi
-    
-    # Check for version flag
+
     if [[ "${1:-}" =~ ^(-v|--version)$ ]]; then
         show_version
         exit 0
     fi
-    
-    # Detect container if not specified
+
     if [[ -z "${CONTAINER}" ]]; then
         detect_tor_container
     fi
@@ -403,5 +363,4 @@ main() {
     echo
 }
 
-# Run main function
 main "$@"
