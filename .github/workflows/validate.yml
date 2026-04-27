@@ -411,7 +411,7 @@ jobs:
         run: docker load -i /tmp/tor-relay-test.tar
 
       - name: 🔒 Trivy - Comprehensive Vulnerability Scan
-        uses: aquasecurity/trivy-action@0.35.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: 'tor-relay:test'
           version: 'v0.69.3'
@@ -449,7 +449,7 @@ jobs:
           fi
 
       - name: 📊 Trivy - Human Readable Report (Critical & High)
-        uses: aquasecurity/trivy-action@0.35.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: 'tor-relay:test'
           version: 'v0.69.3'
@@ -459,7 +459,7 @@ jobs:
           ignore-unfixed: false
 
       - name: 🔍 Trivy - Full Vulnerability List (All Severities)
-        uses: aquasecurity/trivy-action@0.35.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: 'tor-relay:test'
           version: 'v0.69.3'
@@ -470,7 +470,7 @@ jobs:
         continue-on-error: true
 
       - name: 🔐 Trivy - Secret Scanning
-        uses: aquasecurity/trivy-action@0.35.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: 'tor-relay:test'
           version: 'v0.69.3'
@@ -479,7 +479,7 @@ jobs:
         continue-on-error: true
 
       - name: ⚙️ Trivy - Configuration Audit
-        uses: aquasecurity/trivy-action@0.35.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: 'tor-relay:test'
           version: 'v0.69.3'
@@ -488,7 +488,7 @@ jobs:
         continue-on-error: true
 
       - name: 🗂️ Trivy - Filesystem Scan
-        uses: aquasecurity/trivy-action@0.35.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: 'fs'
           scan-ref: '.'
