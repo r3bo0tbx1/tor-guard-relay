@@ -162,11 +162,11 @@ We offer **two build variants** to match your risk tolerance and requirements:
 ```bash
 # Pull from Docker Hub (easiest)
 docker pull r3bo0tbx1/onion-relay:latest
-docker pull r3bo0tbx1/onion-relay:1.1.8
+docker pull r3bo0tbx1/onion-relay:1.1.9
 
 # Pull from GHCR
 docker pull ghcr.io/r3bo0tbx1/onion-relay:latest
-docker pull ghcr.io/r3bo0tbx1/onion-relay:1.1.8
+docker pull ghcr.io/r3bo0tbx1/onion-relay:1.1.9
 ```
 
 ### Edge Variant (Testing Only)
@@ -185,7 +185,7 @@ docker pull r3bo0tbx1/onion-relay:edge
 
 # Pull from GHCR
 docker pull ghcr.io/r3bo0tbx1/onion-relay:edge
-docker pull ghcr.io/r3bo0tbx1/onion-relay:1.1.8-edge
+docker pull ghcr.io/r3bo0tbx1/onion-relay:1.1.9-edge
 ```
 
 **When to use edge:**
