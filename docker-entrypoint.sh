@@ -50,7 +50,7 @@ cleanup_and_exit() {
 
 startup_banner() {
   log "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-  log "🧅 Tor Guard Relay v1.1.8 - Initialization"
+  log "🧅 Tor Guard Relay v1.1.9 - Initialization"
   log "https://github.com/r3bo0tbx1/tor-guard-relay"
   log "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
   log ""
@@ -94,7 +94,6 @@ phase_2_permissions() {
     warn "  Fix on the host: chown -R $CURRENT_UID:$CURRENT_GID <host-keys-path>"
   fi
 
-  # Check for Happy Family key files
   FAMILY_KEY_COUNT=0
   if [ -d "$TOR_DATA_DIR/keys" ]; then
     for fk in "$TOR_DATA_DIR/keys"/*.secret_family_key; do
@@ -242,11 +241,8 @@ BridgeRelay 0
 EOF
       [ -n "${TOR_BANDWIDTH_RATE:-}" ] && echo "RelayBandwidthRate ${TOR_BANDWIDTH_RATE}" >> "$TOR_CONFIG"
       [ -n "${TOR_BANDWIDTH_BURST:-}" ] && echo "RelayBandwidthBurst ${TOR_BANDWIDTH_BURST}" >> "$TOR_CONFIG"
-
-      # Happy Family (Tor 0.4.9+)
       [ -n "${TOR_FAMILY_ID:-}" ] && echo "" >> "$TOR_CONFIG" && echo "# Happy Family (Tor 0.4.9+)" >> "$TOR_CONFIG" && echo "FamilyId ${TOR_FAMILY_ID}" >> "$TOR_CONFIG"
 
-      # MyFamily (legacy, keep during transition)
       if [ -n "${TOR_MY_FAMILY:-}" ]; then
         echo "" >> "$TOR_CONFIG"
         echo "# MyFamily (legacy - keep during transition to Happy Family)" >> "$TOR_CONFIG"
@@ -271,11 +267,8 @@ ExitPolicy ${TOR_EXIT_POLICY:-reject *:*}
 EOF
       [ -n "${TOR_BANDWIDTH_RATE:-}" ] && echo "RelayBandwidthRate ${TOR_BANDWIDTH_RATE}" >> "$TOR_CONFIG"
       [ -n "${TOR_BANDWIDTH_BURST:-}" ] && echo "RelayBandwidthBurst ${TOR_BANDWIDTH_BURST}" >> "$TOR_CONFIG"
-
-      # Happy Family (Tor 0.4.9+)
       [ -n "${TOR_FAMILY_ID:-}" ] && echo "" >> "$TOR_CONFIG" && echo "# Happy Family (Tor 0.4.9+)" >> "$TOR_CONFIG" && echo "FamilyId ${TOR_FAMILY_ID}" >> "$TOR_CONFIG"
 
-      # MyFamily (legacy, keep during transition)
       if [ -n "${TOR_MY_FAMILY:-}" ]; then
         echo "" >> "$TOR_CONFIG"
         echo "# MyFamily (legacy - keep during transition to Happy Family)" >> "$TOR_CONFIG"

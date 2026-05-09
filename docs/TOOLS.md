@@ -481,4 +481,4 @@ A: Removed (required Python/Flask). Use `status` tool for visual output or build
 
 ---
 
-**Last Updated:** April 2026 | **Version:** 1.1.8
+**Last Updated:** May 2026 | **Version:** 1.1.9

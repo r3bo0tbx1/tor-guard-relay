@@ -13,7 +13,7 @@
 
 **A hardened, production-ready Tor relay with built-in diagnostics and monitoring**
 
-[Quick Start](#-quick-start) • [Features](#-key-features) • [Documentation](#-documentation) • [Gallery](#️-gallery) • [FAQ](docs/FAQ.md) • [Architecture](docs/ARCHITECTURE.md) • [Tools](#-diagnostic-tools) • [Contributing](#-contributing)
+[Quick Start](#-quick-start) • [Features](#-key-features) • [🌐 Live Dashboard](https://relays.brokenbotnet.com/) • [Documentation](#-documentation) • [Gallery](#️-gallery) • [FAQ](docs/FAQ.md) • [Architecture](docs/ARCHITECTURE.md) • [Tools](#-diagnostic-tools) • [Contributing](#-contributing)
 
 </div>
 
@@ -35,6 +35,14 @@
 - 🔄 **Automated** - Weekly security rebuilds, CI/CD ready
 - 📚 **Documented** - Comprehensive guides for deployment, monitoring, backup, and more
 - 🏗️ **Multi-Arch** - Native support for AMD64 and ARM64 (Raspberry Pi, AWS Graviton, etc.)
+
+### 🌐 Live Production Network
+
+**Battle-tested in production.** See it live: **[relays.brokenbotnet.com](https://relays.brokenbotnet.com/)**
+
+🌉 **Bridges** (Obfs4) • 🛡️ **Middle/Guard** • 🚪 **Exit** across **10 countries**
+
+> 🇯🇵 • 🇰🇷 • 🇸🇬 • 🇲🇾 • 🇻🇳 • 🇭🇰 • 🇦🇺 • 🇷🇺 • 🇹🇷 • 🇿🇦
 
 ---
 
@@ -88,8 +96,7 @@ Minimal surface area, roughly 16.8 MB.
 ```bash
 # Download and run the quick-start script
 curl -fsSL https://raw.githubusercontent.com/r3bo0tbx1/tor-guard-relay/main/scripts/quick-start.sh -o quick-start.sh
-chmod +x quick-start.sh
-sh ./quick-start.sh
+chmod +x quick-start.sh && sh ./quick-start.sh
 ```
 
 The script will:
@@ -103,9 +110,7 @@ The script will:
 **Step 1:** Create your relay configuration (or use our [example](examples/relay-guard.conf)):
 
 ```bash
-mkdir -p ~/tor-relay && cd ~/tor-relay
-curl -o relay.conf https://raw.githubusercontent.com/r3bo0tbx1/tor-guard-relay/refs/heads/main/examples/relay-guard.conf
-nano relay.conf
+mkdir -p ~/tor-relay && cd ~/tor-relay && curl -o relay.conf https://raw.githubusercontent.com/r3bo0tbx1/tor-guard-relay/refs/heads/main/examples/relay-guard.conf && nano relay.conf
 ```
 
 **Step 2:** Run (Docker Hub)
@@ -147,7 +152,7 @@ We offer **two build variants** to match your risk tolerance and requirements:
 
 ### Stable Variant (Recommended)
 
-**Base:** Alpine 3.23.3 | **Recommended for:** Production relays
+**Base:** Alpine 3.23.4 | **Recommended for:** Production relays
 
 - ✅ Battle-tested Alpine stable release
 - ✅ Weekly automated rebuilds with latest security patches
@@ -624,7 +629,11 @@ See [Contributing Guide](CONTRIBUTING.md) for detailed instructions.
 
 ### ⚠️ Version Deprecation Notice
 
-> **All versions prior to v1.1.5 have been deprecated and removed from registries.** These versions were affected by **CVE-2025-15467** (OpenSSL, CVSS 9.8), a critical vulnerability in the OpenSSL library bundled through the Alpine base image. v1.1.5 patched this by upgrading to Alpine 3.23.3 (OpenSSL 3.5.5+). **If you are running any version older than v1.1.5, upgrade immediately:**
+> **Security release target: v1.1.9.** This release addresses Alpine/OpenSSL package exposure (including **CVE-2026-31789**, fix range `openssl >= 3.5.6-r0`) and clarifies host-kernel guidance for **Copy Fail / CVE-2026-31431**. Container updates reduce image dependency risk, but **CVE-2026-31431 requires host kernel patching** by your OS/cloud vendor.
+>
+> **Version policy for v1.1.9:** versions older than v1.1.9 are deprecated in support docs, but historical tags remain in registries for reproducibility.
+>
+> **Recommended upgrade path:**
 >
 > ```bash
 > docker pull r3bo0tbx1/onion-relay:latest
@@ -634,7 +643,7 @@ See [Contributing Guide](CONTRIBUTING.md) for detailed instructions.
 
 ✅ Store `relay.conf` with restricted permissions (`chmod 600`)  
 ✅ Never commit configs with sensitive info to Git  
-✅ Use [CIISS v2](https://nusenu.github.io/ContactInfo-Information-Sharing-Specification/) format in ContactInfo for verification  
+✅ Use [CIISS v3](https://nusenu.github.io/ContactInfo-Information-Sharing-Specification/) format in ContactInfo for verification  
 ✅ Regularly update Docker image for security patches  
 ✅ Monitor logs for suspicious activity  
 ✅ Configure firewall properly  
@@ -649,15 +658,15 @@ Images are automatically rebuilt on separate schedules to include security patch
 
 **Stable Variant** (`:latest`)
 - **Schedule:** Every Sunday at 18:30 UTC
-- **Includes:** Latest Tor + Alpine 3.23.3 updates
-- **Strategy:** Overwrites last release version (e.g., `:1.1.8`) with updated packages
-- **Tags Updated:** `:latest` and version tags (e.g., `:1.1.8`)
+- **Includes:** Latest Tor + Alpine 3.23.4 updates
+- **Strategy:** Overwrites last release version (e.g., `:1.1.9`) with updated packages
+- **Tags Updated:** `:latest` and version tags (e.g., `:1.1.9`)
 
 **Edge Variant** (`:edge`)
 - **Schedule:** Every 3 days at 12:00 UTC (independent schedule)
 - **Includes:** Latest Tor + Alpine edge (bleeding-edge) updates
-- **Strategy:** Overwrites last release version (e.g., `:1.1.8-edge`) with updated packages
-- **Tags Updated:** `:edge` and version tags (e.g., `:1.1.8-edge`)
+- **Strategy:** Overwrites last release version (e.g., `:1.1.9-edge`) with updated packages
+- **Tags Updated:** `:edge` and version tags (e.g., `:1.1.9-edge`)
 - **Frequency:** ~2-3x more frequent updates than stable
 
 All images auto-published to Docker Hub and GitHub Container Registry
@@ -692,7 +701,7 @@ All images auto-published to Docker Hub and GitHub Container Registry
 ![GitHub Repo stars](https://img.shields.io/github/stars/r3bo0tbx1/tor-guard-relay?style=for-the-badge)
 ![GitHub Issues](https://img.shields.io/github/issues/r3bo0tbx1/tor-guard-relay?style=for-the-badge)
 
-**Current Version:** v1.1.8 • **Status:** Production Ready  
+**Current Version:** v1.1.9
 **Image Size:** 16.8 MB • **Retention:** Last 7 Releases  
 **Registries:** Docker Hub • GHCR  
 

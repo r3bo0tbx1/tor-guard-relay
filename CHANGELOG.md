@@ -16,13 +16,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.9] - 2026-05-09
+
+### 🛡️ Security
+
+- **OpenSSL/Alpine tracking**: Planned security refresh for Alpine package stream to address OpenSSL exposure including `CVE-2026-31789` (fix range: `openssl >= 3.5.6-r0`).
+- **Kernel advisory clarification**: Added explicit guidance for `CVE-2026-31431` ("Copy Fail") that host kernel patching is required in addition to container image updates.
+- **Version policy update**: For v1.1.9, versions older than 1.1.9 are deprecated/unsupported in support docs, while historical tags remain available in registries.
+
+### 📚 Documentation
+
+- **CIISS v3 Migration**: Updated all ContactInfo examples and documentation to use CIISS v3 specification (`ciissversion:3`). Changed proof method from `proof:uri-rsa` (rsa-fingerprint.txt) to `proof:uri-familyid-ed25519` (ed25519-family-id.txt), aligning with Happy Family (Tor 0.4.9+) system for better relay ownership verification.
+  - Updated 3 example configs: relay-guard.conf, relay-exit.conf, relay-bridge.conf
+  - Updated 7 deployment templates: docker-compose and cosmos-compose files
+  - Updated 4 documentation files: README.md, DEPLOYMENT.md, FAQ.md, SECURITY.md
+
+- **Live Network Showcase**: Added production network showcase section to README.md featuring live relay dashboard (relays.brokenbotnet.com) demonstrating real-world deployment across 10 countries with Bridge, Middle/Guard, and Exit relays.
+
+### ⚙️ Changed
+
+- **Version Bump**: Updated version string from v1.1.8 to v1.1.9 in startup banner and documentation.
+
+> **BREAKING CHANGES:** None. CIISS v2 format still works - this is documentation-only update. v3 is recommended for new deployments and aligns with Happy Family proof verification.
+
+---
+
 ## [1.1.8] - 2026-04-03
 
 ### ⚡ Improvements
 
 - **HEALTHCHECK Interval**: Reduced Docker healthcheck interval from 10 minutes to 5 minutes for faster failure detection. Container unhealthy state now detected in ~15 minutes (5m × 3 retries) instead of 30 minutes.
 - **Health Tool Enhancement**: Added `tor_version` and `relay_mode` fields to JSON output of the `health` diagnostic tool for better monitoring and automation support.
-- **README Optimization**: Trimmed README.md from 1,084 lines to 749 lines (31% reduction) for better scannability. Removed redundant content (Mermaid flowchart, gallery, star history) already available in dedicated documentation files. All information remains accessible through documentation links.
+- **README Optimization**: Trimmed README.md from 1,084 lines to 760 lines (29% reduction) for better scannability. Removed redundant content (Mermaid flowchart and star history) already available in dedicated documentation files. All information remains accessible through documentation links.
 
 ### 🔒 Validation
 
@@ -528,7 +553,7 @@ BREAKING CHANGES: None
 ## 📊 Release Information
 
 * **🎉 First Release:** v1.0.0 (November 1, 2025)
-* **📦 Current Stable:** v1.1.8 (April 3, 2026)
+* **📦 Current Stable:** v1.1.9 (May 9, 2026)
 * **🔗 Latest Release:** [GitHub Releases](https://github.com/r3bo0tbx1/tor-guard-relay/releases/latest)
 * **🐳 Docker Images:**
 
@@ -541,15 +566,14 @@ BREAKING CHANGES: None
 
 | Version   | Status                | Support Level                               |
 | --------- | --------------------- | ------------------------------------------- |
-| **1.1.8** | 🟢 🛡️ **Active**     | Full support (current stable)               |
-| **1.1.7** | 🟡 📦 **Maintenance** | Security updates only                       |
-| **1.1.6** | 🟡 🔧 **Maintenance** | Security + critical fixes only              |
-| **< 1.1.5** | 🔴 ❌ **Deprecated**   | Removed - contains CVE-2025-15467 (OpenSSL CVSS 9.8). Upgrade immediately. |
+| **1.1.9** | 🟢 ✅ Supported       | Current stable release                      |
+| **< 1.1.9** | 🔴 ❌ **Deprecated**   | Unsupported after v1.1.9 release; tags retained in registries. |
 
 ---
 
 ## 🔗 Release Links
 
+[1.1.9]: https://github.com/r3bo0tbx1/tor-guard-relay/compare/v1.1.8...HEAD
 [1.1.8]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.1.8
 [1.1.7]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.1.7
 [1.1.6]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.1.6
@@ -568,7 +592,7 @@ BREAKING CHANGES: None
 [1.0.3]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.0.3
 [1.0.2]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.0.2
 [1.0.1]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.0.1
-[Unreleased]: https://github.com/r3bo0tbx1/tor-guard-relay/compare/v1.0.1...HEAD
+[Unreleased]: https://github.com/r3bo0tbx1/tor-guard-relay/compare/v1.1.9...HEAD
 
 ---
 

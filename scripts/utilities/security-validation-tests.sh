@@ -4,7 +4,7 @@
 
 set -e
 
-echo "🔐 Security Validation Tests - Tor Guard Relay v1.1.8"
+echo "🔐 Security Validation Tests - Tor Guard Relay v1.1.9"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 

@@ -177,12 +177,12 @@ Auto-update version numbers across all documentation, templates, and configurati
 **Example Output:**
 
 ```
-ℹ Current version detected: 1.1.1
-ℹ New version: 1.1.2
+ℹ Current version detected: 1.1.8
+ℹ New version: 1.1.9
 ℹ Updating README.md...
 ✅ Updated: README.md
 ℹ Updating CHANGELOG.md...
-✅ Added version 1.1.2 to CHANGELOG.md
+✅ Added version 1.1.9 to CHANGELOG.md
 ℹ Updating Docker Compose templates...
 ✅ Updated: templates/docker-compose-guard-env.yml
 ✅ Updated: templates/docker-compose-exit.yml
@@ -193,8 +193,8 @@ Auto-update version numbers across all documentation, templates, and configurati
 ✅ Version Update Complete
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  Current Version: 1.1.1
-  New Version:     1.1.2
+  Current Version: 1.1.8
+  New Version:     1.1.9
   Files Updated:   15
 
 🔵 Backup files created with .bak extension
@@ -203,8 +203,8 @@ Auto-update version numbers across all documentation, templates, and configurati
 Next Steps:
   1. Review changes: git diff
   2. Update CHANGELOG.md with release notes
-  3. Commit changes: git add -A && git commit -m "chore: bump version to 1.1.2"
-  4. Create tag: git tag -a v1.1.2 -m "Release v1.1.2"
+  3. Commit changes: git add -A && git commit -m "chore: bump version to 1.1.9"
+  4. Create tag: git tag -a v1.1.9 -m "Release v1.1.9"
   5. Push: git push && git push --tags
 ```
 

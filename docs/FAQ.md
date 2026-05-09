@@ -459,7 +459,7 @@ docker run -d --name tor-relay ...  # Same config
 **Verify upgrade:**
 ```bash
 docker exec tor-relay cat /build-info.txt
-# Should show: Version: 1.1.8
+# Should show: Version: 1.1.9
 
 docker exec tor-relay fingerprint
 # Verify fingerprint unchanged
@@ -500,7 +500,7 @@ docker exec tor-relay fingerprint
 
 **Security features:**
 - ✅ Non-root execution (tor user, UID 100, GID 101)
-- ✅ Ultra-minimal image (~16.8 MB, Alpine 3.22.2)
+- ✅ Ultra-minimal image (~16.8 MB, Alpine 3.23.4)
 - ✅ Busybox-only (no bash, python, or unnecessary binaries)
 - ✅ No exposed monitoring ports (diagnostics via `docker exec` only)
 - ✅ Weekly automated security rebuilds (Sundays 18:30 UTC)
@@ -570,5 +570,5 @@ See [CONTRIBUTING.md](../CONTRIBUTING.md) for guidelines.
 
 ---
 
-**Last Updated:** April 2026 (v1.1.8)
+**Last Updated:** May 2026 (v1.1.9)
 **Maintained by:** [@r3bo0tbx1](https://github.com/r3bo0tbx1)

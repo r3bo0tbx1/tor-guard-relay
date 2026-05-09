@@ -10,3 +10,4 @@ tor-logs/
 Thumbs.db
 *.tmp
 *.log
+.github/copilot-instructions.md

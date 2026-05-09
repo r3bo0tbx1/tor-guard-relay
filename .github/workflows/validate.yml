@@ -337,6 +337,29 @@ jobs:
           fi
           echo "✅ Tor installed: $TOR_VERSION"
 
+      - name: 🔐 Verify OpenSSL Minimum Version
+        run: |
+          echo "🔍 Checking OpenSSL package version..."
+          OPENSSL_PKG=$(docker run --rm --entrypoint /bin/sh tor-relay:test -c "apk info -v openssl 2>/dev/null | head -1")
+          if [ -z "$OPENSSL_PKG" ]; then
+            echo "❌ OpenSSL package not found in image"
+            exit 1
+          fi
+
+          OPENSSL_VER="${OPENSSL_PKG#openssl-}"
+          MIN_OPENSSL_VER="3.5.6-r0"
+          LOWEST=$(printf '%s\n' "$MIN_OPENSSL_VER" "$OPENSSL_VER" | sort -V | head -1)
+
+          echo "📦 Found OpenSSL: $OPENSSL_VER"
+          echo "🎯 Required minimum: $MIN_OPENSSL_VER"
+
+          if [ "$LOWEST" != "$MIN_OPENSSL_VER" ]; then
+            echo "❌ OpenSSL version is below minimum required level"
+            exit 1
+          fi
+
+          echo "✅ OpenSSL version meets minimum requirement"
+
       - name: 📁 Verify File Structure
         run: |
           docker run --rm --entrypoint /bin/sh tor-relay:test -c "

@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # relay-status.sh - Tor relay/bridge status checker with security validation
-# Version: 1.1.8
+# Version: 1.1.9
 # Automatically detects Tor containers or uses specified container name
 #
 
@@ -10,7 +10,7 @@ set -euo pipefail
 CONTAINER="${1:-}"
 readonly FINGERPRINT_PATH="/var/lib/tor/fingerprint"
 readonly TORRC_PATH="/etc/tor/torrc"
-readonly VERSION="1.1.8"
+readonly VERSION="1.1.9"
 readonly RED='\033[0;31m'
 readonly GREEN='\033[0;32m'
 readonly YELLOW='\033[1;33m'
@@ -323,7 +323,7 @@ EOF
 
 show_version() {
     echo "relay-status.sh version ${VERSION}"
-    echo "Part of Tor Guard Relay v1.1.8"
+    echo "Part of Tor Guard Relay v1.1.9"
 }
 
 main() {

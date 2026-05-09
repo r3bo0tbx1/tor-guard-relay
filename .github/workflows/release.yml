@@ -125,15 +125,19 @@ jobs:
             VERSION="${LATEST_TAG#v}"
             IS_RELEASE="false"
 
-            CURRENT_HOUR=$(date -u +%H)
-            if [[ "${CURRENT_HOUR}" == "18" ]]; then
+            SCHEDULE_EXPR="${{ github.event.schedule }}"
+            if [[ "${SCHEDULE_EXPR}" == "30 18 * * 0" ]]; then
               BUILD_TYPE="weekly"
               BUILD_VARIANTS="latest"
               echo "📅 Weekly rebuild of last release: ${VERSION} (stable variant with updated packages)"
-            else
+            elif [[ "${SCHEDULE_EXPR}" == "0 12 */3 * *" ]]; then
               BUILD_TYPE="edge-rebuild"
               BUILD_VARIANTS="edge"
               echo "⚡ Edge-only rebuild of last release: ${VERSION} (edge variant with updated packages)"
+            else
+              echo "⚠️ Unknown schedule expression: ${SCHEDULE_EXPR}; defaulting to edge rebuild"
+              BUILD_TYPE="edge-rebuild"
+              BUILD_VARIANTS="edge"
             fi
           else
             LATEST_TAG=$(latest_semver_tag)
@@ -181,7 +185,7 @@ jobs:
             dockerfile: Dockerfile
             suffix: ""
             is_latest: "true"
-            base: "Alpine 3.23.3"
+            base: "Alpine 3.23.4"
             push_dockerhub: "true"
           - name: edge
             dockerfile: Dockerfile.edge

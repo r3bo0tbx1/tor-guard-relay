@@ -14,10 +14,24 @@ We actively support the following versions with security updates:
 
 | Version   | Status                | Support Level                               |
 | --------- | --------------------- | ------------------------------------------- |
-| **1.1.8** | 🟢 🛡️ **Active**     | Full support (current stable)               |
-| **1.1.7** | 🟡 📦 **Maintenance** | Security updates only                       |
-| **1.1.6** | 🟡 🔧 **Maintenance** | Security + critical fixes only              |
-| **< 1.1.5** | 🔴 ❌ **Deprecated**   | Removed - contains CVE-2025-15467 (OpenSSL CVSS 9.8). Upgrade immediately. |
+| **1.1.9** | 🟢 🛡️ **Active**     | Full support (current stable)               |
+| **< 1.1.9** | 🔴 ❌ **Deprecated**   | Unsupported after v1.1.9 release; tags retained in registries for reproducibility. |
+
+---
+
+## Recent Security Advisories
+
+### CVE-2026-31789 (OpenSSL / Alpine package)
+
+- Affects vulnerable OpenSSL package ranges in Alpine-based images.
+- Fix target for this project is `openssl >= 3.5.6-r0` via base image/package refresh and rebuild.
+- Mitigation is **image-level**: pull updated image tags after release.
+
+### CVE-2026-31431 ("Copy Fail" Linux kernel)
+
+- This is a Linux kernel vulnerability and is in CISA KEV.
+- Mitigation is primarily **host-level**: update/pin host kernels using your distro or cloud vendor guidance.
+- Pulling a new container image does **not** patch an unpatched host kernel.
 
 ---
 
@@ -662,4 +676,4 @@ Security researchers who responsibly disclose vulnerabilities will be listed her
 
 ---
 
-*Last Updated: 2026-04-03 | Version: 1.1.8*
+*Last Updated: 2026-05-09 | Current Stable: 1.1.9*
