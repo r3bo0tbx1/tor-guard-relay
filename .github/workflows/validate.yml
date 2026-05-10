@@ -340,8 +340,6 @@ jobs:
       - name: 🔐 Verify OpenSSL Minimum Version
         run: |
           echo "🔍 Checking OpenSSL package version..."
-          # Alpine images install libssl3 (the shared library) as a Tor dependency,
-          # but not necessarily the 'openssl' CLI package. Check both, libssl3 first.
           OPENSSL_PKG=$(docker run --rm --entrypoint /bin/sh tor-relay:test -c \
             "apk info -v libssl3 2>/dev/null | head -1 || apk info -v openssl 2>/dev/null | head -1")
           if [ -z "$OPENSSL_PKG" ]; then
@@ -350,23 +348,17 @@ jobs:
             docker run --rm --entrypoint /bin/sh tor-relay:test -c "apk info -v 2>/dev/null | grep -i ssl || true"
             exit 1
           fi
-
-          # Strip whichever prefix is present
           OPENSSL_VER="${OPENSSL_PKG#libssl3-}"
           OPENSSL_VER="${OPENSSL_VER#openssl-}"
-          # Trim any trailing description text (apk info -v can append it)
           OPENSSL_VER="${OPENSSL_VER%% *}"
           MIN_OPENSSL_VER="3.3.0-r0"
           LOWEST=$(printf '%s\n' "$MIN_OPENSSL_VER" "$OPENSSL_VER" | sort -V | head -1)
-
           echo "📦 Found OpenSSL: $OPENSSL_VER (package: $OPENSSL_PKG)"
           echo "🎯 Required minimum: $MIN_OPENSSL_VER"
-
           if [ "$LOWEST" != "$MIN_OPENSSL_VER" ]; then
             echo "❌ OpenSSL version $OPENSSL_VER is below minimum required $MIN_OPENSSL_VER"
             exit 1
           fi
-
           echo "✅ OpenSSL version meets minimum requirement"
 
       - name: 📁 Verify File Structure
