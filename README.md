@@ -215,8 +215,8 @@ Choose the method that fits your workflow.
 
 Running multiple relays? We have templates for that:
 
-- **Docker Compose:** [docker-compose-multi-relay.yml](templates/docker-compose-multi-relay.yml) - 3 relays setup
-- **Cosmos Cloud:** [cosmos-compose-multi-relay.json](templates/cosmos-compose-multi-relay.json) - Multi-relay stack
+- **Docker Compose:** [docker-compose-multi-relay.yml](https://github.com/r3bo0tbx1/tor-guard-relay/blob/main/templates/docker-compose/docker-compose-multi-relay.yml) - 3 relays setup
+- **Cosmos Cloud:** [cosmos-compose-multi-relay.json](https://github.com/r3bo0tbx1/tor-guard-relay/blob/main/templates/cosmos-compose/cosmos-compose-multi-relay.json) - Multi-relay stack
 
 See [Deployment Guide](docs/DEPLOYMENT.md) for complete instructions.
 
