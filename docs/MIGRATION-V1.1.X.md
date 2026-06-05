@@ -201,7 +201,7 @@ sudo mkdir -p /home/$(whoami)/onion
 sudo tee /home/$(whoami)/onion/bridge.conf > /dev/null << 'EOF'
 # Tor obfs4 Bridge Configuration
 Nickname MyObfs4Bridge
-ContactInfo admin@email.org
+ContactInfo email:email[]email.org url:https://example.com proof:uri-familyid-ed25519 ciissversion:3
 
 # Network configuration
 ORPort 9001

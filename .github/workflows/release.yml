@@ -105,6 +105,8 @@ jobs:
           elif [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
             BUILD_MODE="${{ github.event.inputs.build_mode }}"
             BUILD_VARIANTS="${{ github.event.inputs.variants }}"
+            BUILD_MODE="${BUILD_MODE:-rebuild}"
+            BUILD_VARIANTS="${BUILD_VARIANTS:-both}"
             LATEST_TAG=$(latest_semver_tag)
 
             if [[ "${BUILD_MODE}" == "rebuild" ]]; then

@@ -19,6 +19,10 @@ readonly TOR_RELAY_MODE="${TOR_RELAY_MODE:-guard}"
 TOR_PID=""
 TAIL_PID=""
 
+if [ "$#" -gt 0 ] && [ "$1" != "tor" ]; then
+  exec "$@"
+fi
+
 log() { printf "%s\n" "$1"; }
 info() { printf "   ℹ️  %s\n" "$1"; }
 success() { printf "✅ %s\n" "$1"; }
@@ -50,7 +54,7 @@ cleanup_and_exit() {
 
 startup_banner() {
   log "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-  log "🧅 Tor Guard Relay v1.1.9 - Initialization"
+  log "🧅 Tor Guard Relay v2.0.0 - Initialization"
   log "https://github.com/r3bo0tbx1/tor-guard-relay"
   log "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
   log ""
@@ -233,7 +237,7 @@ EOF
     guard|middle)
       cat >> "$TOR_CONFIG" << EOF
 # Guard/Middle relay configuration
-DirPort ${TOR_DIRPORT:-9030}
+DirPort ${TOR_DIRPORT:-0}
 ExitRelay 0
 BridgeRelay 0
 
@@ -256,7 +260,7 @@ EOF
     exit)
       cat >> "$TOR_CONFIG" << EOF
 # Exit relay configuration
-DirPort ${TOR_DIRPORT:-9030}
+DirPort ${TOR_DIRPORT:-0}
 ExitRelay 1
 BridgeRelay 0
 
@@ -406,7 +410,11 @@ launch_tor() {
   log "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
   log ""
 
-  tor -f "$TOR_CONFIG" &
+  if [ "$#" -gt 0 ]; then
+    "$@" &
+  else
+    tor -f "$TOR_CONFIG" &
+  fi
   TOR_PID=$!
 
   log "🚀 Tor relay started (PID: $TOR_PID)"
@@ -447,7 +455,7 @@ main() {
   phase_4_validation
   phase_5_build_info
   phase_6_diagnostics
-  launch_tor
+  launch_tor "$@"
 }
 
 main "$@"

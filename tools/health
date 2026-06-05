@@ -51,14 +51,30 @@ fi
 TOR_VERSION=$(tor --version 2>/dev/null | head -n1 | sed 's/Tor version //' || echo "unknown")
 
 RELAY_MODE="${TOR_RELAY_MODE:-unknown}"
-if [ -f "/etc/tor/torrc" ]; then
-    if grep -q "^BridgeRelay 1" /etc/tor/torrc 2>/dev/null; then
+TORRC="${TOR_CONFIG:-/etc/tor/torrc}"
+if [ -f "$TORRC" ]; then
+    if grep -q "^BridgeRelay 1" "$TORRC" 2>/dev/null; then
         RELAY_MODE="bridge"
-    elif grep -q "^ExitRelay 1" /etc/tor/torrc 2>/dev/null; then
+    elif grep -q "^ExitRelay 1" "$TORRC" 2>/dev/null; then
         RELAY_MODE="exit"
-    elif grep -q "^ExitRelay 0" /etc/tor/torrc 2>/dev/null; then
+    elif grep -q "^ExitRelay 0" "$TORRC" 2>/dev/null; then
         RELAY_MODE="guard"
     fi
+fi
+
+CONFIG_SOURCE="unknown"
+if [ -f "$TORRC" ]; then
+    if grep -q "^# Generated Tor configuration" "$TORRC" 2>/dev/null; then
+        CONFIG_SOURCE="environment"
+    else
+        CONFIG_SOURCE="mounted"
+    fi
+fi
+
+BUILD_VERSION="unknown"
+if [ -f "/build-info.txt" ]; then
+    BUILD_VERSION=$(awk -F': ' '/^Version:/ {print $2}' /build-info.txt)
+    [ -z "$BUILD_VERSION" ] && BUILD_VERSION="unknown"
 fi
 
 cat <<EOF
@@ -72,6 +88,8 @@ cat <<EOF
   "nickname": "$NICKNAME",
   "fingerprint": "$FINGERPRINT",
   "tor_version": "$TOR_VERSION",
-  "relay_mode": "$RELAY_MODE"
+  "relay_mode": "$RELAY_MODE",
+  "build_version": "$BUILD_VERSION",
+  "config_source": "$CONFIG_SOURCE"
 }
 EOF

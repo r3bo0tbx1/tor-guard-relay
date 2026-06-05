@@ -72,9 +72,9 @@ docker run -d \
   --network host \
   -e TOR_RELAY_MODE=guard \
   -e TOR_NICKNAME=MyGuardRelay \
-  -e TOR_CONTACT_INFO="email:admin[]example.com ciissversion:3" \
+  -e TOR_CONTACT_INFO="email:admin[]example.com url:https://example.com proof:uri-familyid-ed25519 ciissversion:3" \
   -e TOR_ORPORT=9001 \
-  -e TOR_DIRPORT=9030 \
+  -e TOR_DIRPORT=0 \
   -v tor-data:/var/lib/tor \
   ghcr.io/r3bo0tbx1/onion-relay:latest
 ```
@@ -128,7 +128,7 @@ Both work identically - we support two naming conventions for compatibility:
 ```bash
 TOR_RELAY_MODE=bridge
 TOR_NICKNAME=MyBridge
-TOR_CONTACT_INFO=email:admin[]example.com ciissversion:3
+TOR_CONTACT_INFO=email:admin[]example.com url:https://example.com proof:uri-familyid-ed25519 ciissversion:3
 TOR_ORPORT=9001
 TOR_OBFS4_PORT=9002
 ```
@@ -136,7 +136,7 @@ TOR_OBFS4_PORT=9002
 **Official Tor Project Naming (Drop-in Compatible):**
 ```bash
 NICKNAME=MyBridge
-EMAIL=admin@example.com
+EMAIL=email:admin[]example.com ciissversion:3
 OR_PORT=9001
 PT_PORT=9002  # Auto-detects bridge mode!
 ```
@@ -459,7 +459,7 @@ docker run -d --name tor-relay ...  # Same config
 **Verify upgrade:**
 ```bash
 docker exec tor-relay cat /build-info.txt
-# Should show: Version: 1.1.9
+# Should show: Version: 2.0.0
 
 docker exec tor-relay fingerprint
 # Verify fingerprint unchanged
@@ -570,5 +570,5 @@ See [CONTRIBUTING.md](../CONTRIBUTING.md) for guidelines.
 
 ---
 
-**Last Updated:** May 2026 (v1.1.9)
+**Last Updated:** May 2026 (v2.0.0)
 **Maintained by:** [@r3bo0tbx1](https://github.com/r3bo0tbx1)

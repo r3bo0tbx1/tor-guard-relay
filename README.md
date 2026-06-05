@@ -50,15 +50,15 @@
 
 ### Port Exposure Policy
 
-- **9001** ORPort, public  
-- **9030** DirPort, **Disabled (0)** by default
-- **9002** obfs4 for bridge mode  
+- **9001** ORPort, public
+- **9002** obfs4 for bridge mode
+- DirPort, **Disabled (0)** by default
 
 ### Environment Variables
 
-- `TOR_ORPORT` default 9001  
+- `TOR_ORPORT` default 9001
+- `TOR_OBFS4_PORT` default 9002
 - `TOR_DIRPORT` default 0 (Disabled)
-- `TOR_OBFS4_PORT` default 9002  
 
 Diagnostics are run only through `docker exec`, with no exposed monitoring ports.
 
@@ -162,11 +162,11 @@ We offer **two build variants** to match your risk tolerance and requirements:
 ```bash
 # Pull from Docker Hub (easiest)
 docker pull r3bo0tbx1/onion-relay:latest
-docker pull r3bo0tbx1/onion-relay:1.1.9
+docker pull r3bo0tbx1/onion-relay:2.0.0
 
 # Pull from GHCR
 docker pull ghcr.io/r3bo0tbx1/onion-relay:latest
-docker pull ghcr.io/r3bo0tbx1/onion-relay:1.1.9
+docker pull ghcr.io/r3bo0tbx1/onion-relay:2.0.0
 ```
 
 ### Edge Variant (Testing Only)
@@ -185,7 +185,7 @@ docker pull r3bo0tbx1/onion-relay:edge
 
 # Pull from GHCR
 docker pull ghcr.io/r3bo0tbx1/onion-relay:edge
-docker pull ghcr.io/r3bo0tbx1/onion-relay:1.1.9-edge
+docker pull ghcr.io/r3bo0tbx1/onion-relay:2.0.0-edge
 ```
 
 **When to use edge:**
@@ -629,9 +629,9 @@ See [Contributing Guide](CONTRIBUTING.md) for detailed instructions.
 
 ### ⚠️ Version Deprecation Notice
 
-> **Security release target: v1.1.9.** This release addresses Alpine/OpenSSL package exposure (including **CVE-2026-31789**, fix range `openssl >= 3.5.6-r0`) and clarifies host-kernel guidance for **Copy Fail / CVE-2026-31431**. Container updates reduce image dependency risk, but **CVE-2026-31431 requires host kernel patching** by your OS/cloud vendor.
+> **Security release target: v2.0.0.** This release addresses Alpine/OpenSSL package exposure (including **CVE-2026-31789**, fix range `openssl >= 3.5.6-r0`) and clarifies host-kernel guidance for **Copy Fail / CVE-2026-31431**. Container updates reduce image dependency risk, but **CVE-2026-31431 requires host kernel patching** by your OS/cloud vendor.
 >
-> **Version policy for v1.1.9:** versions older than v1.1.9 are deprecated in support docs, but historical tags remain in registries for reproducibility.
+> **Version policy for v2.0.0 and later:** only the latest released version receives updates. When a new version is released, all previous versions automatically become unsupported and no longer receive maintenance, security fixes, or scheduled rebuild updates. Historical tags remain in registries for reproducibility.
 >
 > **Recommended upgrade path:**
 >
@@ -659,14 +659,14 @@ Images are automatically rebuilt on separate schedules to include security patch
 **Stable Variant** (`:latest`)
 - **Schedule:** Every Sunday at 18:30 UTC
 - **Includes:** Latest Tor + Alpine 3.23.4 updates
-- **Strategy:** Overwrites last release version (e.g., `:1.1.9`) with updated packages
-- **Tags Updated:** `:latest` and version tags (e.g., `:1.1.9`)
+- **Strategy:** Overwrites last release version (e.g., `:2.0.0`) with updated packages
+- **Tags Updated:** `:latest` and version tags (e.g., `:2.0.0`)
 
 **Edge Variant** (`:edge`)
 - **Schedule:** Every 3 days at 12:00 UTC (independent schedule)
 - **Includes:** Latest Tor + Alpine edge (bleeding-edge) updates
-- **Strategy:** Overwrites last release version (e.g., `:1.1.9-edge`) with updated packages
-- **Tags Updated:** `:edge` and version tags (e.g., `:1.1.9-edge`)
+- **Strategy:** Overwrites last release version (e.g., `:2.0.0-edge`) with updated packages
+- **Tags Updated:** `:edge` and version tags (e.g., `:2.0.0-edge`)
 - **Frequency:** ~2-3x more frequent updates than stable
 
 All images auto-published to Docker Hub and GitHub Container Registry
@@ -701,7 +701,7 @@ All images auto-published to Docker Hub and GitHub Container Registry
 ![GitHub Repo stars](https://img.shields.io/github/stars/r3bo0tbx1/tor-guard-relay?style=for-the-badge)
 ![GitHub Issues](https://img.shields.io/github/issues/r3bo0tbx1/tor-guard-relay?style=for-the-badge)
 
-**Current Version:** v1.1.9
+**Current Version:** v2.0.0
 **Image Size:** 16.8 MB • **Retention:** Last 7 Releases  
 **Registries:** Docker Hub • GHCR  
 

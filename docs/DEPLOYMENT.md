@@ -27,7 +27,7 @@ Before deploying, ensure you have:
 - ✅ **Root or sudo access** on your server
 - ✅ **Static public IP address**
 - ✅ **Sufficient bandwidth** (10+ Mbps recommended)
-- ✅ **Open firewall ports** (9001/tcp minimum, 9030/tcp recommended for guard/exit, 9002/tcp for bridges)
+- ✅ **Open firewall ports** (9001/tcp for guard/exit, 9002/tcp for bridges)
 - ✅ **Prepared configuration** (config file OR environment variables)
 
 ---

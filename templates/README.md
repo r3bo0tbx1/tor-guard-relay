@@ -179,9 +179,9 @@ For advanced torrc options (like `AddressDisableIPv6`, `MaxMemInQueues`, etc.):
 
 Both work identically, choose based on your preference or migration needs.
 
-~~Q: Why is TOR_DIRPORT set in Dockerfile when bridges don't use it?~~
+### Q: Why does TOR_DIRPORT exist if bridges don’t use it?
 
-~~**A:** TOR_DIRPORT=9030 is a **Dockerfile default** for guard/exit modes. The entrypoint **DOES NOT** add DirPort to bridge configurations (see `docker-entrypoint.sh` lines 276-290). Bridges only use ORPort and obfs4 port.~~
+**A:** TOR_DIRPORT defaults to `0` for guard/exit modes and is ignored for bridges. The entrypoint only writes `DirPort` for guard/exit configs, while bridge configs use ORPort + obfs4 only.
 
 **Port usage by mode:**
 - **Guard/Middle:** TOR_ORPORT (required), TOR_DIRPORT (optional, default = 0)

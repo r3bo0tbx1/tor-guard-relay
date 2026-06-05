@@ -94,8 +94,8 @@ docker exec guard-relay ps aux | grep tor
 ### 3. Disable Unnecessary Features
 
 ```conf
-# Disable directory service (if not needed)
-# DirPort 0
+# Disabled directory service (we're not a DA)
+DirPort 0
 
 # Keep SOCKS disabled (we're a relay, not a client)
 SocksPort 0
@@ -252,8 +252,8 @@ RelayBandwidthBurst 20 MBytes
 
 ```conf
 # Maximize contribution
-RelayBandwidthRate 500 MBytes
-RelayBandwidthBurst 1000 MBytes
+RelayBandwidthRate 1024 MBytes
+RelayBandwidthBurst 1024 MBytes
 ```
 
 #### For Datacenters with Traffic Shaping
@@ -278,7 +278,7 @@ ORPort 9001
 ORPort [::]:9001
 
 # Directory port for IPv6
-DirPort 9030
+DirPort 0
 ```
 
 **Verify IPv6 is working:**
@@ -653,7 +653,7 @@ MaxClientCircuitsPending 100
 # Network
 ORPort 9001
 ORPort [::]:9001
-DirPort 9030
+DirPort 0
 ```
 
 **Quick Performance Checklist:**

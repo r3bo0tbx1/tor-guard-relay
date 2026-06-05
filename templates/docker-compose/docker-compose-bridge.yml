@@ -9,7 +9,7 @@ services:
     environment:
       TOR_RELAY_MODE: bridge
       TOR_NICKNAME: MyTorBridge
-      TOR_CONTACT_INFO: "email:your-email[]example.com ciissversion:3"
+      TOR_CONTACT_INFO: "email:your-email[]example.com url:https://example.com proof:uri-familyid-ed25519 ciissversion:3"
       TOR_ORPORT: 9001
       TOR_OBFS4_PORT: 9002
       TOR_BANDWIDTH_RATE: "10 MBytes"

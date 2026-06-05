@@ -163,7 +163,7 @@ Auto-update version numbers across all documentation, templates, and configurati
    - Format: `## [v1.1.2] - 2025-01-14`
 
 3. **templates/*.yml** (Docker Compose)
-   - `image:` tags from `onion-relay:1.1.6` → `onion-relay:1.1.8`
+   - `image:` tags from `onion-relay:1.1.9` → `onion-relay:2.0.0`
 
 4. **templates/*.json** (Cosmos Cloud)
    - `"image":` fields in JSON templates
@@ -177,12 +177,12 @@ Auto-update version numbers across all documentation, templates, and configurati
 **Example Output:**
 
 ```
-ℹ Current version detected: 1.1.8
-ℹ New version: 1.1.9
+ℹ Current version detected: 1.1.9
+ℹ New version: 2.0.0
 ℹ Updating README.md...
 ✅ Updated: README.md
 ℹ Updating CHANGELOG.md...
-✅ Added version 1.1.9 to CHANGELOG.md
+✅ Added version 2.0.0 to CHANGELOG.md
 ℹ Updating Docker Compose templates...
 ✅ Updated: templates/docker-compose-guard-env.yml
 ✅ Updated: templates/docker-compose-exit.yml
@@ -193,8 +193,8 @@ Auto-update version numbers across all documentation, templates, and configurati
 ✅ Version Update Complete
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  Current Version: 1.1.8
-  New Version:     1.1.9
+  Current Version: 1.1.9
+  New Version:     2.0.0
   Files Updated:   15
 
 🔵 Backup files created with .bak extension
@@ -203,8 +203,8 @@ Auto-update version numbers across all documentation, templates, and configurati
 Next Steps:
   1. Review changes: git diff
   2. Update CHANGELOG.md with release notes
-  3. Commit changes: git add -A && git commit -m "chore: bump version to 1.1.9"
-  4. Create tag: git tag -a v1.1.9 -m "Release v1.1.9"
+  3. Commit changes: git add -A && git commit -m "chore: bump version to 2.0.0"
+  4. Create tag: git tag -a v2.0.0 -m "Release v2.0.0"
   5. Push: git push && git push --tags
 ```
 
