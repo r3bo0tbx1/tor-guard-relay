@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # relay-status.sh - Tor relay/bridge status checker with security validation
-# Version: 1.1.9
+# Version: 2.0.0
 # Automatically detects Tor containers or uses specified container name
 #
 
@@ -10,7 +10,7 @@ set -euo pipefail
 CONTAINER="${1:-}"
 readonly FINGERPRINT_PATH="/var/lib/tor/fingerprint"
 readonly TORRC_PATH="/etc/tor/torrc"
-readonly VERSION="1.1.9"
+readonly VERSION="2.0.0"
 readonly RED='\033[0;31m'
 readonly GREEN='\033[0;32m'
 readonly YELLOW='\033[1;33m'
@@ -120,10 +120,6 @@ check_port_security() {
         else
             print_warning "ORPort 9001 not exposed (may be using host network)"
         fi
-        
-        if echo "${exposed_ports}" | grep -qE "^9030/tcp"; then
-            print_success "DirPort 9030 properly exposed"
-        fi
 
         if echo "${exposed_ports}" | grep -qE "^903[5-9]/tcp"; then
             print_error "SECURITY ISSUE: Internal metrics port exposed externally!"
@@ -223,11 +219,11 @@ show_orport() {
             print_success "ORPort configured correctly (9001)"
         fi
         
-        if echo "${orport_config}" | grep -q "DirPort 9030"; then
-            print_success "DirPort configured correctly (9030)"
+        if echo "${orport_config}" | grep -q "DirPort 0"; then
+            print_success "DirPort disabled (not a Directory Authority)"
         fi
     else
-        print_warning "No ORPort configuration found"
+        print_warning "No ORPort or DirPort configuration found"
     fi
 }
 
@@ -313,7 +309,7 @@ Options:
   -v, --version        Show version information
 
 Security Checks:
-  - Port exposure validation (9001/9030 only)
+  - Port exposure validation (9001/9002 only)
   - Internal service binding verification (127.0.0.1)
   - Bootstrap and reachability status
   - Error detection and reporting
@@ -323,7 +319,7 @@ EOF
 
 show_version() {
     echo "relay-status.sh version ${VERSION}"
-    echo "Part of Tor Guard Relay v1.1.9"
+    echo "Part of Tor Guard Relay v2.0.0"
 }
 
 main() {

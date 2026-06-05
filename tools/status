@@ -57,6 +57,24 @@ if [ -f "$TOR_DATA/fingerprint" ] && [ -r "$TOR_DATA/fingerprint" ]; then
     echo "🔑 Fingerprint: ${FP_START}...${FP_END}"
 fi
 
+TORRC="${TOR_CONFIG:-/etc/tor/torrc}"
+CONFIG_SOURCE="unknown"
+if [ -f "$TORRC" ]; then
+    if grep -q "^# Generated Tor configuration" "$TORRC" 2>/dev/null; then
+        CONFIG_SOURCE="environment"
+    else
+        CONFIG_SOURCE="mounted"
+    fi
+fi
+
+BUILD_VERSION=""
+if [ -f "/build-info.txt" ]; then
+    BUILD_VERSION=$(awk -F': ' '/^Version:/ {print $2}' /build-info.txt)
+fi
+
+[ -n "$BUILD_VERSION" ] && echo "🏷️  Build:      $BUILD_VERSION"
+[ "$CONFIG_SOURCE" != "unknown" ] && echo "🧩 Config:     $CONFIG_SOURCE"
+
 # Happy Family status
 FAMILY_KEY_COUNT=0
 if [ -d "$TOR_DATA/keys" ]; then

@@ -52,7 +52,7 @@ The Tor Guard Relay container now supports **three relay modes**:
 - Long-term operation (8+ days to earn Guard flag - requires at least 5 of 9 directory authorities to vote in consensus)
 
 **Requirements:**
-- Public IP with ports 9001, 9030 accessible
+- Public IP with port 9001 accessible for guard/middle/exit, or port 9002 accessible for bridges
 - Stable uptime (99%+ recommended)
 - 10+ Mbps bandwidth recommended
 
@@ -367,7 +367,7 @@ The container will detect the mounted file and skip dynamic config generation.
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `TOR_ORPORT` | `9001` | Tor connection port |
-| `TOR_DIRPORT` | `9030` | Directory service port (not used for bridges) |
+| `TOR_DIRPORT` | `0` | Directory service port (not used for bridges) |
 | `TOR_OBFS4_PORT` | `9002` | obfs4 pluggable transport port (bridges only) |
 
 ### Bandwidth
@@ -476,8 +476,7 @@ docker run -d \
 sudo ufw status
 
 # Open required ports
-sudo ufw allow 9001/tcp
-sudo ufw allow 9030/tcp  # Guards/exits only
+sudo ufw allow 9001/tcp  # Guards/exits only
 sudo ufw allow 9002/tcp  # Bridges only
 
 # Test from outside

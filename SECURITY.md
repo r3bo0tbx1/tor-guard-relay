@@ -12,10 +12,12 @@ Issues related to the Tor network itself should be reported directly to [The Tor
 
 We actively support the following versions with security updates:
 
-| Version   | Status                | Support Level                               |
-| --------- | --------------------- | ------------------------------------------- |
-| **1.1.9** | 🟢 🛡️ **Active**     | Full support (current stable)               |
-| **< 1.1.9** | 🔴 ❌ **Deprecated**   | Unsupported after v1.1.9 release; tags retained in registries for reproducibility. |
+| Version     | Status                | Support Level                                                                        |
+| ----------- | --------------------- | ------------------------------------------------------------------------------------ |
+| **2.0.0**   | 🟢 🛡️ **Active**     | Full support (current stable)                                                        |
+| **< 2.0.0** | 🔴 ❌ **Deprecated** | Unsupported after v2.0.0 release; tags retained in registries for reproducibility.   |
+
+**Support policy:** Only the latest released version receives updates. When a new version is released, all previous versions automatically become unsupported and no longer receive maintenance, security fixes, or scheduled rebuild updates. Historical tags remain available in registries for reproducibility.
 
 ---
 
@@ -43,7 +45,7 @@ We actively support the following versions with security updates:
 
 - ✅ **NO monitoring HTTP endpoints** - Removed for maximum security
 - ✅ **NO exposed metrics ports** - All monitoring via `docker exec` only
-- ✅ **Only Tor protocol ports exposed** - ORPort, DirPort (configurable), obfs4 (bridge mode)
+- ✅ **Only Tor protocol ports exposed** - ORPort (configurable), obfs4 (bridge mode), DirPort (disabled)
 - ✅ **~16.8 MB image** - Minimal attack surface
 
 ### Public Port Exposure (Configurable)
@@ -120,7 +122,7 @@ This project uses **host networking mode** (`--network host`) for best Tor perfo
 
 **Security implications:**
 - Exposed ORPort: Required for Tor relay operation (configurable)
-- Exposed DirPort: Optional for directory service (can be disabled)
+- Disabled DirPort: Not necessary unless you operate a Directory Authority
 - Exposed obfs4 port: Only in bridge mode (configurable)
 - NO other services are accessible (internal or external)
 
@@ -222,17 +224,14 @@ See [Monitoring Guide](docs/MONITORING.md) for complete integration examples.
 # UFW (Ubuntu/Debian)
 sudo ufw default deny incoming
 sudo ufw allow 9001/tcp  # ORPort (or your custom port)
-sudo ufw allow 9030/tcp  # DirPort (optional, or your custom port)
 sudo ufw enable
 
 # iptables
 sudo iptables -A INPUT -p tcp --dport 9001 -j ACCEPT
-sudo iptables -A INPUT -p tcp --dport 9030 -j ACCEPT
 sudo iptables -A INPUT -j DROP
 
 # firewalld (RHEL/CentOS)
 sudo firewall-cmd --permanent --add-port=9001/tcp
-sudo firewall-cmd --permanent --add-port=9030/tcp
 sudo firewall-cmd --reload
 ```
 
@@ -248,8 +247,7 @@ sudo ufw allow 9002/tcp  # obfs4 port
 
 ```bash
 # Replace with your configured ports
-sudo ufw allow <TOR_ORPORT>/tcp
-sudo ufw allow <TOR_DIRPORT>/tcp  # guard/exit only
+sudo ufw allow <TOR_ORPORT>/tcp  # guard/exit only
 sudo ufw allow <TOR_OBFS4_PORT>/tcp  # bridge only
 ```
 
@@ -676,4 +674,4 @@ Security researchers who responsibly disclose vulnerabilities will be listed her
 
 ---
 
-*Last Updated: 2026-05-09 | Current Stable: 1.1.9*
+*Last Updated: 2026-06-05 | Current Stable: 2.0.0*

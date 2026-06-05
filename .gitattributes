@@ -1,13 +1,20 @@
-* text=auto
+* text=auto eol=lf
 *.sh text eol=lf
 docker-entrypoint.sh text eol=lf
 healthcheck.sh text eol=lf
 tools/* text eol=lf
 *.container text eol=lf
 Dockerfile text eol=lf
+Dockerfile.* text eol=lf
+.dockerignore text eol=lf
+.gitattributes text eol=lf
+.gitignore text eol=lf
 .github/workflows/*.yml text eol=lf
-*.md text
-*.txt text
+*.conf text eol=lf
+*.json text eol=lf
+*.html text eol=lf
+*.md text eol=lf
+*.txt text eol=lf
 *.yml text eol=lf
 *.yaml text eol=lf
 *.png binary

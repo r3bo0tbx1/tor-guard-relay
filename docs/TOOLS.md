@@ -75,7 +75,11 @@ docker exec tor-relay health | jq .status
   "reachable": "true",
   "errors": 0,
   "nickname": "MyGuardRelay",
-  "fingerprint": "ABCD1234567890ABCDEF1234567890ABCDEFGHIJ"
+  "fingerprint": "ABCD1234567890ABCDEF1234567890ABCDEFGHIJ",
+  "tor_version": "0.4.9.1",
+  "relay_mode": "guard",
+  "build_version": "2.0.0",
+  "config_source": "environment"
 }
 ```
 
@@ -481,4 +485,4 @@ A: Removed (required Python/Flask). Use `status` tool for visual output or build
 
 ---
 
-**Last Updated:** May 2026 | **Version:** 1.1.9
+**Last Updated:** June 2026 | **Version:** 2.0.0

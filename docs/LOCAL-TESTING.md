@@ -79,9 +79,9 @@ docker run --rm localhost:5000/onion-relay:test status
 # Create test config
 cat > /tmp/relay-test.conf << 'EOF'
 Nickname TestGuardRelay
-ContactInfo test@example.com
+ContactInfo email:test[]example.com url:https://example.com proof:uri-familyid-ed25519 ciissversion:3
 ORPort 9001
-DirPort 9030
+DirPort 0
 ExitRelay 0
 ExitPolicy reject *:*
 DataDirectory /var/lib/tor
@@ -123,7 +123,7 @@ docker run -d \
   --network host \
   -e OR_PORT=9001 \
   -e PT_PORT=9002 \
-  -e EMAIL="test@example.com" \
+  -e EMAIL="email:test[]example.com url:https://example.com proof:uri-familyid-ed25519 ciissversion:3" \
   -e NICKNAME=TestBridge \
   -e OBFS4_ENABLE_ADDITIONAL_VARIABLES=1 \
   -e OBFS4V_AddressDisableIPv6=0 \
@@ -162,7 +162,7 @@ docker volume rm test-bridge-data
 # Create bridge config
 cat > /tmp/bridge-test.conf << 'EOF'
 Nickname TestBridgeMounted
-ContactInfo test@example.com
+ContactInfo email:test[]example.com url:https://example.com proof:uri-familyid-ed25519 ciissversion:3
 ORPort 9001
 SocksPort 0
 DataDirectory /var/lib/tor
@@ -219,20 +219,20 @@ echo "Health check status: $?"
 # Test nickname validation (should fail - too long)
 docker run --rm \
   -e TOR_NICKNAME="ThisNicknameIsWayTooLongAndShouldFail" \
-  -e TOR_CONTACT_INFO="test@example.com" \
+  -e TOR_CONTACT_INFO="email:test[]example.com url:https://example.com proof:uri-familyid-ed25519 ciissversion:3" \
   localhost:5000/onion-relay:test 2>&1 | grep -i error
 
 # Test port validation (should fail - invalid port)
 docker run --rm \
   -e TOR_NICKNAME="TestRelay" \
-  -e TOR_CONTACT_INFO="test@example.com" \
+  -e TOR_CONTACT_INFO="email:test[]example.com url:https://example.com proof:uri-familyid-ed25519 ciissversion:3" \
   -e TOR_ORPORT="99999" \
   localhost:5000/onion-relay:test 2>&1 | grep -i error
 
 # Test bandwidth format (should succeed)
 docker run --rm \
   -e TOR_NICKNAME="TestRelay" \
-  -e TOR_CONTACT_INFO="test@example.com" \
+  -e TOR_CONTACT_INFO="email:test[]example.com url:https://example.com proof:uri-familyid-ed25519 ciissversion:3" \
   -e TOR_BANDWIDTH_RATE="10 MBytes" \
   localhost:5000/onion-relay:test \
   sh -c "cat /etc/tor/torrc | grep -i bandwidth"
@@ -245,7 +245,7 @@ docker run --rm \
 docker run --rm \
   -e OR_PORT=9001 \
   -e PT_PORT=9002 \
-  -e EMAIL="test@example.com" \
+  -e EMAIL="email:test[]example.com url:https://example.com proof:uri-familyid-ed25519 ciissversion:3" \
   -e NICKNAME=TestSec \
   -e OBFS4_ENABLE_ADDITIONAL_VARIABLES=1 \
   -e OBFS4V_MaxMemInQueues="512 MB" \
@@ -256,7 +256,7 @@ docker run --rm \
 docker run --rm \
   -e OR_PORT=9001 \
   -e PT_PORT=9002 \
-  -e EMAIL="test@example.com" \
+  -e EMAIL="email:test[]example.com url:https://example.com proof:uri-familyid-ed25519 ciissversion:3" \
   -e NICKNAME=TestSec \
   -e OBFS4_ENABLE_ADDITIONAL_VARIABLES=1 \
   -e OBFS4V_EvilDirective="malicious value" \
@@ -291,7 +291,7 @@ After building locally:
 # For ENV-based config
 docker run --rm \
   -e TOR_NICKNAME=Debug \
-  -e TOR_CONTACT_INFO=debug@test.com \
+  -e TOR_CONTACT_INFO=email:debug[]test.com url:https://example.com proof:uri-familyid-ed25519 ciissversion:3 \
   localhost:5000/onion-relay:test \
   cat /etc/tor/torrc
 

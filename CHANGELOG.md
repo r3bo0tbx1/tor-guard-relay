@@ -16,6 +16,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [v2.0.0] - 2026-06-05
+
+### ✅ Added
+
+- **Health tool metadata:** `tools/health` now includes `build_version` and `config_source` in JSON output.
+- **Status tool metadata:** `tools/status` now displays build version and config source.
+- **Healthcheck validation:** `healthcheck.sh` now fails fast on missing/empty torrc.
+
+### ⚙️ Changed
+
+- **DirPort default:** ENV-generated guard/exit configs now default `TOR_DIRPORT` to `0` (disabled) when unset.
+- **Version bump:** Updated version strings to v2.0.0 across docs and runtime banners.
+
+### ⚠️ Support Policy
+
+- Only the latest released version receives updates. When a new version is released, all previous versions automatically become unsupported and no longer receive maintenance, security fixes, or scheduled rebuild updates. Historical tags remain available in registries for reproducibility.
+
+> **BREAKING CHANGES:** None.
+
+---
+
 ## [1.1.9] - 2026-05-09
 
 ### 🛡️ Security
@@ -553,7 +574,7 @@ BREAKING CHANGES: None
 ## 📊 Release Information
 
 * **🎉 First Release:** v1.0.0 (November 1, 2025)
-* **📦 Current Stable:** v1.1.9 (May 9, 2026)
+* **📦 Current Stable:** v2.0.0 (June 5, 2026)
 * **🔗 Latest Release:** [GitHub Releases](https://github.com/r3bo0tbx1/tor-guard-relay/releases/latest)
 * **🐳 Docker Images:**
 
@@ -564,16 +585,17 @@ BREAKING CHANGES: None
 
 ## 🔖 Version Support
 
-| Version   | Status                | Support Level                               |
-| --------- | --------------------- | ------------------------------------------- |
-| **1.1.9** | 🟢 ✅ Supported       | Current stable release                      |
-| **< 1.1.9** | 🔴 ❌ **Deprecated**   | Unsupported after v1.1.9 release; tags retained in registries. |
+| Version     | Status                | Support Level                                                           |
+| ----------- | --------------------- | ----------------------------------------------------------------------- |
+| **2.0.0**   | 🟢 ✅ Supported       | Current stable release                                                   |
+| **< 2.0.0** | 🔴 ❌ **Deprecated** | Unsupported after v2.0.0 release; tags retained in registries.          |
 
 ---
 
 ## 🔗 Release Links
 
-[1.1.9]: https://github.com/r3bo0tbx1/tor-guard-relay/compare/v1.1.8...HEAD
+[2.0.0]: https://github.com/r3bo0tbx1/tor-guard-relay/compare/v1.1.9...v2.0.0
+[1.1.9]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.1.9
 [1.1.8]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.1.8
 [1.1.7]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.1.7
 [1.1.6]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.1.6
@@ -592,7 +614,7 @@ BREAKING CHANGES: None
 [1.0.3]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.0.3
 [1.0.2]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.0.2
 [1.0.1]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.0.1
-[Unreleased]: https://github.com/r3bo0tbx1/tor-guard-relay/compare/v1.1.9...HEAD
+[Unreleased]: https://github.com/r3bo0tbx1/tor-guard-relay/compare/v2.0.0...HEAD
 
 ---
 

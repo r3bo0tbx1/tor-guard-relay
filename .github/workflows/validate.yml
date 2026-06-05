@@ -168,7 +168,8 @@ jobs:
       - name: 📋 Lint YAML Files
         run: |
           echo "🔧 Installing yamllint..."
-          pip install yamllint
+          sudo apt-get update
+          sudo apt-get install -y yamllint
           echo "📋 Validating YAML files..."
           echo "📁 Checking templates (lenient rules)..."
           for yaml in templates/*.yml; do
@@ -257,6 +258,10 @@ jobs:
       - name: 🔧 Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
 
+      - name: 🏷️ Generate Build Metadata
+        id: build_metadata
+        run: echo "build_date=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> "$GITHUB_OUTPUT"
+
       - name: 🐳 Build Image (amd64 for testing)
         uses: docker/build-push-action@v6
         with:
@@ -267,7 +272,7 @@ jobs:
           tags: tor-relay:test
           pull: true
           build-args: |
-            BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
+            BUILD_DATE=${{ steps.build_metadata.outputs.build_date }}
             BUILD_VERSION=test-${{ github.run_number }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
