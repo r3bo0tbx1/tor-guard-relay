@@ -40,9 +40,9 @@
 
 **Battle-tested in production.** See it live: **[relays.brokenbotnet.com](https://relays.brokenbotnet.com/)**
 
-🌉 **Bridges** (Obfs4) • 🛡️ **Middle/Guard** • 🚪 **Exit** across **10 countries**
+🌉 **Bridges** (Obfs4) • 🛡️ **Middle/Guard** • 🚪 **Exit** across **11 countries**
 
-> 🇯🇵 • 🇰🇷 • 🇸🇬 • 🇲🇾 • 🇻🇳 • 🇭🇰 • 🇦🇺 • 🇷🇺 • 🇹🇷 • 🇿🇦
+> 🇯🇵 • 🇰🇷 • 🇸🇬 • 🇲🇾 • 🇻🇳 • 🇭🇰 • 🇦🇺 • 🇷🇺 • 🇹🇷 • 🇿🇦 • 🇨🇦
 
 ---
 
