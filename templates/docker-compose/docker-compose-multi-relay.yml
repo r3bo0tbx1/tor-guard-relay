@@ -1,6 +1,6 @@
 version: '3.8'
 
-# Happy Family Setup (Tor 0.4.9+):
+# Happy Family Setup (Tor 0.4.9.2-alpha or later):
 #
 # Option A - Generate a new key:
 #   1. Start relay-1, then run: docker exec guard-relay-1 gen-family MyRelays

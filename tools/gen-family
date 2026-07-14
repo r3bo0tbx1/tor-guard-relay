@@ -48,7 +48,7 @@ show_usage() {
   echo "   docker exec tor-relay gen-family --show"
   echo ""
   echo "${BOLD}What is Happy Family?${NC}"
-  echo "   Tor 0.4.9+ replaces MyFamily with a cryptographic key-based"
+  echo "   Tor 0.4.9.2-alpha or later adds a cryptographic key-based"
   echo "   system. All relays in a family share one secret key file."
   echo "   See: https://community.torproject.org/relay/setup/post-install/family-ids/"
   echo ""

@@ -417,7 +417,7 @@ flowchart TD
 ```
 
 **Base Config Includes:** Nickname, ContactInfo, ORPort, SocksPort 0, DataDirectory, Logging
-**Family Config (guard/exit):** Optional FamilyId (Tor 0.4.9+) and MyFamily (legacy, comma-separated fingerprints via TOR_MY_FAMILY)
+**Family Config (guard/exit):** Optional FamilyId (Tor 0.4.9.2-alpha or later) and MyFamily (legacy, comma-separated fingerprints via TOR_MY_FAMILY)
 
 **Code Reference:** `docker-entrypoint.sh` lines 222-350 (generate_config_from_env)
 

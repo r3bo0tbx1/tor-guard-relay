@@ -91,7 +91,7 @@ docker exec tor-relay health        # JSON health output
 docker exec tor-relay fingerprint   # Display fingerprint
 docker exec tor-relay bridge-line   # Get bridge line (bridge mode)
 docker exec tor-relay gen-auth      # Generate Control Port hash
-docker exec tor-relay gen-family    # Generate/view Happy Family key (Tor 0.4.9+)
+docker exec tor-relay gen-family    # Generate/view Happy Family key (Tor 0.4.9.2-alpha or later)
 ```
 
 ### Network Architecture
@@ -345,7 +345,7 @@ ContactInfo email:tor-relay[]example.com url:https://example.com proof:uri-famil
 ContactInfo email:tor-relay[]example.com abuse:abuse[]example.com url:https://example.com proof:uri-familyid-ed25519 ciissversion:3
 ```
 
-> 📝 **CIISS v3:** The [ContactInfo Information Sharing Specification](https://nusenu.github.io/ContactInfo-Information-Sharing-Specification/) provides a machine-readable, verifiable format. The `proof:uri-familyid-ed25519` method lets tools verify your relay ownership by checking `https://your-domain/.well-known/tor-relay/ed25519-family-id.txt` for your Happy Family ID (Tor 0.4.9+).
+> 📝 **CIISS v3:** The [ContactInfo Information Sharing Specification](https://nusenu.github.io/ContactInfo-Information-Sharing-Specification/) provides a machine-readable, verifiable format. The `proof:uri-familyid-ed25519` method lets tools verify your relay ownership by checking `https://your-domain/.well-known/tor-relay/ed25519-family-id.txt` for your Happy Family ID (Tor 0.4.9.2-alpha or later).
 
 #### Network Security
 

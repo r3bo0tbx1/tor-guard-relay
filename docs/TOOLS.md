@@ -13,7 +13,7 @@
 | **fingerprint** | Display relay fingerprint | Text | With Tor Metrics link |
 | **bridge-line** | Get obfs4 bridge line | Text | Bridge mode only |
 | gen-auth | Generate Control Port auth | Text | Password + Hash |
-| gen-family | Generate/view Happy Family key | Text | Tor 0.4.9+ only |
+| gen-family | Generate/view Happy Family key | Text | Tor 0.4.9.2-alpha or later |
 
 ---
 
@@ -231,7 +231,7 @@ When to use:
 
 ### `gen-family`
 
-**Purpose:** Generate or view a Tor Happy Family key (Tor 0.4.9+). This replaces the old `MyFamily` fingerprint-exchange workflow with a single shared `FamilyId`.
+**Purpose:** Generate or view a Tor Happy Family key (Tor 0.4.9.2-alpha or later). This replaces the old `MyFamily` fingerprint-exchange workflow with a single shared `FamilyId`.
 
 **Usage:**
 ```bash
@@ -248,7 +248,7 @@ docker exec tor-relay gen-family --help
 **Output Example (generate):**
 ```
 ════════════════════════════════════════════════════════════
-Tor Happy Family Key Generator (Tor 0.4.9+)
+Tor Happy Family Key Generator (Tor 0.4.9.2-alpha or later)
 ════════════════════════════════════════════════════════════
 
 ✓ Generated family key: MyRelays
@@ -322,7 +322,7 @@ docker exec tor-bridge bridge-line
 # Share ONLY with trusted users, NOT publicly
 ```
 
-### 5. Set Up Happy Family (Tor 0.4.9+)
+### 5. Set Up Happy Family (Tor 0.4.9.2-alpha or Later)
 ```bash
 # Generate a family key on one relay
 docker exec tor-relay gen-family MyRelays

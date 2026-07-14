@@ -183,11 +183,11 @@ validate_relay_config() {
 
   if [ -n "${TOR_FAMILY_ID:-}" ]; then
     family_id_len=$(printf "%s" "$TOR_FAMILY_ID" | wc -c)
-    if [ "$family_id_len" -ne 52 ]; then
-      die "TOR_FAMILY_ID must be exactly 52 characters (got: $family_id_len)"
+    if [ "$family_id_len" -ne 43 ]; then
+      die "TOR_FAMILY_ID must be exactly 43 characters (got: $family_id_len)"
     fi
-    if ! printf "%s" "$TOR_FAMILY_ID" | grep -qE '^[A-Z2-7]{52}$'; then
-      die "TOR_FAMILY_ID must be base32-encoded (uppercase A-Z and digits 2-7 only)"
+    if ! printf "%s" "$TOR_FAMILY_ID" | grep -qE '^[A-Za-z0-9+/]{43}$'; then
+      die "TOR_FAMILY_ID must be an unpadded base64-encoded Ed25519 public-key digest"
     fi
   fi
 }
@@ -245,7 +245,7 @@ BridgeRelay 0
 EOF
       [ -n "${TOR_BANDWIDTH_RATE:-}" ] && echo "RelayBandwidthRate ${TOR_BANDWIDTH_RATE}" >> "$TOR_CONFIG"
       [ -n "${TOR_BANDWIDTH_BURST:-}" ] && echo "RelayBandwidthBurst ${TOR_BANDWIDTH_BURST}" >> "$TOR_CONFIG"
-      [ -n "${TOR_FAMILY_ID:-}" ] && echo "" >> "$TOR_CONFIG" && echo "# Happy Family (Tor 0.4.9+)" >> "$TOR_CONFIG" && echo "FamilyId ${TOR_FAMILY_ID}" >> "$TOR_CONFIG"
+      [ -n "${TOR_FAMILY_ID:-}" ] && echo "" >> "$TOR_CONFIG" && echo "# Happy Family (Tor 0.4.9.2-alpha or later)" >> "$TOR_CONFIG" && echo "FamilyId ${TOR_FAMILY_ID}" >> "$TOR_CONFIG"
 
       if [ -n "${TOR_MY_FAMILY:-}" ]; then
         echo "" >> "$TOR_CONFIG"
@@ -271,7 +271,7 @@ ExitPolicy ${TOR_EXIT_POLICY:-reject *:*}
 EOF
       [ -n "${TOR_BANDWIDTH_RATE:-}" ] && echo "RelayBandwidthRate ${TOR_BANDWIDTH_RATE}" >> "$TOR_CONFIG"
       [ -n "${TOR_BANDWIDTH_BURST:-}" ] && echo "RelayBandwidthBurst ${TOR_BANDWIDTH_BURST}" >> "$TOR_CONFIG"
-      [ -n "${TOR_FAMILY_ID:-}" ] && echo "" >> "$TOR_CONFIG" && echo "# Happy Family (Tor 0.4.9+)" >> "$TOR_CONFIG" && echo "FamilyId ${TOR_FAMILY_ID}" >> "$TOR_CONFIG"
+      [ -n "${TOR_FAMILY_ID:-}" ] && echo "" >> "$TOR_CONFIG" && echo "# Happy Family (Tor 0.4.9.2-alpha or later)" >> "$TOR_CONFIG" && echo "FamilyId ${TOR_FAMILY_ID}" >> "$TOR_CONFIG"
 
       if [ -n "${TOR_MY_FAMILY:-}" ]; then
         echo "" >> "$TOR_CONFIG"

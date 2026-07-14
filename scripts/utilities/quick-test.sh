@@ -235,7 +235,7 @@ fi
 if docker exec test-tools gen-family --help >/dev/null 2>&1; then
   success "gen-family tool works"
 else
-  warn "gen-family tool not available (requires Tor 0.4.9+)"
+  warn "gen-family tool not available (requires Tor 0.4.9.2-alpha or later)"
 fi
 
 # Cleanup

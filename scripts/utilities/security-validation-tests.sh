@@ -263,6 +263,14 @@ echo ""
 echo "Test 8: Shell Script Syntax"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
+if grep -Fq "family_id_len\" -ne 43" docker-entrypoint.sh && \
+   grep -Fq "^[A-Za-z0-9+/]{43}$" docker-entrypoint.sh && \
+   ! grep -Fq "^[A-Z2-7]{52}$" docker-entrypoint.sh; then
+  test_pass "FamilyId validation accepts Tor's 43-character unpadded base64 format"
+else
+  test_fail "FamilyId validation does not match Tor's unpadded base64 format"
+fi
+
 for script in docker-entrypoint.sh tools/status tools/health tools/fingerprint tools/bridge-line tools/gen-family; do
   if [ -f "$script" ]; then
     if sh -n "$script" 2>/dev/null; then
