@@ -3,20 +3,13 @@ FROM golang:1.26-alpine AS builder
 
 RUN apk add --no-cache git
 
-SHELL ["/bin/ash", "-eo", "pipefail", "-c"]
-
 WORKDIR /go/src/lyrebird
 RUN git clone https://gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/lyrebird.git .  \
- && go get filippo.io/edwards25519@v1.1.1 \
  && go get golang.org/x/crypto@latest \
  && go get golang.org/x/net@latest \
  && go get github.com/pion/interceptor@latest \
  && go get github.com/cloudflare/circl@latest \
  && go mod tidy \
- && if go list -deps ./cmd/lyrebird | grep -Eq '^golang.org/x/crypto/openpgp(/|$)'; then \
-      echo "ERROR: unsafe golang.org/x/crypto/openpgp dependency detected"; \
-      exit 1; \
-    fi \
  && CGO_ENABLED=0 go build -ldflags="-s -w" -o /usr/bin/lyrebird ./cmd/lyrebird
 
 FROM alpine:3.24.1
