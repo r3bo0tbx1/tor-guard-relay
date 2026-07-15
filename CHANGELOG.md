@@ -614,6 +614,7 @@ BREAKING CHANGES: None
 [1.0.3]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.0.3
 [1.0.2]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.0.2
 [1.0.1]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.0.1
+[1.0.0]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.0.0
 [Unreleased]: https://github.com/r3bo0tbx1/tor-guard-relay/compare/v2.0.0...HEAD
 
 ---
