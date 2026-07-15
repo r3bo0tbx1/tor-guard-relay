@@ -14,12 +14,10 @@ on:
       - 'Dockerfile'
       - 'docker-entrypoint.sh'
       - 'tools/*'
-      - '.github/workflows/release.yml'
-      - '.github/workflows/validate.yml'
+      - '.github/workflows/**'
       - 'templates/**'
       - 'compose*.yml'
       - 'docker-compose*.yml'
-      - '.github/dependabot.yml'
       - '.github/renovate.json'
       - '!**/*.md'
       - '!**/*.txt'
@@ -40,7 +38,10 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
+
+      - name: 🧭 Lint GitHub Actions Workflows
+        uses: raven-actions/actionlint@v2
 
       - name: 🐳 Lint Dockerfile with Hadolint
         uses: hadolint/hadolint-action@v3.3.0
@@ -248,7 +249,7 @@ jobs:
 
     steps:
       - name: 📥 Checkout Repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: 🖥️ Set up QEMU
         uses: docker/setup-qemu-action@v4
@@ -263,7 +264,7 @@ jobs:
         run: echo "build_date=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> "$GITHUB_OUTPUT"
 
       - name: 🐳 Build Image (amd64 for testing)
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: ./Dockerfile
@@ -283,7 +284,7 @@ jobs:
           echo "📦 Image size: $(du -h /tmp/tor-relay-test.tar | cut -f1)"
 
       - name: ⬆️ Upload Image Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: docker-image
           path: /tmp/tor-relay-test.tar
@@ -296,10 +297,10 @@ jobs:
 
     steps:
       - name: 📥 Checkout Repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: ⬇️ Download Docker Image
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: docker-image
           path: /tmp
@@ -428,10 +429,10 @@ jobs:
 
     steps:
       - name: 📥 Checkout Repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: ⬇️ Download Docker Image
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: docker-image
           path: /tmp
@@ -529,7 +530,7 @@ jobs:
         continue-on-error: true
 
       - name: ⬆️ Upload Full Report Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: trivy-security-report
           path: trivy-full-report.json
@@ -574,10 +575,10 @@ jobs:
 
     steps:
       - name: 📥 Checkout Repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: ⬇️ Download Docker Image
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: docker-image
           path: /tmp

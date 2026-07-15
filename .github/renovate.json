@@ -7,19 +7,20 @@
     ":prHourlyLimit2"
   ],
 
-  "labels": ["dependencies", "alpine", "docker"],
+  "labels": ["dependencies"],
   "commitMessagePrefix": "build",
   "rebaseWhen": "behind-base-branch",
   "assignees": ["r3bo0tbx1"],
   "reviewers": ["r3bo0tbx1"],
 
-  "enabledManagers": ["dockerfile"],
+  "enabledManagers": ["dockerfile", "github-actions"],
 
   "packageRules": [
     {
       "matchDatasources": ["docker"],
       "matchPackageNames": ["alpine"],
       "groupName": "🐳 Alpine Base Image",
+      "labels": ["dependencies", "alpine", "docker"],
       "schedule": ["before 3am on monday"],
       "prPriority": 1,
       "automerge": false,
@@ -30,8 +31,17 @@
       "matchManagers": ["dockerfile"],
       "excludePackageNames": ["alpine"],
       "groupName": "🐳 Other Docker Images",
+      "labels": ["dependencies", "docker"],
       "schedule": ["before 3am on monday"],
       "prPriority": 2,
+      "automerge": false
+    },
+    {
+      "matchManagers": ["github-actions"],
+      "groupName": "GitHub Actions",
+      "labels": ["dependencies", "github-actions"],
+      "schedule": ["before 3am on monday"],
+      "prPriority": 3,
       "automerge": false
     }
   ],
@@ -47,7 +57,5 @@
   "timezone": "UTC",
   "prConcurrentLimit": 5,
 
-  "customManagers": [],
-
-  "description": "Renovate tracks only Docker base images. Alpine packages (tor, tini, lyrebird) are NOT pinned and update automatically via weekly rebuilds."
+  "description": "Renovate tracks Docker base images and GitHub Actions. Alpine packages (tor and tini) are not pinned and update automatically via weekly rebuilds."
 }

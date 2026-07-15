@@ -3,8 +3,6 @@ changelog:
     labels:
       - ignore-for-release
       - dependencies
-    authors:
-      - dependabot
   categories:
     - title: 🎉 New Features
       labels:

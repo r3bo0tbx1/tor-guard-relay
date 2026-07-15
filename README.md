@@ -324,7 +324,7 @@ docker exec tor-relay health | jq .
 - ✅ Comprehensive documentation (8 guides)
 - ✅ Example configurations included
 - ✅ GitHub issue templates
-- ✅ Automated dependency updates (Dependabot)
+- ✅ Automated dependency updates (Renovate)
 - ✅ CI/CD validation and testing
 - ✅ Multi-arch support (same command, any platform)
 
