@@ -152,12 +152,14 @@ jobs:
 
           BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
           SHORT_SHA=$(git rev-parse --short HEAD)
-          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
-          echo "build_type=${BUILD_TYPE}" >> "$GITHUB_OUTPUT"
-          echo "is_release=${IS_RELEASE}" >> "$GITHUB_OUTPUT"
-          echo "build_date=${BUILD_DATE}" >> "$GITHUB_OUTPUT"
-          echo "short_sha=${SHORT_SHA}" >> "$GITHUB_OUTPUT"
-          echo "build_variants=${BUILD_VARIANTS}" >> "$GITHUB_OUTPUT"
+          {
+            echo "version=${VERSION}"
+            echo "build_type=${BUILD_TYPE}"
+            echo "is_release=${IS_RELEASE}"
+            echo "build_date=${BUILD_DATE}"
+            echo "short_sha=${SHORT_SHA}"
+            echo "build_variants=${BUILD_VARIANTS}"
+          } >> "$GITHUB_OUTPUT"
 
       - name: 📋 Version Information
         run: |
@@ -281,7 +283,9 @@ jobs:
           echo ""
           echo "🔐 Setting execute permissions..."
           chmod +x docker-entrypoint.sh healthcheck.sh 2>/dev/null || true
-          [ -d "tools" ] && chmod +x tools/* 2>/dev/null || true
+          if [ -d "tools" ]; then
+            chmod +x tools/* 2>/dev/null || true
+          fi
 
           echo "   ✅ Permissions verified"
           echo ""
@@ -538,69 +542,72 @@ jobs:
               done
               echo "✅ Auto-generated release notes from conventional commits"
             else
-              echo "### Changes" > release_notes.md
-              echo "" >> release_notes.md
               PREV_TAG=$(git tag --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | grep -v "^v${VERSION}$" | head -1)
               [ -z "$PREV_TAG" ] && PREV_TAG=$(git rev-list --max-parents=0 HEAD)
-              git log --pretty=format:"- %s (\`%h\`) by %an" "${PREV_TAG}..HEAD" >> release_notes.md || echo "- Initial release" >> release_notes.md
-              echo "" >> release_notes.md
-              echo "⚠️ **Note:** Release notes were auto-generated from commit history." >> release_notes.md
-              echo "For detailed changes, see the commit history below." >> release_notes.md
+              {
+                echo "### Changes"
+                echo ""
+                git log --pretty=format:"- %s (\`%h\`) by %an" "${PREV_TAG}..HEAD" || echo "- Initial release"
+                echo ""
+                echo "⚠️ **Note:** Release notes were auto-generated from commit history."
+                echo "For detailed changes, see the commit history below."
+              } > release_notes.md
               echo "✅ Generated basic release notes from commit history"
             fi
           fi
 
-          echo "" >> release_notes.md
-          echo "---" >> release_notes.md
           ALPINE_VERSION=$(grep -oP '^FROM alpine:\K[0-9.]+' Dockerfile 2>/dev/null || echo "latest")
-
-          echo "" >> release_notes.md
-          echo "### 🐳 Docker Images" >> release_notes.md
-          echo "" >> release_notes.md
-          echo "**Stable Variant (Recommended for Production)**" >> release_notes.md
-          echo "" >> release_notes.md
-          echo "- Base: Alpine ${ALPINE_VERSION}" >> release_notes.md
-          echo "- Proven stability with weekly security updates" >> release_notes.md
-          echo "" >> release_notes.md
-          echo "\`\`\`bash" >> release_notes.md
-          echo "# From GitHub Container Registry (GHCR)" >> release_notes.md
-          echo "docker pull ${GHCR_IMAGE}:${VERSION}" >> release_notes.md
-          echo "docker pull ${GHCR_IMAGE}:latest" >> release_notes.md
-          echo "" >> release_notes.md
-          echo "# From Docker Hub" >> release_notes.md
-          echo "docker pull ${DOCKERHUB_IMAGE}:${VERSION}" >> release_notes.md
-          echo "docker pull ${DOCKERHUB_IMAGE}:latest" >> release_notes.md
-          echo "\`\`\`" >> release_notes.md
-          echo "" >> release_notes.md
-          echo "**Edge Variant (Testing Only)**" >> release_notes.md
-          echo "" >> release_notes.md
-          echo "- Base: Alpine edge (bleeding edge)" >> release_notes.md
-          echo "- ⚠️ **NOT recommended for production** - faster updates, less stable" >> release_notes.md
-          echo "" >> release_notes.md
-          echo "\`\`\`bash" >> release_notes.md
-          echo "# From GitHub Container Registry (GHCR) - versioned + simple tags" >> release_notes.md
-          echo "docker pull ${GHCR_IMAGE}:${VERSION}-edge" >> release_notes.md
-          echo "docker pull ${GHCR_IMAGE}:edge" >> release_notes.md
-          echo "" >> release_notes.md
-          echo "# From Docker Hub - simple tag only" >> release_notes.md
-          echo "docker pull ${DOCKERHUB_IMAGE}:edge" >> release_notes.md
-          echo "\`\`\`" >> release_notes.md
-          echo "" >> release_notes.md
-          echo "### 📋 Software Bill of Materials (SBOM)" >> release_notes.md
-          echo "" >> release_notes.md
-          echo "This release includes comprehensive SBOM files for **both variants** for supply chain security:" >> release_notes.md
-          echo "" >> release_notes.md
-          echo "- **CycloneDX**: JSON and XML formats (stable + edge)" >> release_notes.md
-          echo "- **SPDX**: JSON and tag-value formats (stable + edge)" >> release_notes.md
-          echo "- **Human-readable**: Table format (stable + edge)" >> release_notes.md
-          echo "" >> release_notes.md
-          echo "Download SBOM files from the release assets below (prefixed with \`stable-\` or \`edge-\`)." >> release_notes.md
-          echo "" >> release_notes.md
-          echo "---" >> release_notes.md
-          echo "" >> release_notes.md
           PREV_TAG=$(git tag --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | grep -v "^v${VERSION}$" | head -1)
           [ -z "$PREV_TAG" ] && PREV_TAG="v1.0.0"
-          echo "**Full Changelog**: https://github.com/${{ github.repository }}/compare/${PREV_TAG}...v${VERSION}" >> release_notes.md
+          {
+            echo ""
+            echo "---"
+            echo ""
+            echo "### 🐳 Docker Images"
+            echo ""
+            echo "**Stable Variant (Recommended for Production)**"
+            echo ""
+            echo "- Base: Alpine ${ALPINE_VERSION}"
+            echo "- Proven stability with weekly security updates"
+            echo ""
+            echo "\`\`\`bash"
+            echo "# From GitHub Container Registry (GHCR)"
+            echo "docker pull ${GHCR_IMAGE}:${VERSION}"
+            echo "docker pull ${GHCR_IMAGE}:latest"
+            echo ""
+            echo "# From Docker Hub"
+            echo "docker pull ${DOCKERHUB_IMAGE}:${VERSION}"
+            echo "docker pull ${DOCKERHUB_IMAGE}:latest"
+            echo "\`\`\`"
+            echo ""
+            echo "**Edge Variant (Testing Only)**"
+            echo ""
+            echo "- Base: Alpine edge (bleeding edge)"
+            echo "- ⚠️ **NOT recommended for production** - faster updates, less stable"
+            echo ""
+            echo "\`\`\`bash"
+            echo "# From GitHub Container Registry (GHCR) - versioned + simple tags"
+            echo "docker pull ${GHCR_IMAGE}:${VERSION}-edge"
+            echo "docker pull ${GHCR_IMAGE}:edge"
+            echo ""
+            echo "# From Docker Hub - simple tag only"
+            echo "docker pull ${DOCKERHUB_IMAGE}:edge"
+            echo "\`\`\`"
+            echo ""
+            echo "### 📋 Software Bill of Materials (SBOM)"
+            echo ""
+            echo "This release includes comprehensive SBOM files for **both variants** for supply chain security:"
+            echo ""
+            echo "- **CycloneDX**: JSON and XML formats (stable + edge)"
+            echo "- **SPDX**: JSON and tag-value formats (stable + edge)"
+            echo "- **Human-readable**: Table format (stable + edge)"
+            echo ""
+            echo "Download SBOM files from the release assets below (prefixed with \`stable-\` or \`edge-\`)."
+            echo ""
+            echo "---"
+            echo ""
+            echo "**Full Changelog**: https://github.com/${{ github.repository }}/compare/${PREV_TAG}...v${VERSION}"
+          } >> release_notes.md
 
           echo ""
           echo "✅ Release notes generation complete"
