@@ -1,0 +1,5 @@
+# GO-2026-5932 applies only to golang.org/x/crypto/openpgp. Lyrebird's
+# compiled dependency graph does not include any openpgp package, and the
+# official Go vulnerability scanner reports no reachable vulnerable symbols.
+# The Docker build fails if openpgp ever becomes a compiled dependency.
+GO-2026-5932 exp:2026-10-15
