@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### ⚙️ Changed
+
+- **Stable Alpine base:** Updated the stable image and helper-container references from Alpine 3.23.x to 3.24.1, including matching OCI metadata, workflow labels, scripts, and documentation.
+
 ### 🎯 Planned Features
 
 * 📊 Additional monitoring integrations (Datadog, New Relic)

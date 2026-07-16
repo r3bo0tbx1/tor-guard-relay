@@ -398,7 +398,7 @@ docker stats tor-relay --no-stream
 
 ```dockerfile
 # Always specify explicit base version
-FROM alpine:3.23.3  # Pinned version for reproducibility
+FROM alpine:3.24.1  # Pinned version for reproducibility
 
 # Run as non-root user
 USER tor

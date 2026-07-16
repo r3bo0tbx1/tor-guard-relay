@@ -153,7 +153,7 @@ We offer **two build variants** to match your risk tolerance and requirements:
 
 ### Stable Variant (Recommended)
 
-**Base:** Alpine 3.23.4 | **Recommended for:** Production relays
+**Base:** Alpine 3.24.1 | **Recommended for:** Production relays
 
 - ✅ Battle-tested Alpine stable release
 - ✅ Weekly automated rebuilds with latest security patches
@@ -679,7 +679,7 @@ Images are automatically rebuilt on separate schedules to include security patch
 
 **Stable Variant** (`:latest`)
 - **Schedule:** Every Sunday at 18:30 UTC
-- **Includes:** Latest Tor + Alpine 3.23.4 updates
+- **Includes:** Latest Tor + Alpine 3.24.1 updates
 - **Strategy:** Overwrites last release version (e.g., `:2.0.0`) with updated packages
 - **Tags Updated:** `:latest` and version tags (e.g., `:2.0.0`)
 

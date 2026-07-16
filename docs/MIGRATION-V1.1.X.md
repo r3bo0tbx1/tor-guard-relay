@@ -54,15 +54,15 @@ docker stop <container>
 docker run --rm \
   -v tor-guard-data:/data \
   -v /tmp:/backup \
-  alpine:3.23.3 tar czf /backup/tor-guard-data-backup-$(date +%Y%m%d).tar.gz /data
+  alpine:3.24.1 tar czf /backup/tor-guard-data-backup-$(date +%Y%m%d).tar.gz /data
 
 docker run --rm \
   -v tor-guard-logs:/data \
   -v /tmp:/backup \
-  alpine:3.23.3 tar czf /backup/tor-guard-logs-backup-$(date +%Y%m%d).tar.gz /data
+  alpine:3.24.1 tar czf /backup/tor-guard-logs-backup-$(date +%Y%m%d).tar.gz /data
 
 # Save fingerprint
-docker run --rm -v tor-guard-data:/data alpine:3.23.3 cat /data/fingerprint > /tmp/fingerprint-backup.txt
+docker run --rm -v tor-guard-data:/data alpine:3.24.1 cat /data/fingerprint > /tmp/fingerprint-backup.txt
 ```
 
 ### Step 2: Update Configuration
@@ -162,13 +162,13 @@ docker stop obfs4-bridge
 docker run --rm \
   -v obfs4-data:/data \
   -v /tmp:/backup \
-  alpine:3.23.3 tar czf /backup/obfs4-data-backup-$(date +%Y%m%d).tar.gz /data
+  alpine:3.24.1 tar czf /backup/obfs4-data-backup-$(date +%Y%m%d).tar.gz /data
 
 # Verify backup
 ls -lh /tmp/obfs4-data-backup-*.tar.gz
 
 # Save fingerprint
-docker run --rm -v obfs4-data:/data alpine:3.23.3 cat /data/fingerprint > /tmp/bridge-fingerprint-backup.txt
+docker run --rm -v obfs4-data:/data alpine:3.24.1 cat /data/fingerprint > /tmp/bridge-fingerprint-backup.txt
 cat /tmp/bridge-fingerprint-backup.txt
 ```
 
@@ -176,18 +176,18 @@ cat /tmp/bridge-fingerprint-backup.txt
 
 ```bash
 # Check current ownership (should be 101:101)
-docker run --rm -v obfs4-data:/data alpine:3.23.3 ls -ldn /data
+docker run --rm -v obfs4-data:/data alpine:3.24.1 ls -ldn /data
 # Output: drwx------ ... 101 101 ...
 
 # Fix ownership: 101 → 100
-docker run --rm -v obfs4-data:/data alpine:3.23.3 chown -R 100:101 /data
+docker run --rm -v obfs4-data:/data alpine:3.24.1 chown -R 100:101 /data
 
 # Verify fix
-docker run --rm -v obfs4-data:/data alpine:3.23.3 ls -ldn /data
+docker run --rm -v obfs4-data:/data alpine:3.24.1 ls -ldn /data
 # Output: drwx------ ... 100 101 ...  ← MUST show 100!
 
 # Verify key files are readable
-docker run --rm -v obfs4-data:/data alpine:3.23.3 ls -la /data/keys/
+docker run --rm -v obfs4-data:/data alpine:3.24.1 ls -la /data/keys/
 # Should show files owned by 100:101
 ```
 
@@ -348,7 +348,7 @@ Directory /var/lib/tor cannot be read: Permission denied
 **Fix**:
 ```bash
 docker stop obfs4-bridge
-docker run --rm -v obfs4-data:/data alpine:3.23.3 chown -R 100:101 /data
+docker run --rm -v obfs4-data:/data alpine:3.24.1 chown -R 100:101 /data
 docker start obfs4-bridge
 ```
 
@@ -361,7 +361,7 @@ docker start obfs4-bridge
 **Fix**: Restore from backup:
 ```bash
 docker stop obfs4-bridge
-docker run --rm -v obfs4-data:/data -v /tmp:/backup alpine:3.23.3 \
+docker run --rm -v obfs4-data:/data -v /tmp:/backup alpine:3.24.1 \
   sh -c 'rm -rf /data/* && tar xzf /backup/obfs4-data-backup-*.tar.gz -C / && chown -R 100:101 /data'
 docker start obfs4-bridge
 ```

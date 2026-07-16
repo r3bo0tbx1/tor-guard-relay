@@ -189,7 +189,7 @@ jobs:
             dockerfile: Dockerfile
             suffix: ""
             is_latest: "true"
-            base: "Alpine 3.23.4"
+            base: "Alpine 3.24.1"
             push_dockerhub: "true"
           - name: edge
             dockerfile: Dockerfile.edge

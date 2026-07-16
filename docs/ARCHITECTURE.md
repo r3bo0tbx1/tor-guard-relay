@@ -838,7 +838,7 @@ flowchart LR
     end
 
     subgraph Build["🏗️ Docker Build"]
-        Alpine[🐧 Alpine 3.23.0]
+        Alpine[🐧 Alpine 3.24.1]
         Install[📦 apk add packages]
         Copy[📥 Copy scripts and tools]
         Perms[🔒 Set permissions]

@@ -160,8 +160,8 @@ pre_migration_checks() {
 
   log ""
   log "🔐 Checking for Tor identity keys..."
-  if docker run --rm -v obfs4-data:/data alpine:3.23.3 test -d /data/keys; then
-    KEY_COUNT=$(docker run --rm -v obfs4-data:/data alpine:3.23.3 ls -1 /data/keys 2>/dev/null | wc -l)
+  if docker run --rm -v obfs4-data:/data alpine:3.24.1 test -d /data/keys; then
+    KEY_COUNT=$(docker run --rm -v obfs4-data:/data alpine:3.24.1 ls -1 /data/keys 2>/dev/null | wc -l)
     if [[ "$KEY_COUNT" -gt 0 ]]; then
       success "Bridge has $KEY_COUNT key files in /var/lib/tor/keys/"
       save_state "BRIDGE_KEYS_COUNT" "$KEY_COUNT"
@@ -172,8 +172,8 @@ pre_migration_checks() {
     warn "Bridge keys directory does not exist yet"
   fi
 
-  if docker run --rm -v tor-guard-data:/data alpine:3.23.3 test -d /data/keys; then
-    KEY_COUNT=$(docker run --rm -v tor-guard-data:/data alpine:3.23.3 ls -1 /data/keys 2>/dev/null | wc -l)
+  if docker run --rm -v tor-guard-data:/data alpine:3.24.1 test -d /data/keys; then
+    KEY_COUNT=$(docker run --rm -v tor-guard-data:/data alpine:3.24.1 ls -1 /data/keys 2>/dev/null | wc -l)
     if [[ "$KEY_COUNT" -gt 0 ]]; then
       success "Guard has $KEY_COUNT key files in /var/lib/tor/keys/"
       save_state "GUARD_KEYS_COUNT" "$KEY_COUNT"
@@ -223,7 +223,7 @@ backup_all_data() {
   docker run --rm \
     -v obfs4-data:/data \
     -v "${BACKUP_DIR}:/backup" \
-    alpine:3.23.3 \
+    alpine:3.24.1 \
     tar czf "/backup/obfs4-data-backup-${TIMESTAMP}.tar.gz" -C /data . 2>&1 | grep -v "tar:" || true
 
   if [[ -f "${BACKUP_DIR}/obfs4-data-backup-${TIMESTAMP}.tar.gz" ]]; then
@@ -240,7 +240,7 @@ backup_all_data() {
   docker run --rm \
     -v tor-guard-data:/data \
     -v "${BACKUP_DIR}:/backup" \
-    alpine:3.23.3 \
+    alpine:3.24.1 \
     tar czf "/backup/tor-guard-data-backup-${TIMESTAMP}.tar.gz" -C /data . 2>&1 | grep -v "tar:" || true
 
   if [[ -f "${BACKUP_DIR}/tor-guard-data-backup-${TIMESTAMP}.tar.gz" ]]; then
@@ -257,7 +257,7 @@ backup_all_data() {
   docker run --rm \
     -v tor-guard-logs:/data \
     -v "${BACKUP_DIR}:/backup" \
-    alpine:3.23.3 \
+    alpine:3.24.1 \
     tar czf "/backup/tor-guard-logs-backup-${TIMESTAMP}.tar.gz" -C /data . 2>&1 | grep -v "tar:" || true
 
   if [[ -f "${BACKUP_DIR}/tor-guard-logs-backup-${TIMESTAMP}.tar.gz" ]]; then
@@ -363,7 +363,7 @@ post_migration_checks() {
   log "🔐 Verifying Tor keys preserved..."
   SAVED_BRIDGE_KEYS=$(load_state "BRIDGE_KEYS_COUNT")
   if [[ -n "$SAVED_BRIDGE_KEYS" ]] && [[ "$SAVED_BRIDGE_KEYS" != "0" ]]; then
-    CURRENT_BRIDGE_KEYS=$(docker run --rm -v obfs4-data:/data alpine:3.23.3 ls -1 /data/keys 2>/dev/null | wc -l)
+    CURRENT_BRIDGE_KEYS=$(docker run --rm -v obfs4-data:/data alpine:3.24.1 ls -1 /data/keys 2>/dev/null | wc -l)
     if [[ "$CURRENT_BRIDGE_KEYS" -ge "$SAVED_BRIDGE_KEYS" ]]; then
       success "Bridge has $CURRENT_BRIDGE_KEYS key files (expected >= $SAVED_BRIDGE_KEYS)"
     else
@@ -375,7 +375,7 @@ post_migration_checks() {
 
   SAVED_GUARD_KEYS=$(load_state "GUARD_KEYS_COUNT")
   if [[ -n "$SAVED_GUARD_KEYS" ]] && [[ "$SAVED_GUARD_KEYS" != "0" ]]; then
-    CURRENT_GUARD_KEYS=$(docker run --rm -v tor-guard-data:/data alpine:3.23.3 ls -1 /data/keys 2>/dev/null | wc -l)
+    CURRENT_GUARD_KEYS=$(docker run --rm -v tor-guard-data:/data alpine:3.24.1 ls -1 /data/keys 2>/dev/null | wc -l)
     if [[ "$CURRENT_GUARD_KEYS" -ge "$SAVED_GUARD_KEYS" ]]; then
       success "Guard has $CURRENT_GUARD_KEYS key files (expected >= $SAVED_GUARD_KEYS)"
     else
@@ -572,15 +572,15 @@ rollback_check() {
   log "sudo docker rm $BRIDGE_CONTAINER $GUARD_CONTAINER"
   log ""
   log "# 2. Restore bridge volume"
-  log "sudo docker run --rm -v obfs4-data:/data -v ${BACKUP_DIR}:/backup alpine:3.23.3 \\"
+  log "sudo docker run --rm -v obfs4-data:/data -v ${BACKUP_DIR}:/backup alpine:3.24.1 \\"
   log "  sh -c 'rm -rf /data/* && tar xzf /backup/${BRIDGE_BACKUP} -C /data'"
   log ""
   log "# 3. Restore guard data volume"
-  log "sudo docker run --rm -v tor-guard-data:/data -v ${BACKUP_DIR}:/backup alpine:3.23.3 \\"
+  log "sudo docker run --rm -v tor-guard-data:/data -v ${BACKUP_DIR}:/backup alpine:3.24.1 \\"
   log "  sh -c 'rm -rf /data/* && tar xzf /backup/${GUARD_DATA_BACKUP} -C /data'"
   log ""
   log "# 4. Restore guard logs volume"
-  log "sudo docker run --rm -v tor-guard-logs:/data -v ${BACKUP_DIR}:/backup alpine:3.23.3 \\"
+  log "sudo docker run --rm -v tor-guard-logs:/data -v ${BACKUP_DIR}:/backup alpine:3.24.1 \\"
   log "  sh -c 'rm -rf /data/* && tar xzf /backup/${GUARD_LOGS_BACKUP} -C /data'"
   log ""
   log "# 5. Re-import old v1.1.0 Cosmos JSON configs"
