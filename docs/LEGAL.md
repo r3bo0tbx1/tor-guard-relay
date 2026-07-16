@@ -714,8 +714,8 @@ DirPort 80
 DirPortFrontPage /etc/tor/index.html
 ```
 
-> Privacy-friendly Exit Notice Template that you can use can be found in [`templates/tor-exit-notice`](/templates/tor-exit-notice/).
-> Make sure to change your exit node's IP/contact info.
+> Privacy-friendly Exit Notice Templates can be found in [`templates/tor-exit-notice`](/templates/tor-exit-notice/).
+> Before deploying a template, replace its placeholder IP addresses, relay fingerprint, contact details, and operator URL. Review the customized page, then minify the HTML with [HTML Minifier Next](https://j9t.github.io/html-minifier-next/) and deploy the minified output as `/etc/tor/index.html`.
 
 ---
 
