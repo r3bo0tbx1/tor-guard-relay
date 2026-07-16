@@ -3,11 +3,12 @@
 
 # 🧅 Tor Guard Relay
 
-[![🚀✨ Build](https://github.com/r3bo0tbx1/tor-guard-relay/actions/workflows/release.yml/badge.svg)](https://github.com/r3bo0tbx1/tor-guard-relay/actions/workflows/release.yml)
-[![Release](https://img.shields.io/github/v/release/r3bo0tbx1/tor-guard-relay?color=blue&label=version&labelColor=0a0a0a)](https://github.com/r3bo0tbx1/tor-guard-relay/releases/latest)
-![Platforms](https://img.shields.io/badge/platforms-amd64%20%7C%20arm64-2ea44f?logo=docker&labelColor=0a0a0a)
-[![Docker Hub](https://img.shields.io/docker/pulls/r3bo0tbx1/onion-relay?logo=docker&label=Docker%20Hub&labelColor=0a0a0a)](https://hub.docker.com/r/r3bo0tbx1/onion-relay)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?labelColor=0a0a0a)](LICENSE.txt)
+[![Build](https://img.shields.io/github/actions/workflow/status/r3bo0tbx1/tor-guard-relay/release.yml?branch=main&style=for-the-badge&logo=githubactions&logoColor=white&label=Build&labelColor=0a0a0a)](https://github.com/r3bo0tbx1/tor-guard-relay/actions/workflows/release.yml)
+[![Release](https://img.shields.io/github/v/release/r3bo0tbx1/tor-guard-relay?style=for-the-badge&logo=github&logoColor=white&label=Release&labelColor=0a0a0a&color=7d4698)](https://github.com/r3bo0tbx1/tor-guard-relay/releases/latest)
+[![Platforms](https://img.shields.io/badge/Platforms-amd64%20%7C%20arm64-2ea44f?style=for-the-badge&logo=linux&logoColor=white&labelColor=0a0a0a)](#multi-architecture-support)
+[![Docker Pulls](https://img.shields.io/docker/pulls/r3bo0tbx1/onion-relay?style=for-the-badge&logo=docker&logoColor=white&label=Docker%20Pulls&labelColor=0a0a0a&color=2496ed)](https://hub.docker.com/r/r3bo0tbx1/onion-relay)
+[![License](https://img.shields.io/github/license/r3bo0tbx1/tor-guard-relay?style=for-the-badge&logo=opensourceinitiative&logoColor=white&label=License&labelColor=0a0a0a&color=3da639)](LICENSE.txt)
+[![Donate](https://img.shields.io/badge/Donate-Support%20the%20Project-ea4aaa?style=for-the-badge&logo=githubsponsors&logoColor=white&labelColor=0a0a0a)](https://brokenbotnet.com/donate/)
 
 <img src="src/logo.png" alt="Onion Bridge/Middle/Guard/Exit Relay" width="400"/>
 
@@ -318,7 +319,7 @@ docker exec tor-relay health | jq .
 - ✅ **Weekly security rebuilds** via GitHub Actions
 - ✅ **Docker Compose templates** for single/multi-relay
 - ✅ **Cosmos Cloud support** with one-click deploy
-- ✅ **Automated Maintenance:** Keeps last 7 releases in registry
+- ✅ **Automated Maintenance:** Keeps 14 recent GHCR package versions and 14 recent Docker Hub versioned tags
 
 ### Developer Experience
 - ✅ Comprehensive documentation (8 guides)
@@ -332,11 +333,30 @@ docker exec tor-relay health | jq .
 
 ## 🖼️ Gallery
 
-| Cosmos Cloud Dashboard | Docker Logs (Bootstrapping) |
-|:-----------------------:|:---------------------------:|
-| ![Cosmos](src/screenshots/cosmos-dashboard.png) | ![Bootstrapping](src/screenshots/bootstrapping.png) |
-| Relay Status Tool | Obfs4 Bridge Line |
-| ![Relay](src/screenshots/relay-status.png) | ![Obfs4](src/screenshots/bridge-line.png) |
+<table>
+  <tr>
+    <th><div align="center">Cosmos Cloud Dashboard</div></th>
+    <th><div align="center">Docker Logs (Bootstrapping)</div></th>
+  </tr>
+  <tr>
+    <td align="center"><img src="src/screenshots/cosmos-dashboard.png" alt="Tor Guard Relay in the Cosmos Cloud dashboard"></td>
+    <td align="center"><img src="src/screenshots/bootstrapping.png" alt="Tor relay Docker logs showing bootstrap progress"></td>
+  </tr>
+  <tr>
+    <th><div align="center">Relay Status Tool</div></th>
+    <th><div align="center">obfs4 Bridge Line</div></th>
+  </tr>
+  <tr>
+    <td align="center"><img src="src/screenshots/relay-status-tool.png" alt="Relay status tool output for a running Tor exit relay"></td>
+    <td align="center"><img src="src/screenshots/obfs4-bridge-line.png" alt="Generated obfs4 client bridge line and sharing guidance"></td>
+  </tr>
+  <tr>
+    <th colspan="2"><div align="center">Nyx Bandwidth Monitoring</div></th>
+  </tr>
+  <tr>
+    <td colspan="2" align="center"><img src="src/screenshots/nyx-bandwidth.png" alt="Nyx bandwidth monitoring for a running Tor exit relay"></td>
+  </tr>
+</table>
 
 ---
 
@@ -632,7 +652,7 @@ See [Contributing Guide](CONTRIBUTING.md) for detailed instructions.
 
 > **Security release target: v2.0.0.** This release addresses Alpine/OpenSSL package exposure (including **CVE-2026-31789**, fix range `openssl >= 3.5.6-r0`) and clarifies host-kernel guidance for **Copy Fail / CVE-2026-31431**. Container updates reduce image dependency risk, but **CVE-2026-31431 requires host kernel patching** by your OS/cloud vendor.
 >
-> **Version policy for v2.0.0 and later:** only the latest released version receives updates. When a new version is released, all previous versions automatically become unsupported and no longer receive maintenance, security fixes, or scheduled rebuild updates. Historical tags remain in registries for reproducibility.
+> **Version policy for v2.0.0 and later:** only the latest released version receives updates. When a new version is released, all previous versions automatically become unsupported and no longer receive maintenance, security fixes, or scheduled rebuild updates. Historical Git tags remain available for source reproducibility, while older container versions and tags are pruned according to the registry cleanup policy.
 >
 > **Recommended upgrade path:**
 >
@@ -698,13 +718,14 @@ All images auto-published to Docker Hub and GitHub Container Registry
 
 <div align="center">
 
-![Docker Hub Pulls](https://img.shields.io/docker/pulls/r3bo0tbx1/onion-relay?style=for-the-badge&logo=docker)
-![GitHub Repo stars](https://img.shields.io/github/stars/r3bo0tbx1/tor-guard-relay?style=for-the-badge)
-![GitHub Issues](https://img.shields.io/github/issues/r3bo0tbx1/tor-guard-relay?style=for-the-badge)
+[![Docker Pulls](https://img.shields.io/docker/pulls/r3bo0tbx1/onion-relay?style=for-the-badge&logo=docker&logoColor=white&label=Docker%20Pulls&labelColor=0a0a0a&color=2496ed)](https://hub.docker.com/r/r3bo0tbx1/onion-relay)
+[![GitHub Stars](https://img.shields.io/github/stars/r3bo0tbx1/tor-guard-relay?style=for-the-badge&logo=github&logoColor=white&label=Stars&labelColor=0a0a0a&color=f5c542)](https://github.com/r3bo0tbx1/tor-guard-relay)
+[![Open Issues](https://img.shields.io/github/issues/r3bo0tbx1/tor-guard-relay?style=for-the-badge&logo=github&logoColor=white&label=Open%20Issues&labelColor=0a0a0a&color=d73a49)](https://github.com/r3bo0tbx1/tor-guard-relay/issues)
 
-**Current Version:** v2.0.0
-**Image Size:** 16.8 MB • **Retention:** Last 7 Releases  
-**Registries:** Docker Hub • GHCR  
+**Current Version:** v2.0.0<br>
+**Image Size:** 16.8 MB<br>
+**Registry Cleanup:** 14 recent GHCR package versions • 14 recent Docker Hub versioned tags<br>
+**Registries:** Docker Hub • GHCR
 
 </div>
 
@@ -728,20 +749,38 @@ See [License](LICENSE.txt) for full details.
 
 ## 💖 Support the Project
 
-This project is open source. Your support helps sustainability and improvements.
+Running public Tor infrastructure means recurring server, bandwidth, monitoring, and maintenance costs. If this project has been useful to you, a contribution helps keep that infrastructure online and supports continued open-source development.
+
+Donations are always optional. They do not purchase support, priority, influence, or access. They help cover work already being done in public.
+
+<div align="center">
+  <table>
+    <tr>
+      <th align="center">Bitcoin (BTC)</th>
+      <th align="center">Monero (XMR)</th>
+    </tr>
+    <tr>
+      <td align="center"><img src="src/donate/bitcoin.svg" alt="Bitcoin donation QR code" width="220"></td>
+      <td align="center"><img src="src/donate/monero.svg" alt="Monero donation QR code" width="220"></td>
+    </tr>
+  </table>
+</div>
 
 ### Bitcoin (BTC)
-```
-bc1qltkajaswmzx9jwets8hfz43nkvred5w92syyq4
-```
 
-Or via **[AnonPay](https://trocador.app/anonpay?ticker_to=btc&network_to=Mainnet&address=bc1qltkajaswmzx9jwets8hfz43nkvred5w92syyq4&ref=sqKNYGZbRl&direct=True&name=rE-Bo0tbx1+%28r3bo0tbx1%29&description=Support+FOSS+Development&email=r3bo0tbx1%40brokenbotnet.com)** (convert any crypto)
+```
+bc1q25xa47uknfeekm8xze06kfv7tjz4crcqqfpcuu
+```
 
 ### Monero (XMR)
+
 ```
-45mNg5cG1S2B2C5dndJP65SSEXseHFVqFdv1N6paAraD1Jk9kQxQQArVcjfQmgCcmthrUF3jbNs74c5AbWqMwAAgAjDYzrZ
+49eiKhJd3uFdRerHk87wx3YCzb3yWQ8kSKTuMc7QjJphY4dG89HAFd8CcKswWn8oUhBJLu4kbjywSX46DwvtGNUV9qLCrVW
 ```
-Or via **[AnonPay](https://trocador.app/anonpay?ticker_to=xmr&network_to=Mainnet&address=85ft7ehMfcKSSp8Ve92Y9oARmqvDjYvEiKQkzdp3qiyzP9dpLeJXFahgHcoXUPeE9TacqDCUXWppNffE3YDC1Wu1NnQ71rT&ref=sqKNYGZbRl&direct=True&name=rE-Bo0tbx1+%28r3bo0tbx1%29&description=Support+FOSS+Development&email=r3bo0tbx1%40brokenbotnet.com)** (convert any crypto)
+
+> **Check before sending:** Cryptocurrency transactions cannot be reversed. Confirm the network and compare the full address with the QR payload before sending funds.
+
+For additional information, visit the [full donation page](https://brokenbotnet.com/donate/).
 
 ### Other Ways to Support
 
@@ -762,7 +801,7 @@ Or via **[AnonPay](https://trocador.app/anonpay?ticker_to=xmr&network_to=Mainnet
 
 ⭐ Star this repo if you find it useful!
 
-🌍 [Support Internet Freedom](https://donate.torproject.org/)  
+🌍 [Support Internet Freedom](https://donate.brokenbotnet.com/)<br>
 📚 [Documentation](docs/README.md)  
 ⬆ [Back to top](#readme-top)
 
