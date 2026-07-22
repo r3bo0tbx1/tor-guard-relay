@@ -7,6 +7,8 @@ WORKDIR /go/src/lyrebird
 RUN git clone https://gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/lyrebird.git .  \
  && go get golang.org/x/crypto@latest \
  && go get golang.org/x/net@latest \
+ && go get filippo.io/edwards25519@latest \
+ && go get github.com/pion/dtls/v3@latest \
  && go get github.com/pion/interceptor@latest \
  && go get github.com/cloudflare/circl@latest \
  && go mod tidy \
@@ -57,6 +59,7 @@ COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 COPY healthcheck.sh /usr/local/bin/healthcheck.sh
 COPY tools/status /usr/local/bin/status
 COPY tools/health /usr/local/bin/health
+COPY tools/refresh /usr/local/bin/refresh
 COPY tools/fingerprint /usr/local/bin/fingerprint
 COPY tools/bridge-line /usr/local/bin/bridge-line
 COPY tools/gen-auth /usr/local/bin/gen-auth
@@ -67,12 +70,13 @@ RUN set -eux \
               /usr/local/bin/healthcheck.sh \
               /usr/local/bin/status \
               /usr/local/bin/health \
+              /usr/local/bin/refresh \
               /usr/local/bin/fingerprint \
               /usr/local/bin/bridge-line \
               /usr/local/bin/gen-auth \
               /usr/local/bin/gen-family \
  && echo "🧩 Registered diagnostic tools:" \
- && ls -lh /usr/local/bin/status /usr/local/bin/health /usr/local/bin/fingerprint /usr/local/bin/bridge-line
+ && ls -lh /usr/local/bin/status /usr/local/bin/health /usr/local/bin/refresh /usr/local/bin/fingerprint /usr/local/bin/bridge-line
 
 ENV TOR_DATA_DIR=/var/lib/tor \
     TOR_LOG_DIR=/var/log/tor \

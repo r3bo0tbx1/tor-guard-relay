@@ -8,15 +8,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### ⚙️ Changed
-
-- **Stable Alpine base:** Updated the stable image and helper-container references from Alpine 3.23.x to 3.24.1, including matching OCI metadata, workflow labels, scripts, and documentation.
-
 ### 🎯 Planned Features
 
 * 📊 Additional monitoring integrations (Datadog, New Relic)
 * 🔄 Automatic relay configuration updates
 * 🧪 Enhanced integration testing suite
+
+---
+
+## [v2.1.0] - 2026-07-22
+
+### ✅ Added
+
+- **PID-preserving Tor refresh:** Added `docker exec <container> refresh` to validate the active torrc, wait until Tor has installed its SIGHUP handler, signal the exact Tor PID, and verify that process identity and uptime are preserved.
+
+### 🐛 Fixed
+
+- **Runtime status reporting:** Replaced unsupported BusyBox `ps -p` usage so `status`, `health`, and `refresh` report uptime correctly on Alpine, kept zero-error health output valid JSON, and reported Tor's own current IPv4/IPv6 ORPort self-test result with clearer status icons.
+
+### ⚙️ Changed
+
+- **Stable Alpine base:** Updated the stable image and helper-container references from Alpine 3.23.x to 3.24.1, including matching OCI metadata, workflow labels, scripts, and documentation.
+- **Lyrebird dependencies:** Updated transitive Edwards25519 and Pion DTLS dependencies to releases containing the available vulnerability fixes.
+- **Release source pinning:** Scheduled and manual rebuilds now check out the latest release tag, while release builds use the exact triggering commit, preventing unreleased `main` changes from being published under an older version.
+- **Reload guidance:** Updated Control Port and Happy Family instructions to use the validated `refresh` command after active torrc edits.
+
+> **BREAKING CHANGES:** None.
 
 ---
 
@@ -578,7 +595,7 @@ BREAKING CHANGES: None
 ## 📊 Release Information
 
 * **🎉 First Release:** v1.0.0 (November 1, 2025)
-* **📦 Current Stable:** v2.0.0 (June 5, 2026)
+* **📦 Current Stable:** v2.1.0 (July 22, 2026)
 * **🔗 Latest Release:** [GitHub Releases](https://github.com/r3bo0tbx1/tor-guard-relay/releases/latest)
 * **🐳 Docker Images:**
 
@@ -591,13 +608,14 @@ BREAKING CHANGES: None
 
 | Version     | Status                | Support Level                                                           |
 | ----------- | --------------------- | ----------------------------------------------------------------------- |
-| **2.0.0**   | 🟢 ✅ Supported       | Current stable release                                                   |
-| **< 2.0.0** | 🔴 ❌ **Deprecated** | Unsupported after v2.0.0 release; tags retained in registries.          |
+| **2.1.0**   | 🟢 ✅ Supported       | Current stable release                                                   |
+| **< 2.1.0** | 🔴 ❌ **Deprecated** | Unsupported after v2.1.0 release; tags retained in registries.          |
 
 ---
 
 ## 🔗 Release Links
 
+[2.1.0]: https://github.com/r3bo0tbx1/tor-guard-relay/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/r3bo0tbx1/tor-guard-relay/compare/v1.1.9...v2.0.0
 [1.1.9]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.1.9
 [1.1.8]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.1.8
@@ -619,7 +637,7 @@ BREAKING CHANGES: None
 [1.0.2]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.0.2
 [1.0.1]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.0.1
 [1.0.0]: https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v1.0.0
-[Unreleased]: https://github.com/r3bo0tbx1/tor-guard-relay/compare/v2.0.0...HEAD
+[Unreleased]: https://github.com/r3bo0tbx1/tor-guard-relay/compare/v2.1.0...HEAD
 
 ---
 

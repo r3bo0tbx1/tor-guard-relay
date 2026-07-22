@@ -1,0 +1,153 @@
+#!/bin/sh
+# Validate the active torrc and reload Tor without restarting the process.
+
+set -eu
+
+TOR_CONFIG="${TOR_CONFIG:-/etc/tor/torrc}"
+TOR_LOG="${TOR_LOG_DIR:-/var/log/tor}/notices.log"
+VERIFY_TMP=""
+
+cleanup() {
+  if [ -n "$VERIFY_TMP" ]; then
+    rm -f "$VERIFY_TMP"
+  fi
+}
+
+die() {
+  printf "❌ %s\n" "$1" >&2
+  exit 1
+}
+
+hup_handler_ready() {
+  sigcgt=$(awk '/^SigCgt:/ {print $2}' "/proc/$TOR_PID/status" 2>/dev/null || true)
+  case "$sigcgt" in
+    ""|*[!0-9A-Fa-f]*) return 1 ;;
+  esac
+  [ "$((0x$sigcgt & 1))" -eq 1 ]
+}
+
+case "${1:-}" in
+  -h|--help)
+    cat <<'EOF'
+Usage: refresh
+
+Validate the active Tor configuration, send SIGHUP to the running Tor
+process, and confirm that its PID and process start time are unchanged.
+EOF
+    exit 0
+    ;;
+  "") ;;
+  *) die "Unknown argument: $1" ;;
+esac
+
+trap cleanup 0
+
+TOR_PIDS=$(pgrep -x tor 2>/dev/null || true)
+set -- $TOR_PIDS
+
+[ "$#" -gt 0 ] || die "Tor is not running."
+[ "$#" -eq 1 ] || die "Expected one Tor process, found $#."
+
+TOR_PID="$1"
+case "$TOR_PID" in
+  *[!0-9]*|"") die "Invalid Tor PID: $TOR_PID" ;;
+esac
+
+PROC_STAT="/proc/$TOR_PID/stat"
+PROC_CMDLINE="/proc/$TOR_PID/cmdline"
+[ -r "$PROC_STAT" ] || die "Cannot inspect Tor process $TOR_PID."
+
+ACTIVE_CONFIG=""
+if [ -r "$PROC_CMDLINE" ]; then
+  ACTIVE_CONFIG=$(tr '\000' '\n' < "$PROC_CMDLINE" | awk '
+    previous { print; exit }
+    $0 == "-f" { previous = 1 }
+  ')
+fi
+[ -n "$ACTIVE_CONFIG" ] && TOR_CONFIG="$ACTIVE_CONFIG"
+
+[ -f "$TOR_CONFIG" ] || die "Config file not found: $TOR_CONFIG"
+[ -r "$TOR_CONFIG" ] || die "Config file not readable: $TOR_CONFIG"
+[ -s "$TOR_CONFIG" ] || die "Config file is empty: $TOR_CONFIG"
+
+START_TIME_BEFORE=$(awk '{print $22}' "$PROC_STAT")
+UPTIME_BEFORE=$(ps -o pid=,etime= 2>/dev/null | awk -v target="$TOR_PID" '
+  $1 == target { print $2; exit }
+')
+LOG_LINES_BEFORE=0
+if [ -r "$TOR_LOG" ]; then
+  LOG_LINES_BEFORE=$(wc -l < "$TOR_LOG" | tr -cd '0-9')
+  [ -n "$LOG_LINES_BEFORE" ] || LOG_LINES_BEFORE=0
+fi
+[ -n "$START_TIME_BEFORE" ] || die "Could not read Tor process start time."
+[ -n "$UPTIME_BEFORE" ] || UPTIME_BEFORE="unknown"
+
+printf "\n"
+printf "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+printf "🔄 Tor Configuration Refresh\n"
+printf "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+printf "\n"
+printf "📄 Config:        %s\n" "$TOR_CONFIG"
+printf "🧅 Tor PID:       %s\n" "$TOR_PID"
+printf "⏱️  Uptime before: %s\n" "$UPTIME_BEFORE"
+printf "🔎 Validating configuration...\n"
+
+VERIFY_TMP=$(mktemp /tmp/tor-refresh.XXXXXX)
+if ! tor --verify-config -f "$TOR_CONFIG" >"$VERIFY_TMP" 2>&1; then
+  printf "❌ Configuration is invalid; Tor was not signalled.\n" >&2
+  sed -n '1,10p' "$VERIFY_TMP" >&2
+  exit 1
+fi
+
+printf "✅ Configuration is valid\n"
+
+if ! hup_handler_ready; then
+  printf "⏳ Waiting for Tor to install its SIGHUP handler...\n"
+  HUP_WAIT=0
+  while [ "$HUP_WAIT" -lt 50 ]; do
+    kill -0 "$TOR_PID" 2>/dev/null || die "Tor exited while preparing to reload."
+    sleep 0.1
+    if hup_handler_ready; then
+      break
+    fi
+    HUP_WAIT=$((HUP_WAIT + 1))
+  done
+  hup_handler_ready || die "Tor is not ready to handle SIGHUP; no signal was sent."
+fi
+
+printf "📨 Sending SIGHUP to Tor PID %s...\n" "$TOR_PID"
+
+kill -HUP "$TOR_PID" || die "Could not signal Tor PID $TOR_PID."
+sleep 1
+
+kill -0 "$TOR_PID" 2>/dev/null || die "Tor exited after the reload signal."
+[ -r "$PROC_STAT" ] || die "Tor process $TOR_PID no longer exists."
+
+START_TIME_AFTER=$(awk '{print $22}' "$PROC_STAT")
+UPTIME_AFTER=$(ps -o pid=,etime= 2>/dev/null | awk -v target="$TOR_PID" '
+  $1 == target { print $2; exit }
+')
+[ -n "$UPTIME_AFTER" ] || UPTIME_AFTER="unknown"
+
+[ "$START_TIME_AFTER" = "$START_TIME_BEFORE" ] || \
+  die "Tor PID was reused by a new process; reload was not PID-preserving."
+
+printf "✅ Reload signal delivered\n"
+printf "✅ PID preserved:  %s\n" "$TOR_PID"
+printf "⏱️  Uptime after:  %s\n" "$UPTIME_AFTER"
+
+if [ -r "$TOR_LOG" ]; then
+  FIRST_NEW_LINE=$((LOG_LINES_BEFORE + 1))
+  if tail -n "+$FIRST_NEW_LINE" "$TOR_LOG" | grep -q "Received reload signal (hup)"; then
+    printf "✅ Tor confirmed the configuration reload\n"
+  else
+    printf "⚠️  Tor has not written a reload confirmation to the notice log yet\n"
+  fi
+  printf "📋 Recent Tor notices:\n"
+  tail -n "+$FIRST_NEW_LINE" "$TOR_LOG" | tail -n 5 | sed 's/^/   /'
+fi
+
+printf "\n"
+printf "Tor remained in the same process; its process uptime was not reset.\n"
+printf "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+printf "\n"

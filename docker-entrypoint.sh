@@ -54,7 +54,7 @@ cleanup_and_exit() {
 
 startup_banner() {
   log "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-  log "🧅 Tor Guard Relay v2.0.0 - Initialization"
+  log "🧅 Tor Guard Relay v2.1.0 - Initialization"
   log "https://github.com/r3bo0tbx1/tor-guard-relay"
   log "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
   log ""
@@ -399,6 +399,7 @@ phase_6_diagnostics() {
   log "   Once Tor is running, use these commands:"
   log "   • docker exec <container> status        - Full health report"
   log "   • docker exec <container> health        - JSON health check"
+  log "   • docker exec <container> refresh       - Reload Tor config"
   log "   • docker exec <container> fingerprint   - Relay fingerprint"
   [ "$TOR_RELAY_MODE" = "bridge" ] && log "   • docker exec <container> bridge-line   - obfs4 bridge line"
   log ""

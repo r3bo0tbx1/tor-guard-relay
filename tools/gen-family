@@ -212,7 +212,7 @@ generate_key() {
   echo "${CYAN}📝 Next steps:${NC}"
   echo "   1. Add the FamilyId line to your torrc (all relays)"
   echo "   2. Copy the .secret_family_key to all relay keys directories"
-  echo "   3. Restart your relays: ${BOLD}docker restart tor-relay${NC}"
+  echo "   3. Validate and reload each relay: ${BOLD}docker exec <container> refresh${NC}"
   echo "   4. Keep MyFamily lines during the transition period"
   echo ""
   echo "${CYAN}⚠️  Important:${NC}"

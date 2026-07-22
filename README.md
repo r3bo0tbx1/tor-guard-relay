@@ -31,7 +31,7 @@
 - 🛡️ **Security-First** - Hardened Alpine Linux, non-root operation, and minimized port exposure
 - 🪶 **Very light** - Ultra-minimal 16.8 MB image
 - 🎯 **Simple** - One command to deploy, minimal configuration needed
-- 📊 **Observable** - 6 busybox-only diagnostic tools with JSON health API
+- 📊 **Observable** - 7 busybox-only tools with JSON health and PID-preserving config reloads
 - 🌉 **Multi-Mode** - Supports guard, exit, and bridge (obfs4) relays
 - 🔄 **Automated** - Weekly security rebuilds, CI/CD ready
 - 📚 **Documented** - Comprehensive guides for deployment, monitoring, backup, and more
@@ -163,11 +163,11 @@ We offer **two build variants** to match your risk tolerance and requirements:
 ```bash
 # Pull from Docker Hub (easiest)
 docker pull r3bo0tbx1/onion-relay:latest
-docker pull r3bo0tbx1/onion-relay:2.0.0
+docker pull r3bo0tbx1/onion-relay:2.1.0
 
 # Pull from GHCR
 docker pull ghcr.io/r3bo0tbx1/onion-relay:latest
-docker pull ghcr.io/r3bo0tbx1/onion-relay:2.0.0
+docker pull ghcr.io/r3bo0tbx1/onion-relay:2.1.0
 ```
 
 ### Edge Variant (Testing Only)
@@ -186,7 +186,7 @@ docker pull r3bo0tbx1/onion-relay:edge
 
 # Pull from GHCR
 docker pull ghcr.io/r3bo0tbx1/onion-relay:edge
-docker pull ghcr.io/r3bo0tbx1/onion-relay:2.0.0-edge
+docker pull ghcr.io/r3bo0tbx1/onion-relay:2.1.0-edge
 ```
 
 **When to use edge:**
@@ -223,14 +223,15 @@ See [Deployment Guide](docs/DEPLOYMENT.md) for complete instructions.
 
 ---
 
-## 🔧 Diagnostic Tools
+## 🔧 Built-in Tools
 
-Six busybox-only diagnostic tools are included.
+Seven busybox-only diagnostic and operational tools are included.
 
 | Tool | Purpose | Usage |
 |------|---------|--------|
 | status | Full health report | `docker exec tor-relay status` |
 | health | JSON health | `docker exec tor-relay health` |
+| refresh | Validate and reload torrc without restarting Tor | `docker exec tor-relay refresh` |
 | fingerprint | Show fingerprint | `docker exec tor-relay fingerprint` |
 | bridge-line | obfs4 line | `docker exec tor-relay bridge-line` |
 | gen-auth | Credentials for Nyx | `docker exec tor-relay gen-auth` |
@@ -242,6 +243,9 @@ docker exec tor-relay status
 
 # JSON output for automation/monitoring
 docker exec tor-relay health
+
+# After editing torrc: validate and reload without replacing the Tor process
+docker exec tor-relay refresh
 ```
 
 Example JSON:
@@ -259,7 +263,7 @@ Example JSON:
 }
 ```
 
-> 📖 **Complete reference:** See [Tools Documentation](docs/TOOLS.md) for all 6 tools with examples, JSON schema, and integration guides.
+> 📖 **Complete reference:** See [Tools Documentation](docs/TOOLS.md) for all 7 tools with examples, safety checks, JSON schema, and integration guides.
 
 ---
 
@@ -310,7 +314,8 @@ docker exec tor-relay health | jq .
 - ✅ Graceful shutdown with cleanup
 
 ### Operations & Automation
-- ✅ **6 busybox-only diagnostic tools** (status, health, fingerprint, bridge-line, gen-auth, gen-family)
+- ✅ **7 busybox-only tools** (status, health, refresh, fingerprint, bridge-line, gen-auth, gen-family)
+- ✅ **PID-preserving torrc reloads** with validation before SIGHUP
 - ✅ **JSON health API** for monitoring integration
 - ✅ **Multi-mode support** (guard, exit, bridge with obfs4)
 - ✅ **Happy Family support** (Tor 0.4.9.2-alpha or later, using key-based relay families)
@@ -373,7 +378,7 @@ docker exec tor-relay health | jq .
 
 ### Technical Reference
 - **[Architecture](docs/ARCHITECTURE.md)** - Technical architecture with Mermaid diagrams
-- **[Tools Reference](docs/TOOLS.md)** - Complete guide to all 6 diagnostic tools
+- **[Tools Reference](docs/TOOLS.md)** - Complete guide to all 7 built-in tools
 - **[Monitoring Guide](docs/MONITORING.md)** - External monitoring integration, JSON health API, alerts, and observability
 - **[Control Port Guide](docs/CONTROL-PORT.md)** - Authentication setup and Nyx integration
 - **[Backup Guide](docs/BACKUP.md)** - Data persistence, recovery, and disaster planning
@@ -452,8 +457,9 @@ docker cp MyRelays.secret_family_key other-relay:/var/lib/tor/keys/
 docker exec -u 0 other-relay chown 100:101 /var/lib/tor/keys/MyRelays.secret_family_key
 docker exec -u 0 other-relay chmod 600 /var/lib/tor/keys/MyRelays.secret_family_key
 
-# 4. Add FamilyId to each relay's torrc, then restart
-docker restart tor-relay other-relay
+# 4. Add FamilyId to each relay's torrc, then reload each Tor process
+docker exec tor-relay refresh
+docker exec other-relay refresh
 ```
 
 **Torrc configuration:**
@@ -548,6 +554,9 @@ docker exec tor-relay status
 
 # Check JSON health (raw)
 docker exec tor-relay health
+
+# After changing torrc: validate and reload without a restart
+docker exec tor-relay refresh
 
 # View fingerprint
 docker exec tor-relay fingerprint
@@ -650,7 +659,7 @@ See [Contributing Guide](CONTRIBUTING.md) for detailed instructions.
 
 ### ⚠️ Version Deprecation Notice
 
-> **Security release target: v2.0.0.** This release addresses Alpine/OpenSSL package exposure (including **CVE-2026-31789**, fix range `openssl >= 3.5.6-r0`) and clarifies host-kernel guidance for **Copy Fail / CVE-2026-31431**. Container updates reduce image dependency risk, but **CVE-2026-31431 requires host kernel patching** by your OS/cloud vendor.
+> **Security baseline introduced in v2.0.0.** That release addressed Alpine/OpenSSL package exposure (including **CVE-2026-31789**, fix range `openssl >= 3.5.6-r0`) and clarified host-kernel guidance for **Copy Fail / CVE-2026-31431**. Container updates reduce image dependency risk, but **CVE-2026-31431 requires host kernel patching** by your OS/cloud vendor.
 >
 > **Version policy for v2.0.0 and later:** only the latest released version receives updates. When a new version is released, all previous versions automatically become unsupported and no longer receive maintenance, security fixes, or scheduled rebuild updates. Historical Git tags remain available for source reproducibility, while older container versions and tags are pruned according to the registry cleanup policy.
 >
@@ -680,14 +689,14 @@ Images are automatically rebuilt on separate schedules to include security patch
 **Stable Variant** (`:latest`)
 - **Schedule:** Every Sunday at 18:30 UTC
 - **Includes:** Latest Tor + Alpine 3.24.1 updates
-- **Strategy:** Overwrites last release version (e.g., `:2.0.0`) with updated packages
-- **Tags Updated:** `:latest` and version tags (e.g., `:2.0.0`)
+- **Strategy:** Rebuilds the latest release source (e.g., `v2.1.0`) with updated packages
+- **Tags Updated:** `:latest` and version tags (e.g., `:2.1.0`)
 
 **Edge Variant** (`:edge`)
 - **Schedule:** Every 3 days at 12:00 UTC (independent schedule)
 - **Includes:** Latest Tor + Alpine edge (bleeding-edge) updates
-- **Strategy:** Overwrites last release version (e.g., `:2.0.0-edge`) with updated packages
-- **Tags Updated:** `:edge` and version tags (e.g., `:2.0.0-edge`)
+- **Strategy:** Rebuilds the latest release source (e.g., `v2.1.0`) against Alpine edge
+- **Tags Updated:** `:edge` and version tags (e.g., `:2.1.0-edge`)
 - **Frequency:** ~2-3x more frequent updates than stable
 
 All images auto-published to Docker Hub and GitHub Container Registry
@@ -722,7 +731,7 @@ All images auto-published to Docker Hub and GitHub Container Registry
 [![GitHub Stars](https://img.shields.io/github/stars/r3bo0tbx1/tor-guard-relay?style=for-the-badge&logo=github&logoColor=white&label=Stars&labelColor=0a0a0a&color=f5c542)](https://github.com/r3bo0tbx1/tor-guard-relay)
 [![Open Issues](https://img.shields.io/github/issues/r3bo0tbx1/tor-guard-relay?style=for-the-badge&logo=github&logoColor=white&label=Open%20Issues&labelColor=0a0a0a&color=d73a49)](https://github.com/r3bo0tbx1/tor-guard-relay/issues)
 
-**Current Version:** v2.0.0<br>
+**Current Version:** v2.1.0<br>
 **Image Size:** 16.8 MB<br>
 **Registry Cleanup:** 14 recent GHCR package versions • 14 recent Docker Hub versioned tags<br>
 **Registries:** Docker Hub • GHCR

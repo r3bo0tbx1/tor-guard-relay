@@ -501,7 +501,7 @@ After migration:
 - ✨ Official Tor Project ENV variable compatibility
 - ✨ Bootstrap progress logs in terminal
 - ✨ Enhanced emoji logging (v1.1.0 style)
-- ✨ 6 diagnostic tools (status, health, fingerprint, bridge-line, gen-auth, gen-family)
+- ✨ 7 built-in tools (status, health, refresh, fingerprint, bridge-line, gen-auth, gen-family)
 - ✨ Auto-detection of bridge mode from PT_PORT
 - ✨ OBFS4V_* variable processing
 

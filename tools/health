@@ -17,7 +17,10 @@ fi
 
 TOR_PID=$(pgrep -x tor)
 TOR_PID=$(sanitize_num "$TOR_PID")
-UPTIME=$(ps -o etime= -p "$TOR_PID" 2>/dev/null | tr -d ' ' || echo "unknown")
+UPTIME=$(ps -o pid=,etime= 2>/dev/null | awk -v target="$TOR_PID" '
+    $1 == target { print $2; exit }
+')
+[ -n "$UPTIME" ] || UPTIME="unknown"
 
 BOOTSTRAP=0
 if [ -f "$TOR_LOG" ]; then
@@ -31,14 +34,22 @@ BOOTSTRAP=$(sanitize_num "$BOOTSTRAP")
 
 REACHABLE="unknown"
 if [ -f "$TOR_LOG" ]; then
-    if grep -q "Self-testing indicates your ORPort is reachable" "$TOR_LOG"; then
-        REACHABLE="true"
-    elif grep -q "ORPort is not reachable" "$TOR_LOG"; then
-        REACHABLE="false"
-    fi
+    REACHABILITY_EVENT=$(grep -E \
+        'Self-testing indicates your ORPort.*is reachable from the outside|ORPort not reachable|not managed to confirm reachability for its ORPort' \
+        "$TOR_LOG" 2>/dev/null | tail -n 1 || true)
+
+    case "$REACHABILITY_EVENT" in
+        *"Self-testing indicates your ORPort"*"is reachable from the outside"*)
+            REACHABLE="true"
+            ;;
+        *"ORPort not reachable"*|*"not managed to confirm reachability for its ORPort"*)
+            REACHABLE="false"
+            ;;
+    esac
 fi
 
-ERRORS=$(grep -c "\[err\]" "$TOR_LOG" 2>/dev/null || echo "0")
+ERRORS=$(grep -c "\[err\]" "$TOR_LOG" 2>/dev/null || true)
+[ -n "$ERRORS" ] || ERRORS=0
 ERRORS=$(sanitize_num "$ERRORS")
 
 NICKNAME="unknown"

@@ -32,7 +32,7 @@ Built on Alpine Linux 3.24.1 with a minimal 20MB image size, busybox-only tools,
 |---------|--------------|-----------------|
 | **Image size** | ~16.8 MB | ~100+ MB |
 | **Base** | Alpine 3.24.1 | Debian |
-| **Diagnostics** | 6 busybox tools + JSON API | None |
+| **Built-in tools** | 7 busybox tools + JSON API and safe torrc reloads | None |
 | **Multi-mode** | Guard/Exit/Bridge in one image | Separate images |
 | **Weekly rebuilds** | ✅ Automated | ❌ Manual |
 | **ENV configuration** | ✅ Full support | Limited |
@@ -459,7 +459,7 @@ docker run -d --name tor-relay ...  # Same config
 **Verify upgrade:**
 ```bash
 docker exec tor-relay cat /build-info.txt
-# Should show: Version: 2.0.0
+# Should show: Version: 2.1.0
 
 docker exec tor-relay fingerprint
 # Verify fingerprint unchanged
@@ -570,5 +570,5 @@ See [CONTRIBUTING.md](../CONTRIBUTING.md) for guidelines.
 
 ---
 
-**Last Updated:** May 2026 (v2.0.0)
+**Last Updated:** July 2026 (v2.1.0)
 **Maintained by:** [@r3bo0tbx1](https://github.com/r3bo0tbx1)

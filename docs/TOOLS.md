@@ -1,6 +1,6 @@
 # 🛠️ Tools Reference Guide
 
-**Tor Guard Relay 1.1.3** includes 6 essential diagnostic tools built directly into the ultra-optimized ~20 MB container. All tools are busybox-compatible, executable without file extensions, and designed for production use.
+**Tor Guard Relay 2.1.0** includes 7 essential diagnostic and operational tools built directly into the ultra-optimized container. All tools are busybox-compatible, executable without file extensions, and designed for production use.
 
 ---
 
@@ -10,6 +10,7 @@
 |------|---------|---------------|-------|
 | **status** | Complete relay health report | Text (emoji) | Full diagnostic dashboard |
 | **health** | JSON health diagnostics | JSON | Machine-readable for monitoring |
+| **refresh** | Validate and reload torrc | Text | Preserves Tor PID and process uptime |
 | **fingerprint** | Display relay fingerprint | Text | With Tor Metrics link |
 | **bridge-line** | Get obfs4 bridge line | Text | Bridge mode only |
 | gen-auth | Generate Control Port auth | Text | Password + Hash |
@@ -34,13 +35,13 @@ docker exec tor-relay status
 🧅 Tor Relay Status
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-🚀 Status:      RUNNING (PID: 123)
-✅ Bootstrap:   100% COMPLETE
-🌐 ORPort:      REACHABLE
-🪪 Nickname:    MyGuardRelay
+🚀 Status: RUNNING (PID: 123)
+📶 Bootstrap: 100% COMPLETE
+🌐 ORPort: REACHABLE (Tor self-test)
+🪪 Nickname: MyGuardRelay
 🔑 Fingerprint: ABCD1234...WXYZ9876
-✅ Errors:      0
-⏱️  Uptime:      2d 14h 30m
+🛡️ Errors: 0
+⏱️ Uptime: 2d 14h 30m
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 💡 Tip: Use 'docker logs -f <container>' for live logs
@@ -78,7 +79,7 @@ docker exec tor-relay health | jq .status
   "fingerprint": "ABCD1234567890ABCDEF1234567890ABCDEFGHIJ",
   "tor_version": "0.4.9.1",
   "relay_mode": "guard",
-  "build_version": "2.0.0",
+  "build_version": "2.1.0",
   "config_source": "environment"
 }
 ```
@@ -104,6 +105,37 @@ if [ "$STATUS" != "up" ]; then
   # Send notification
 fi
 ```
+
+---
+
+### `refresh`
+
+**Purpose:** Apply supported torrc changes without restarting the Tor process
+
+**Usage:**
+
+```bash
+# Edit the mounted or in-container torrc, then reload it
+docker exec tor-relay refresh
+```
+
+Before sending SIGHUP, `refresh`:
+
+1. Finds exactly one running Tor process.
+2. Detects the active `-f` configuration path.
+3. Runs `tor --verify-config` against that file.
+4. Confirms from `/proc` that Tor has installed its SIGHUP handler.
+5. Signals only the recorded Tor PID.
+6. Confirms the PID and `/proc` process start time are unchanged.
+
+If validation fails, Tor is not signalled and continues using its current configuration. A successful reload preserves the relay process uptime. Tor options that are not reloadable still require a container restart.
+
+> Changes to `TOR_*` environment variables require recreating the container because the entrypoint renders ENV-based configuration only during startup. `refresh` applies edits already present in the active torrc.
+
+**Exit Codes:**
+
+- `0` - Configuration valid, signal delivered, and process identity preserved
+- `1` - Invalid/missing configuration, missing/ambiguous Tor process, signalling failure, or changed process identity
 
 ---
 
@@ -290,21 +322,28 @@ docker exec tor-relay health | jq .status
 docker exec tor-relay health | jq .bootstrap
 ```
 
-### 2. Configure Nyx / Control Port
+### 2. Reload torrc Without Restarting Tor
+
+```bash
+# After editing the active torrc
+docker exec tor-relay refresh
+```
+
+### 3. Configure Nyx / Control Port
 
 ```bash
 # Generate credentials
 docker exec tor-relay gen-auth
 
 # Add HashedControlPassword to your config
-# Restart relay
-docker restart tor-relay
+# Reload the edited torrc without replacing Tor
+docker exec tor-relay refresh
 
 # Connect with Nyx
 nyx -i 127.0.0.1:9051
 ```
 
-### 3. Find Your Relay on Tor Metrics
+### 4. Find Your Relay on Tor Metrics
 ```bash
 # Get fingerprint and metrics link
 docker exec tor-relay fingerprint
@@ -313,7 +352,7 @@ docker exec tor-relay fingerprint
 # Click the Tor Metrics link or search manually
 ```
 
-### 4. Share Your Bridge
+### 5. Share Your Bridge
 ```bash
 # Get bridge line (bridge mode only)
 docker exec tor-bridge bridge-line
@@ -322,7 +361,7 @@ docker exec tor-bridge bridge-line
 # Share ONLY with trusted users, NOT publicly
 ```
 
-### 5. Set Up Happy Family (Tor 0.4.9.2-alpha or Later)
+### 6. Set Up Happy Family (Tor 0.4.9.2-alpha or Later)
 ```bash
 # Generate a family key on one relay
 docker exec tor-relay gen-family MyRelays
@@ -336,7 +375,7 @@ docker exec -u 0 tor-relay-2 chown 100:101 /var/lib/tor/keys/MyRelays.secret_fam
 # (use the FamilyId from gen-family --show output)
 ```
 
-### 6. Automated Monitoring
+### 7. Automated Monitoring
 ```bash
 # Simple monitoring script
 while true; do
@@ -388,7 +427,7 @@ docker logs tor-relay 2>&1 | grep -i warn
 # Verify tools exist
 docker exec tor-relay ls -la /usr/local/bin/
 
-# Should show: status, health, fingerprint, bridge-line, gen-auth, gen-family
+# Should show: status, health, refresh, fingerprint, bridge-line, gen-auth, gen-family
 
 # Check PATH
 docker exec tor-relay echo $PATH
@@ -444,15 +483,17 @@ docker logs tor-relay | grep -i obfs4
 
 2. **Check `status` during troubleshooting** - Human-readable format with emoji makes issues obvious
 
-3. **Save your fingerprint** - Store it somewhere safe for relay tracking
+3. **Use `refresh` after torrc edits** - It validates first and preserves the Tor process PID
 
-4. **Monitor bootstrap** - New relays take 5-15 minutes to fully bootstrap
+4. **Save your fingerprint** - Store it somewhere safe for relay tracking
 
-5. **Be patient with bridges** - Bridge lines take 24-48 hours to generate
+5. **Monitor bootstrap** - New relays take 5-15 minutes to fully bootstrap
 
-6. **Use docker logs** - Built-in logging is comprehensive and easier than installing extra tools
+6. **Be patient with bridges** - Bridge lines take 24-48 hours to generate
 
-7. **Keep it simple** - This minimal toolset covers 99% of relay operation needs
+7. **Use docker logs** - Built-in logging is comprehensive and easier than installing extra tools
+
+8. **Keep it simple** - This minimal toolset covers 99% of relay operation needs
 
 ---
 
@@ -467,9 +508,9 @@ docker logs tor-relay | grep -i obfs4
 
 ## ❓ FAQ
 
-**Q: Why only 6 tools instead of 9?**
+**Q: Why only 7 tools?**
 
-A: The v1.1.3 build remains ultra-light (~16.8 MB). These 6 tools cover all essential operations including health checks, identity, authentication setup, and Happy Family key management.
+A: The minimal toolset covers health checks, safe configuration reloads, identity, authentication setup, and Happy Family key management without adding Python, Bash, or exposed monitoring services.
 
 **Q: Where are metrics/monitoring endpoints?**
 
@@ -485,4 +526,4 @@ A: Removed (required Python/Flask). Use `status` tool for visual output or build
 
 ---
 
-**Last Updated:** June 2026 | **Version:** 2.0.0
+**Last Updated:** July 2026 | **Version:** 2.1.0

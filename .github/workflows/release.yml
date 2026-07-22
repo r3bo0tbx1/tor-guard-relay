@@ -61,6 +61,7 @@ jobs:
       build_date: ${{ steps.version.outputs.build_date }}
       short_sha: ${{ steps.version.outputs.short_sha }}
       build_variants: ${{ steps.version.outputs.build_variants }}
+      source_ref: ${{ steps.version.outputs.source_ref }}
       skip: ${{ steps.version.outputs.skip }}
 
     steps:
@@ -78,6 +79,7 @@ jobs:
           set -e
           echo "🔍 Determining version context..."
           BUILD_VARIANTS="both"
+          SOURCE_REF="${GITHUB_SHA}"
 
           latest_semver_tag() {
             git tag --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1 || echo "v1.0.0"
@@ -100,6 +102,7 @@ jobs:
             BUILD_TYPE="release"
             IS_RELEASE="true"
             BUILD_VARIANTS="both"
+            SOURCE_REF="${TRIGGER_SHA}"
             echo "skip=false" >> "$GITHUB_OUTPUT"
             echo "🏷️ Release tag detected via cleanup completion: v${VERSION}"
           elif [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
@@ -113,6 +116,7 @@ jobs:
               VERSION="${LATEST_TAG#v}"
               BUILD_TYPE="manual-rebuild"
               IS_RELEASE="false"
+              SOURCE_REF="${LATEST_TAG}"
               echo "🔄 Manual rebuild of last release: ${VERSION} (with updated packages)"
               echo "   Variants: ${BUILD_VARIANTS}"
             else
@@ -126,6 +130,7 @@ jobs:
             LATEST_TAG=$(latest_semver_tag)
             VERSION="${LATEST_TAG#v}"
             IS_RELEASE="false"
+            SOURCE_REF="${LATEST_TAG}"
 
             SCHEDULE_EXPR="${{ github.event.schedule }}"
             if [[ "${SCHEDULE_EXPR}" == "30 18 * * 0" ]]; then
@@ -151,7 +156,7 @@ jobs:
           fi
 
           BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
-          SHORT_SHA=$(git rev-parse --short HEAD)
+          SHORT_SHA=$(git rev-parse --short "${SOURCE_REF}^{commit}")
           {
             echo "version=${VERSION}"
             echo "build_type=${BUILD_TYPE}"
@@ -159,6 +164,7 @@ jobs:
             echo "build_date=${BUILD_DATE}"
             echo "short_sha=${SHORT_SHA}"
             echo "build_variants=${BUILD_VARIANTS}"
+            echo "source_ref=${SOURCE_REF}"
           } >> "$GITHUB_OUTPUT"
 
       - name: 📋 Version Information
@@ -169,6 +175,7 @@ jobs:
           echo "  ✅ Release: ${{ steps.version.outputs.is_release }}"
           echo "  📅 Date: ${{ steps.version.outputs.build_date }}"
           echo "  🔑 SHA: ${{ steps.version.outputs.short_sha }}"
+          echo "  📌 Source: ${{ steps.version.outputs.source_ref }}"
 
   build-and-push:
     name: 🏗️ Multi-Arch Build and Push (${{ matrix.variant.name }})
@@ -201,6 +208,8 @@ jobs:
     steps:
       - name: 📥 Checkout Repository
         uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.determine-version.outputs.source_ref }}
 
       - name: 🎯 Check if variant should be built
         id: should_build
@@ -479,6 +488,7 @@ jobs:
       - name: 📥 Checkout Repository
         uses: actions/checkout@v7
         with:
+          ref: ${{ needs.determine-version.outputs.source_ref }}
           fetch-depth: 0
 
       - name: 🏷️ Fetch All Tags

@@ -55,6 +55,7 @@ flowchart TD
 
     DiagTools -->|status| StatusTool[📝 tools/status]
     DiagTools -->|health| HealthTool[📊 tools/health]
+    DiagTools -->|refresh| RefreshTool[🔄 tools/refresh]
     DiagTools -->|fingerprint| FingerprintTool[🆔 tools/fingerprint]
     DiagTools -->|bridge-line| BridgeTool[🌉 tools/bridge-line]
     DiagTools -->|gen-auth| GenAuthTool[🔑 tools/gen-auth]
@@ -62,6 +63,7 @@ flowchart TD
 
     StatusTool --> Running
     HealthTool --> Running
+    RefreshTool -->|Validated SIGHUP to exact Tor PID| Running
     FingerprintTool --> Running
     BridgeTool --> Running
     GenAuthTool --> Running
@@ -484,7 +486,7 @@ flowchart TD
 
 ## Diagnostic Tools
 
-Six busybox-only diagnostic tools provide observability:
+Seven busybox-only tools provide observability and safe in-container operations:
 
 ```mermaid
 flowchart TD
@@ -492,6 +494,7 @@ flowchart TD
 
     Choice -->|status| StatusFlow
     Choice -->|health| HealthFlow
+    Choice -->|refresh| RefreshFlow
     Choice -->|fingerprint| FingerprintFlow
     Choice -->|bridge-line| BridgeFlow
     Choice -->|gen-family| FamilyFlow
@@ -510,6 +513,15 @@ flowchart TD
         H2 --> H3[⚠️ Parse log for errors]
         H3 --> H4[🆔 Get fingerprint if exists]
         H4 --> H5[📤 Output JSON]
+    end
+
+    subgraph RefreshFlow["🔄 tools/refresh - PID-Preserving Reload"]
+        R1[🔍 Find the single Tor PID] --> R2[📄 Detect active -f torrc]
+        R2 --> R3[✅ tor --verify-config]
+        R3 -->|Valid| R7[🧠 Confirm Tor catches SIGHUP]
+        R3 -->|Invalid| R5[🛑 Exit without signalling Tor]
+        R7 --> R4[📨 Send SIGHUP to exact PID]
+        R4 --> R6[🔎 Confirm PID and process start time]
     end
 
     subgraph FingerprintFlow["🆔 tools/fingerprint - Show Identity"]
@@ -532,6 +544,7 @@ flowchart TD
 
     StatusFlow --> Output1([🟢 Human-readable output])
     HealthFlow --> Output2([🟢 JSON output])
+    RefreshFlow --> Output5([🟢 Reload confirmation or safe rejection])
     FingerprintFlow --> Output3([🟢 Fingerprint + URL])
     BridgeFlow --> Output4([🟢 Bridge line or error])
 
@@ -564,6 +577,7 @@ flowchart TD
 |------|---------|---------------|--------------|
 | **status** | Full health check | Emoji-rich text | busybox: pgrep, grep, sed, awk, ps |
 | **health** | Monitoring integration | JSON | busybox: pgrep, grep, awk |
+| **refresh** | Validated config reload | Text | busybox: pgrep, awk, ps, kill, tor --verify-config |
 | **fingerprint** | Relay identity | Text + URL | busybox: cat, awk |
 | **bridge-line** | Bridge sharing | obfs4 bridge line | busybox: grep, sed, awk, wget |
 | **gen-auth** | Credential generation | Text (Pass + Hash) | busybox: head, tr, tor |
@@ -652,6 +666,7 @@ graph TD
         Healthcheck["❤️ healthcheck.sh"]
         Status["📡 status"]
         Health["💚 health"]
+        Refresh["🔄 refresh"]
         Fingerprint["🧬 fingerprint"]
         BridgeLine["🌉 bridge-line"]
         GenAuth["🔑 gen-auth"]
@@ -662,6 +677,7 @@ graph TD
         Bin --> Healthcheck
         Bin --> Status
         Bin --> Health
+        Bin --> Refresh
         Bin --> Fingerprint
         Bin --> BridgeLine
         Bin --> GenAuth
@@ -952,6 +968,6 @@ flowchart TD
 ---
 <div align="center">
 
-**Document Version:** 1.1.1 • **Last Updated:** 2026-05-09 • **Container Version:** v2.0.0
+**Document Version:** 1.1.1 • **Last Updated:** 2026-07-22 • **Container Version:** v2.1.0
 
 </div>

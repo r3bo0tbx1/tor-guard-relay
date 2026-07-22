@@ -409,7 +409,7 @@ docker rm obfs4-bridge
 | **Complexity** | Medium | Simple |
 | **Validation** | Strict (can cause issues) | Minimal (tor validates) |
 | **Debugging** | Harder | Easier (just cat file) |
-| **Updates** | Restart container | Edit file + restart |
+| **Updates** | Restart container to apply ENV changes | Edit file + `docker exec <container> refresh` |
 | **Recommended** | No ⚠️ | **Yes** ✅ |
 | **Use Case** | Quick testing | Production |
 
@@ -436,7 +436,7 @@ docker rm obfs4-bridge
 - [ ] Fingerprint matches backup
 - [ ] Container starts without errors
 - [ ] Bootstrap reaches 100%
-- [ ] Diagnostic tools work (status, health, fingerprint, gen-family)
+- [ ] Built-in tools work (status, health, refresh, fingerprint, gen-family)
 - [ ] Monitoring updated (if applicable)
 
 ---

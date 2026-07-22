@@ -91,9 +91,10 @@ docker ps | grep tor-relay
 # Check logs and bootstrap progress
 docker logs -f tor-relay
 
-# Run diagnostics (6 tools available)
+# Run built-in tools (7 available)
 docker exec tor-relay status         # Full health report with emojis
 docker exec tor-relay health         # JSON health data
+docker exec tor-relay refresh        # Validate and reload torrc without restart
 docker exec tor-relay fingerprint    # Show fingerprint + Tor Metrics URL
 ```
 
@@ -510,7 +511,7 @@ abc123def456   r3bo0tbx1/onion-relay:latest    Up 5 minutes (healthy)
 
 ### 2. Run Diagnostics
 
-The image provides **6 diagnostic tools**:
+The image provides **7 diagnostic and operational tools**:
 
 ```bash
 # Full health report with emojis
@@ -518,6 +519,9 @@ docker exec tor-relay status
 
 # JSON health data (for automation)
 docker exec tor-relay health
+
+# Validate and reload an edited torrc without replacing Tor
+docker exec tor-relay refresh
 
 # Show fingerprint + Tor Metrics URL
 docker exec tor-relay fingerprint
@@ -966,7 +970,7 @@ After successful deployment:
 ## Support
 
 - 📖 [Main README](../README.md)
-- 🔧 [Tools Documentation](TOOLS.md) - Complete guide to the 6 diagnostic tools
+- 🔧 [Tools Documentation](TOOLS.md) - Complete guide to the 7 built-in tools
 - 📊 [Monitoring Guide](MONITORING.md) - External monitoring integration
 - 🐛 [Report Issues](https://github.com/r3bo0tbx1/tor-guard-relay/issues)
 - 💬 [Tor Project Forum](https://forum.torproject.net/)

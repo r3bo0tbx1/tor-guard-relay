@@ -18,39 +18,47 @@ echo ""
 
 if pgrep -x tor >/dev/null 2>&1; then
     TOR_PID=$(pgrep -x tor)
-    echo "🚀 Status:      RUNNING (PID: $TOR_PID)"
+    echo "🚀 Status: RUNNING (PID: $TOR_PID)"
 else
-    echo "❌ Status:      STOPPED"
+    echo "❌ Status: STOPPED"
     echo ""
     exit 1
 fi
 
 if [ ! -f "$TOR_LOG" ]; then
-    echo "⚠️  Log:         NOT FOUND"
+    echo "⚠️ Log: NOT FOUND"
     echo ""
     exit 1
 fi
 
 if grep -q "Bootstrapped 100%" "$TOR_LOG" 2>/dev/null; then
-    echo "✅ Bootstrap:   100% COMPLETE"
+    echo "📶 Bootstrap: 100% COMPLETE"
 else
     PROGRESS=$(grep "Bootstrapped" "$TOR_LOG" 2>/dev/null | tail -1 | sed 's/.*Bootstrapped \([0-9]*\)%.*/\1/' 2>/dev/null || echo "0")
     PROGRESS=$(sanitize_num "$PROGRESS")
-    echo "⏳ Bootstrap:   ${PROGRESS}%"
+    echo "⏳ Bootstrap: ${PROGRESS}%"
 fi
 
-if grep -q "Self-testing indicates your ORPort is reachable" "$TOR_LOG"; then
-    echo "🌐 ORPort:      REACHABLE"
-elif grep -q "ORPort is not reachable" "$TOR_LOG"; then
-    echo "⚠️  ORPort:      NOT REACHABLE"
-else
-    echo "❓ ORPort:      TESTING..."
-fi
+REACHABILITY_EVENT=$(grep -E \
+    'Self-testing indicates your ORPort.*is reachable from the outside|ORPort not reachable|not managed to confirm reachability for its ORPort' \
+    "$TOR_LOG" 2>/dev/null | tail -n 1 || true)
+
+case "$REACHABILITY_EVENT" in
+    *"Self-testing indicates your ORPort"*"is reachable from the outside"*)
+        echo "🌐 ORPort: REACHABLE (Tor self-test)"
+        ;;
+    *"ORPort not reachable"*|*"not managed to confirm reachability for its ORPort"*)
+        echo "⚠️ ORPort: NOT REACHABLE (Tor self-test)"
+        ;;
+    *)
+        echo "❔ ORPort: UNKNOWN (no Tor self-test result)"
+        ;;
+esac
 
 if [ -f "$TOR_DATA/fingerprint" ] && [ -r "$TOR_DATA/fingerprint" ]; then
     FINGERPRINT=$(cat "$TOR_DATA/fingerprint" | awk '{print $2}')
     NICKNAME=$(cat "$TOR_DATA/fingerprint" | awk '{print $1}')
-    echo "🪪 Nickname:    $NICKNAME"
+    echo "🪪 Nickname: $NICKNAME"
 
     FP_START=$(printf "%s" "$FINGERPRINT" | cut -c1-8)
     FP_END=$(printf "%s" "$FINGERPRINT" | cut -c33-40)
@@ -72,8 +80,8 @@ if [ -f "/build-info.txt" ]; then
     BUILD_VERSION=$(awk -F': ' '/^Version:/ {print $2}' /build-info.txt)
 fi
 
-[ -n "$BUILD_VERSION" ] && echo "🏷️  Build:      $BUILD_VERSION"
-[ "$CONFIG_SOURCE" != "unknown" ] && echo "🧩 Config:     $CONFIG_SOURCE"
+[ -n "$BUILD_VERSION" ] && echo "🏷️ Build: $BUILD_VERSION"
+[ "$CONFIG_SOURCE" != "unknown" ] && echo "🧩 Config: $CONFIG_SOURCE"
 
 # Happy Family status
 FAMILY_KEY_COUNT=0
@@ -90,26 +98,31 @@ fi
 if [ -f "$TORRC" ] && grep -qi "^FamilyId " "$TORRC" 2>/dev/null; then
     echo "✅ Happy Family: CONFIGURED"
 elif [ "$FAMILY_KEY_COUNT" -gt 0 ]; then
-    echo "⚠️  Happy Family: key present but FamilyId not in torrc"
+    echo "⚠️ Happy Family: key present but FamilyId not in torrc"
 fi
 
-ERRORS=$(grep -c "\[err\]" "$TOR_LOG" 2>/dev/null || echo "0")
+ERRORS=$(grep -c "\[err\]" "$TOR_LOG" 2>/dev/null || true)
+[ -n "$ERRORS" ] || ERRORS=0
 ERRORS=$(sanitize_num "$ERRORS")
-WARNINGS=$(grep -c "\[warn\]" "$TOR_LOG" 2>/dev/null || echo "0")
+WARNINGS=$(grep -c "\[warn\]" "$TOR_LOG" 2>/dev/null || true)
+[ -n "$WARNINGS" ] || WARNINGS=0
 WARNINGS=$(sanitize_num "$WARNINGS")
 
 if [ "$ERRORS" -gt 0 ]; then
-    echo "❌ Errors:      $ERRORS (check logs)"
+    echo "❌ Errors: $ERRORS (check logs)"
 else
-    echo "✅ Errors:      0"
+    echo "🛡️ Errors: 0"
 fi
 
 if [ "$WARNINGS" -gt 5 ]; then
-    echo "⚠️  Warnings:    $WARNINGS"
+    echo "⚠️ Warnings: $WARNINGS"
 fi
 
-UPTIME=$(ps -o etime= -p "$TOR_PID" 2>/dev/null | tr -d ' ' || echo "unknown")
-[ -n "$UPTIME" ] && echo "⏱️  Uptime:      $UPTIME"
+UPTIME=$(ps -o pid=,etime= 2>/dev/null | awk -v target="$TOR_PID" '
+    $1 == target { print $2; exit }
+')
+[ -n "$UPTIME" ] || UPTIME="unknown"
+[ -n "$UPTIME" ] && echo "⏱️ Uptime: $UPTIME"
 
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

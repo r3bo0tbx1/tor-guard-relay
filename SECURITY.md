@@ -14,8 +14,8 @@ We actively support the following versions with security updates:
 
 | Version     | Status                | Support Level                                                                        |
 | ----------- | --------------------- | ------------------------------------------------------------------------------------ |
-| **2.0.0**   | 🟢 🛡️ **Active**     | Full support (current stable)                                                        |
-| **< 2.0.0** | 🔴 ❌ **Deprecated** | Unsupported after v2.0.0 release; tags retained in registries for reproducibility.   |
+| **2.1.0**   | 🟢 🛡️ **Active**     | Full support (current stable)                                                        |
+| **< 2.1.0** | 🔴 ❌ **Deprecated** | Unsupported after v2.1.0 release; tags retained in registries for reproducibility.   |
 
 **Support policy:** Only the latest released version receives updates. When a new version is released, all previous versions automatically become unsupported and no longer receive maintenance, security fixes, or scheduled rebuild updates. Historical tags remain available in registries for reproducibility.
 
@@ -674,4 +674,4 @@ Security researchers who responsibly disclose vulnerabilities will be listed her
 
 ---
 
-*Last Updated: 2026-06-05 | Current Stable: 2.0.0*
+*Last Updated: 2026-07-22 | Current Stable: 2.1.0*

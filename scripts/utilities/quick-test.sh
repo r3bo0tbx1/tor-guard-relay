@@ -4,6 +4,12 @@
 
 set -e
 
+# Prevent Git Bash/MSYS from rewriting Linux container paths (for example,
+# /etc/tor/torrc) into Windows host paths before passing them to Docker.
+case "$(uname -s)" in
+  MINGW*|MSYS*) export MSYS_NO_PATHCONV=1 ;;
+esac
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -238,6 +244,35 @@ else
   warn "gen-family tool not available (requires Tor 0.4.9.2-alpha or later)"
 fi
 
+# Test 4.6: refresh validates torrc and preserves Tor process identity
+TOR_IDENTITY_BEFORE=$(docker exec test-tools sh -c \
+  'pid=$(pgrep -x tor); printf "%s:%s" "$pid" "$(awk "{print \$22}" /proc/$pid/stat)"')
+if docker exec test-tools refresh >/dev/null 2>&1; then
+  TOR_IDENTITY_AFTER=$(docker exec test-tools sh -c \
+    'pid=$(pgrep -x tor); printf "%s:%s" "$pid" "$(awk "{print \$22}" /proc/$pid/stat)"')
+  if [ "$TOR_IDENTITY_AFTER" = "$TOR_IDENTITY_BEFORE" ]; then
+    success "refresh reloads Tor without replacing the process"
+  else
+    error "refresh changed the Tor process identity"
+  fi
+else
+  error "refresh tool failed"
+fi
+
+# Test 4.7: invalid torrc is rejected without signalling Tor
+docker exec test-tools sh -c \
+  'cp /etc/tor/torrc /tmp/torrc.valid && printf "\nDefinitelyNotATorOption 1\n" >> /etc/tor/torrc'
+if docker exec test-tools refresh >/dev/null 2>&1; then
+  error "refresh accepted an invalid torrc"
+else
+  TOR_IDENTITY_INVALID=$(docker exec test-tools sh -c \
+    'pid=$(pgrep -x tor); printf "%s:%s" "$pid" "$(awk "{print \$22}" /proc/$pid/stat)"')
+  [ "$TOR_IDENTITY_INVALID" = "$TOR_IDENTITY_BEFORE" ] || \
+    error "Tor process changed after invalid torrc rejection"
+  success "refresh rejects invalid torrc without replacing Tor"
+fi
+docker exec test-tools sh -c 'cp /tmp/torrc.valid /etc/tor/torrc'
+
 # Cleanup
 docker stop test-tools >/dev/null 2>&1
 docker rm test-tools >/dev/null 2>&1
@@ -313,7 +348,7 @@ echo "✅ OBFS4V_* variables are processed correctly"
 echo "✅ Bridge mode auto-detected from PT_PORT"
 echo "✅ TOR_* ENV naming works (TOR_ORPORT, TOR_CONTACT_INFO, etc.)"
 echo "✅ Guard/Exit/Bridge modes configured correctly"
-echo "✅ Diagnostic tools work (status, health, fingerprint, bridge-line, gen-family)"
+echo "✅ Built-in tools work (status, health, refresh, fingerprint, bridge-line, gen-family)"
 echo "✅ Mixed ENV naming works (can combine official + TOR_* prefix)"
 echo ""
 echo "🎯 Your image is fully compatible with thetorproject/obfs4-bridge!"

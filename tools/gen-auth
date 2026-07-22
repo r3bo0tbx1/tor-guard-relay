@@ -36,7 +36,7 @@ echo "${YELLOW}━━━━━━━━━━━━━━━━━━━━━�
 echo ""
 echo "${CYAN}📝 Next steps:${NC}"
 echo "   1. Edit your relay.conf and add the HashedControlPassword line above"
-echo "   2. Restart your container: ${BOLD}docker restart tor-relay${NC}"
+echo "   2. Validate and reload Tor: ${BOLD}docker exec <container> refresh${NC}"
 echo "   3. Connect with Nyx using the password shown above"
 echo ""
 echo "${CYAN}💡 Tip:${NC} Save the password in a secure password manager!"

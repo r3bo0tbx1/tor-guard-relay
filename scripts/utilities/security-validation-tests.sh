@@ -4,7 +4,7 @@
 
 set -e
 
-echo "🔐 Security Validation Tests - Tor Guard Relay v2.0.0"
+echo "🔐 Security Validation Tests - Tor Guard Relay v2.1.0"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 
@@ -113,7 +113,7 @@ echo ""
 echo "Test 3: Tool Scripts Security"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-for tool in status health fingerprint bridge-line gen-family; do
+for tool in status health refresh fingerprint bridge-line gen-auth gen-family; do
   if [ -f "tools/$tool" ]; then
     if head -1 "tools/$tool" | grep -q "^#!/bin/sh"; then
       test_pass "tools/$tool uses busybox sh"
@@ -251,8 +251,8 @@ else
 fi
 
 if [ -f docs/TOOLS.md ]; then
-  if grep -q "4.*tools\|four.*tools" docs/TOOLS.md; then
-    test_pass "TOOLS.md documents 4 tools"
+  if grep -q "7.*tools\|seven.*tools" docs/TOOLS.md; then
+    test_pass "TOOLS.md documents 7 tools"
   else
     test_warn "TOOLS.md may reference old tool count"
   fi
@@ -271,7 +271,7 @@ else
   test_fail "FamilyId validation does not match Tor's unpadded base64 format"
 fi
 
-for script in docker-entrypoint.sh tools/status tools/health tools/fingerprint tools/bridge-line tools/gen-family; do
+for script in docker-entrypoint.sh tools/status tools/health tools/refresh tools/fingerprint tools/bridge-line tools/gen-auth tools/gen-family; do
   if [ -f "$script" ]; then
     if sh -n "$script" 2>/dev/null; then
       test_pass "$script has valid POSIX sh syntax"
