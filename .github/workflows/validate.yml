@@ -348,21 +348,51 @@ jobs:
             -e TOR_CONTACT_INFO=refresh-test@example.invalid \
             tor-relay:test >/dev/null
 
-          for attempt in $(seq 1 20); do
-            if docker exec tor-refresh-test pgrep -x tor >/dev/null 2>&1; then
+          tor_relay_ready() {
+            docker exec tor-refresh-test sh -c '
+              pids=$(pgrep -x tor 2>/dev/null || true)
+              set -- $pids
+              [ "$#" -eq 1 ] || exit 1
+              cmdline=$(tr "\000" " " < "/proc/$1/cmdline")
+              case "$cmdline" in
+                *"--verify-config"*) exit 1 ;;
+                *" -f "*) exit 0 ;;
+                *) exit 1 ;;
+              esac
+            '
+          }
+
+          for attempt in $(seq 1 40); do
+            if tor_relay_ready; then
               break
             fi
-            [ "$attempt" -lt 20 ] || {
+            [ "$attempt" -lt 40 ] || {
               docker logs tor-refresh-test
-              echo "❌ Tor did not start"
+              echo "❌ Long-running Tor relay process did not start"
               exit 1
             }
-            sleep 0.5
+            sleep 0.25
           done
 
           identity() {
             docker exec tor-refresh-test sh -c \
-              'pid=$(pgrep -x tor); printf "%s:%s" "$pid" "$(awk "{print \$22}" /proc/$pid/stat)"'
+              'pids=$(pgrep -x tor); set -- $pids; [ "$#" -eq 1 ] || exit 1; pid=$1; start_time=$(awk "{print \$22}" /proc/$pid/stat); [ -n "$start_time" ] || exit 1; printf "%s:%s" "$pid" "$start_time"'
+          }
+
+          assert_identity_unchanged() {
+            check_name=$1
+            current_identity=$(identity) || {
+              echo "❌ Could not read Tor process identity after ${check_name}"
+              docker exec tor-refresh-test ps -o pid=,comm=,args= || true
+              exit 1
+            }
+            if [ "$current_identity" != "$IDENTITY_BEFORE" ]; then
+              echo "❌ Tor process identity changed after ${check_name}"
+              echo "   Before: $IDENTITY_BEFORE"
+              echo "   After:  $current_identity"
+              docker exec tor-refresh-test ps -o pid=,comm=,args= || true
+              exit 1
+            fi
           }
 
           IDENTITY_BEFORE=$(identity)
@@ -382,8 +412,7 @@ jobs:
           '
 
           docker exec tor-refresh-test refresh
-          IDENTITY_AFTER=$(identity)
-          test "$IDENTITY_AFTER" = "$IDENTITY_BEFORE"
+          assert_identity_unchanged "valid torrc refresh"
 
           docker exec tor-refresh-test sh -c \
             'cp /etc/tor/torrc /tmp/torrc.valid && printf "\nDefinitelyNotATorOption 1\n" >> /etc/tor/torrc'
@@ -393,7 +422,7 @@ jobs:
             exit 1
           fi
 
-          test "$(identity)" = "$IDENTITY_BEFORE"
+          assert_identity_unchanged "invalid torrc rejection"
           docker exec tor-refresh-test sh -c 'cp /tmp/torrc.valid /etc/tor/torrc'
           echo "✅ Tool output is valid; reload preserved process identity; invalid torrc was rejected"
 
