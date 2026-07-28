@@ -1,12 +1,15 @@
 name: 🗑️🧹
 
 on:
+  workflow_call:
+    secrets:
+      DOCKERHUB_USERNAME:
+        required: true
+      DOCKERHUB_TOKEN:
+        required: true
   schedule:
     - cron: '0 0 * * 0'
   workflow_dispatch:
-  push:
-    tags:
-      - 'v*.*.*'
 
 permissions:
   actions: write
@@ -42,9 +45,6 @@ jobs:
     name: 🐋 Prune Docker Hub
     runs-on: ubuntu-latest
     steps:
-      - name: 📥 Checkout Repository
-        uses: actions/checkout@v7
-
       - name: 🪄 Clean Docker Hub Tags
         env:
           DOCKER_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}

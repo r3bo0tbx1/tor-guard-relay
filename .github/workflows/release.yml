@@ -1,6 +1,9 @@
 name: 🚀✨
 
 on:
+  push:
+    tags:
+      - 'v*.*.*'
   workflow_dispatch:
     inputs:
       build_mode:
@@ -29,9 +32,6 @@ on:
           - major
           - minor
           - patch
-  workflow_run:
-    workflows: ['🗑️🧹']
-    types: [completed]
   schedule:
     - cron: '30 18 * * 0'
     - cron: '0 12 */3 * *'
@@ -48,10 +48,6 @@ jobs:
   determine-version:
     name: 🏷️ Determine Version and Build Type
     runs-on: ubuntu-latest
-    if: |
-      github.event_name != 'workflow_run' ||
-      (github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.event == 'push')
     permissions:
       contents: read
     outputs:
@@ -62,7 +58,6 @@ jobs:
       short_sha: ${{ steps.version.outputs.short_sha }}
       build_variants: ${{ steps.version.outputs.build_variants }}
       source_ref: ${{ steps.version.outputs.source_ref }}
-      skip: ${{ steps.version.outputs.skip }}
 
     steps:
       - name: 📥 Checkout Repository
@@ -85,26 +80,19 @@ jobs:
             git tag --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1 || echo "v1.0.0"
           }
 
-          if [[ "${GITHUB_EVENT_NAME}" == "workflow_run" && "${{ github.event.workflow_run.conclusion }}" == "success" ]]; then
-            if [[ "${{ github.event.workflow_run.event }}" != "push" ]]; then
-              echo "⏭️ Cleanup was triggered by '${{ github.event.workflow_run.event }}', not a tag push — skipping"
-              echo "skip=true" >> "$GITHUB_OUTPUT"
-              exit 0
+          if [[ "${GITHUB_EVENT_NAME}" == "push" ]]; then
+            TAG_NAME="${GITHUB_REF_NAME}"
+            if [[ ! "${TAG_NAME}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              echo "❌ Invalid release tag: ${TAG_NAME}"
+              exit 1
             fi
-            TRIGGER_SHA="${{ github.event.workflow_run.head_sha }}"
-            VERSION=$(git tag --sort=-v:refname --points-at "${TRIGGER_SHA}" | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1 || true)
-            if [ -z "${VERSION}" ]; then
-              echo "⏭️ No semver tag on triggering commit — skipping"
-              echo "skip=true" >> "$GITHUB_OUTPUT"
-              exit 0
-            fi
-            VERSION="${VERSION#v}"
+
+            VERSION="${TAG_NAME#v}"
             BUILD_TYPE="release"
             IS_RELEASE="true"
             BUILD_VARIANTS="both"
-            SOURCE_REF="${TRIGGER_SHA}"
-            echo "skip=false" >> "$GITHUB_OUTPUT"
-            echo "🏷️ Release tag detected via cleanup completion: v${VERSION}"
+            SOURCE_REF=$(git rev-parse "${GITHUB_REF}^{commit}")
+            echo "🏷️ Release tag detected: ${TAG_NAME}"
           elif [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
             BUILD_MODE="${{ github.event.inputs.build_mode }}"
             BUILD_VARIANTS="${{ github.event.inputs.variants }}"
@@ -155,8 +143,15 @@ jobs:
             echo "⚠️ Unknown trigger: ${VERSION}"
           fi
 
+          SOURCE_REF=$(git rev-parse "${SOURCE_REF}^{commit}")
+          git fetch --no-tags origin '+refs/heads/main:refs/remotes/origin/main'
+          if ! git merge-base --is-ancestor "${SOURCE_REF}" refs/remotes/origin/main; then
+            echo "❌ Refusing to build: source commit ${SOURCE_REF} is not contained in main"
+            exit 1
+          fi
+
           BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
-          SHORT_SHA=$(git rev-parse --short "${SOURCE_REF}^{commit}")
+          SHORT_SHA=$(git rev-parse --short "${SOURCE_REF}")
           {
             echo "version=${VERSION}"
             echo "build_type=${BUILD_TYPE}"
@@ -177,17 +172,31 @@ jobs:
           echo "  🔑 SHA: ${{ steps.version.outputs.short_sha }}"
           echo "  📌 Source: ${{ steps.version.outputs.source_ref }}"
 
+  release-cleanup:
+    name: 🧹 Clean Registries Before Release
+    needs: determine-version
+    if: needs.determine-version.outputs.is_release == 'true'
+    permissions:
+      actions: write
+      contents: read
+      packages: write
+    uses: ./.github/workflows/cleanup.yml
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+
   build-and-push:
     name: 🏗️ Multi-Arch Build and Push (${{ matrix.variant.name }})
     runs-on: ubuntu-latest
-    needs: determine-version
+    needs: [determine-version, release-cleanup]
     permissions:
       contents: read
       packages: write
     if: |
-      needs.determine-version.outputs.skip != 'true' &&
-      (github.event_name != 'workflow_run' ||
-      github.event.workflow_run.conclusion == 'success')
+      always() &&
+      needs.determine-version.result == 'success' &&
+      (needs.release-cleanup.result == 'success' ||
+      needs.release-cleanup.result == 'skipped')
     strategy:
       fail-fast: false
       matrix:
@@ -414,10 +423,26 @@ jobs:
             org.opencontainers.image.description=Hardened Tor Guard Relay (${{ matrix.variant.base }})
             org.opencontainers.image.version=${{ needs.determine-version.outputs.version }}${{ matrix.variant.suffix }}
             org.opencontainers.image.created=${{ needs.determine-version.outputs.build_date }}
-            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.revision=${{ needs.determine-version.outputs.source_ref }}
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
           sbom: true
           provenance: true
+
+      - name: 📥 Install Verified Syft
+        if: steps.should_build.outputs.should_build == 'true' && needs.determine-version.outputs.is_release == 'true'
+        env:
+          SYFT_VERSION: '1.44.0'
+          SYFT_SHA256: '0e91737aee2b5baf1d255b959630194a302335d848ff97bb07921eb6205b5f5a'
+        run: |
+          set -euo pipefail
+          ARCHIVE="syft_${SYFT_VERSION}_linux_amd64.tar.gz"
+          DOWNLOAD_URL="https://github.com/anchore/syft/releases/download/v${SYFT_VERSION}/${ARCHIVE}"
+
+          curl --proto '=https' --tlsv1.2 -fsSLo "${RUNNER_TEMP}/${ARCHIVE}" "${DOWNLOAD_URL}"
+          echo "${SYFT_SHA256}  ${RUNNER_TEMP}/${ARCHIVE}" | sha256sum --check -
+          tar -xzf "${RUNNER_TEMP}/${ARCHIVE}" -C "${RUNNER_TEMP}" syft
+          sudo install -m 0755 "${RUNNER_TEMP}/syft" /usr/local/bin/syft
+          syft version
 
       - name: 📋 Generate SBOM (CycloneDX & SPDX)
         if: steps.should_build.outputs.should_build == 'true' && needs.determine-version.outputs.is_release == 'true'
@@ -426,8 +451,6 @@ jobs:
           echo "📋 Generating Software Bill of Materials (SBOM)"
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo ""
-
-          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
 
           VERSION="${{ needs.determine-version.outputs.version }}"
           SUFFIX="${{ matrix.variant.suffix }}"
