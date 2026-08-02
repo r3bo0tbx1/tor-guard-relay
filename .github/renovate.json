@@ -6,15 +6,12 @@
     ":disableDependencyDashboard",
     ":prHourlyLimit2"
   ],
-
   "labels": ["dependencies"],
-  "commitMessagePrefix": "build",
+  "commitMessagePrefix": "⬆️ build(deps):",
   "rebaseWhen": "behind-base-branch",
   "assignees": ["r3bo0tbx1"],
   "reviewers": ["r3bo0tbx1"],
-
   "enabledManagers": ["dockerfile", "github-actions"],
-
   "packageRules": [
     {
       "matchDatasources": ["docker"],
@@ -43,19 +40,25 @@
       "schedule": ["before 3am on monday"],
       "prPriority": 3,
       "automerge": false
+    },
+    {
+      "matchManagers": ["github-actions"],
+      "matchUpdateTypes": ["patch", "digest"],
+      "groupName": "GitHub Actions (patch/digest)",
+      "labels": ["dependencies", "github-actions"],
+      "schedule": ["before 3am on monday"],
+      "automerge": true
     }
   ],
-
   "vulnerabilityAlerts": {
     "enabled": true,
     "labels": ["security", "dependencies"],
     "assignees": ["r3bo0tbx1"],
+    "reviewers": ["r3bo0tbx1"],
     "schedule": ["at any time"]
   },
-
   "osvVulnerabilityAlerts": true,
   "timezone": "UTC",
   "prConcurrentLimit": 5,
-
   "description": "Renovate tracks Docker base images and GitHub Actions. Alpine packages (tor and tini) are not pinned and update automatically via weekly rebuilds."
 }
