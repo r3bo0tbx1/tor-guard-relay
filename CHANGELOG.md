@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🛡️ Security
+
+- **Pion STUN dependency:** Updated Lyrebird's linked `github.com/pion/stun/v3` dependency to v3.1.5 or later in stable and edge builds, preventing remote denial of service through malformed `XOR-MAPPED-ADDRESS` attributes (`CVE-2026-54909`).
+
 ### 🎯 Planned Features
 
 * 📊 Additional monitoring integrations (Datadog, New Relic)

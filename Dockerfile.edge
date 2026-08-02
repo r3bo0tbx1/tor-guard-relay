@@ -9,6 +9,7 @@ RUN git clone https://gitlab.torproject.org/tpo/anti-censorship/pluggable-transp
  && go get golang.org/x/net@latest \
  && go get filippo.io/edwards25519@latest \
  && go get github.com/pion/dtls/v3@latest \
+ && go get github.com/pion/stun/v3@latest \
  && go get github.com/pion/interceptor@latest \
  && go get github.com/cloudflare/circl@latest \
  && go mod tidy \
