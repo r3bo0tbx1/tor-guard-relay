@@ -23,13 +23,20 @@ We actively support the following versions with security updates:
 
 ## Recent Security Advisories
 
-### CVE-2026-31789 (OpenSSL / Alpine package)
+### [CVE-2026-54909](https://github.com/advisories/GHSA-34rh-wp3j-6cxc) (Pion STUN / Lyrebird)
+
+- Affects `github.com/pion/stun/v3` versions through v3.1.4. Affected Lyrebird builds link the vulnerable v3.0.0 release through Snowflake and Pion ICE.
+- When the STUN/ICE parsing path is used, a malformed `XOR-MAPPED-ADDRESS` attribute can remotely trigger a panic and denial of service. The normal obfs4 server path does not exercise this code, but the vulnerable component remains linked into the Lyrebird binary.
+- Remediation is **image-level**: stable and edge builds now explicitly update Pion STUN to v3.1.5 or later when compiling Lyrebird.
+- Fix status: prepared for the next patch release. The current stable version remains v2.1.0 until that release is published.
+
+### [CVE-2026-31789](https://nvd.nist.gov/vuln/detail/CVE-2026-31789) (OpenSSL / Alpine package)
 
 - Affects vulnerable OpenSSL package ranges in Alpine-based images.
 - Fix target for this project is `openssl >= 3.5.6-r0` via base image/package refresh and rebuild.
 - Mitigation is **image-level**: pull updated image tags after release.
 
-### CVE-2026-31431 ("Copy Fail" Linux kernel)
+### [CVE-2026-31431](https://nvd.nist.gov/vuln/detail/CVE-2026-31431) ("Copy Fail" Linux kernel)
 
 - This is a Linux kernel vulnerability and is in CISA KEV.
 - Mitigation is primarily **host-level**: update/pin host kernels using your distro or cloud vendor guidance.
@@ -674,4 +681,4 @@ Security researchers who responsibly disclose vulnerabilities will be listed her
 
 ---
 
-*Last Updated: 2026-07-22 | Current Stable: 2.1.0*
+*Last Updated: 2026-08-02 | Current Stable: 2.1.0*
