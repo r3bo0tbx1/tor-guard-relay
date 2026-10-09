@@ -60,6 +60,8 @@ python3 scripts/testing/check-image.py tor-relay:2.2.0-local
 
 Repeat with `Dockerfile.edge` and both `linux/amd64` and `linux/arm64`. Pass the platform explicitly to image acceptance for ARM64. Check-image reads the Go dependency metadata from the actual transport binary as well as Tor and installed OpenSSL packages.
 
+The Go inspector uses the digest-pinned builder from the policy Dockerfiles on the Docker host architecture, so ARM64 metadata can be inspected natively on an AMD64 host. An exact local inspector image avoids a registry request. Otherwise, its fetch has at most three attempts of 120 seconds each with 10- and 20-second delays. Once fetched, inspection runs with network disabled and implicit pulls prohibited. Component/inspection failures are never retried or bypassed.
+
 Acceptance covers guard, exit and bridge generation, custom torrc path, accounting, config validation, PID-preserving reload, fresh restart evidence, bridge transport state and clean shutdown. Injected bootstrap messages test observation logic; they are not proof of live bootstrap.
 
 ## 🔐 Recovery rehearsal
