@@ -1,5 +1,13 @@
 # Control Port Configuration & Advanced Monitoring
 
+[Documentation](README.md) · [Release notes](releases/v2.2.0.md)
+
+## 🛠️ v2.2.0 operator workflow
+
+The control port remains an explicit, authenticated operator option. It is not required for `health`, `doctor` or host inventory. Validate edited torrc files with `config validate`, then use `refresh` for reloadable directives. Mounted configuration remains authoritative; generated configuration is regenerated from ENV on restart.
+
+Keep passwords and authentication material out of diagnostic reports. The new directive-only config diff redacts every value. Include deployment files in an [encrypted backup](BACKUP.md) when recovery requires them.
+
 This guide covers secure configuration of the Tor Control Port for advanced monitoring tools like **Nyx** (command-line monitor) and **Prometheus exporters**.
 
 > **⚠️ Security Note:** The Control Port provides administrative access to your relay. Always use authentication and follow the security guidelines below.
@@ -26,7 +34,7 @@ Run the tool inside your container:
 
 ```bash
 docker exec tor-relay gen-auth
-````
+```
 
 **Example Output:**
 

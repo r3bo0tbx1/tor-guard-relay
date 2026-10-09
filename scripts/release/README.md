@@ -12,315 +12,95 @@ The release automation includes three main components:
 
 ## Scripts
 
-### generate-release-notes.sh
+## 🛠️ Local commands
 
-Auto-generate release notes from git commit history using conventional commit format.
-
-**Features:**
-- Parses conventional commits (feat, fix, docs, chore, etc.)
-- Categorizes changes by type with emojis
-- Detects breaking changes automatically
-- Supports multiple output formats (markdown, github, plain)
-- Falls back to all commits if no conventional commits found
-
-**Usage:**
-
-```bash
-# Auto-detect previous version and generate notes
-./scripts/release/generate-release-notes.sh 1.1.2
-
-# Specify previous version explicitly
-./scripts/release/generate-release-notes.sh 1.1.2 1.1.1
-
-# Save to file
-./scripts/release/generate-release-notes.sh -o RELEASE_NOTES.md 1.2.0
-
-# GitHub format (used by CI)
-./scripts/release/generate-release-notes.sh --format github 1.2.0
-
-# Show only breaking changes
-./scripts/release/generate-release-notes.sh --breaking-only 1.2.0
-
-# Disable emojis
-./scripts/release/generate-release-notes.sh --no-emoji 1.2.0
+```sh
+sh scripts/release/update-version.sh 2.2.0 --dry-run
+python3 scripts/release/check-versions.py
+python3 scripts/testing/check-dependency-pins.py
+python3 scripts/testing/check-docs.py
+sh scripts/release/generate-release-notes.sh 2.2.0 v2.1.0 --output /tmp/release-draft.md
 ```
 
-**Conventional Commit Types:**
+The version checker discovers tracked and nonignored documentation, scripts and workflows, synchronizing current Alpine references from the stable Dockerfile. `--write` applies changes; `--version X.Y.Z` also updates managed current project references. Historical changelog entries and historical migration release semantics are retained.
 
-| Type | Emoji | Description |
-|------|-------|-------------|
-| `feat:` | ✨ | New features |
-| `fix:` | 🐛 | Bug fixes |
-| `docs:` | 📚 | Documentation changes |
-| `perf:` | ⚡ | Performance improvements |
-| `refactor:` | ♻️ | Code refactoring |
-| `test:` | ✅ | Testing changes |
-| `build:` | 🏗️ | Build system changes |
-| `ci:` | 👷 | CI/CD changes |
-| `chore:` | 🔧 | Maintenance tasks |
-| `style:` | 💄 | Code style changes |
-| `revert:` | ⏪ | Reverts |
+The notes generator handles leading gitmoji, conventional scopes and multiline breaking-change bodies, and keeps emoji headings by default. Use `--no-emoji` or `--format plain` only when you want plain output. Its output is a review draft. The release workflow publishes the curated file at `docs/releases/vVERSION.md`.
 
-**Breaking Changes:**
 
-Breaking changes are detected in two ways:
-1. **Type suffix**: `feat!:` or `fix!:` (exclamation mark after type)
-2. **Body keyword**: `BREAKING CHANGE:` in commit body
+### 📝 Curated notes and version markers
 
-**Example Commits:**
-
-```bash
-# Feature
-git commit -m "feat: add migration assistant script"
-
-# Bug fix
-git commit -m "fix: resolve OBFS4V parsing issue with spaces"
-
-# Breaking change (method 1)
-git commit -m "feat!: remove legacy ENV variable support"
-
-# Breaking change (method 2)
-git commit -m "feat: redesign configuration system
-
-BREAKING CHANGE: Old ENV variables are no longer supported.
-Use TOR_* prefix instead."
-
-# Documentation
-git commit -m "docs: update README with migration guide"
-
-# Multiple types in one commit
-git commit -m "feat: add SBOM generation
-
-- Generates CycloneDX and SPDX formats
-- Integrates with CI/CD workflow
-- Attaches to GitHub releases"
-```
-
-**Output Example:**
-
-```markdown
-## 🧅 Tor Guard Relay v1.2.0
-
-### ✨ Features
-
-- Add migration assistant script (`a1b2c3d4`) by John Doe
-- Add SBOM generation to CI/CD (`e5f6g7h8`) by Jane Smith
-
-### 🐛 Bug Fixes
-
-- Resolve OBFS4V parsing issue with spaces (`i9j0k1l2`) by John Doe
-- Fix Mermaid diagram rendering in GitHub (`m3n4o5p6`) by Jane Smith
-
-### 📚 Documentation
-
-- Update README with migration guide (`q7r8s9t0`) by John Doe
-- Add comprehensive FAQ (`u1v2w3x4`) by Jane Smith
+Use the notes generator for a local review draft; the hosted release publishes `docs/releases/vVERSION.md`. The version synchronizer updates explicit current markers and validates examples against the stable Dockerfile, leaving historical changelog entries intact. No helper commits, pushes, signs or publishes automatically.
 
 ---
 
-**Full Changelog**: v1.1.1...v1.2.0
-```
-
-### update-version.sh
-
-Auto-update version numbers across all documentation, templates, and configuration files.
-
-**Features:**
-- Updates version in README.md (badges, examples)
-- Updates CHANGELOG.md (adds new version header)
-- Updates templates/*.yml (Docker Compose image tags)
-- Updates templates/*.json (Cosmos Cloud templates)
-- Updates docs/*.md (all documentation)
-- Updates CLAUDE.md (project documentation)
-- Creates backups by default (.bak files)
-- Dry-run mode to preview changes
-
-**Usage:**
-
-```bash
-# Update version (creates .bak backups)
-./scripts/release/update-version.sh 1.1.2
-
-# Preview changes without modifying files
-./scripts/release/update-version.sh --dry-run 1.2.0
-
-# Update without creating backups
-./scripts/release/update-version.sh --no-backup 1.1.2
-
-# Works with or without 'v' prefix
-./scripts/release/update-version.sh v1.1.2
-```
-
-**What Gets Updated:**
-
-1. **README.md**
-   - Version badges
-   - Docker image tags in examples
-   - Version references in text
-
-2. **CHANGELOG.md**
-   - Adds new version header after `## [Unreleased]` section
-   - Format: `## [v1.1.2] - 2025-01-14`
-
-3. **templates/*.yml** (Docker Compose)
-   - `image:` tags from `onion-relay:1.1.9` → `onion-relay:2.0.0`
-
-4. **templates/*.json** (Cosmos Cloud)
-   - `"image":` fields in JSON templates
-
-5. **docs/*.md** (All documentation)
-   - Version references throughout docs
-
-6. **CLAUDE.md** (Project instructions)
-   - Version references for Claude Code
-
-**Example Output:**
-
-```
-ℹ Current version detected: 1.1.9
-ℹ New version: 2.0.0
-ℹ Updating README.md...
-✅ Updated: README.md
-ℹ Updating CHANGELOG.md...
-✅ Added version 2.0.0 to CHANGELOG.md
-ℹ Updating Docker Compose templates...
-✅ Updated: templates/docker-compose-guard-env.yml
-✅ Updated: templates/docker-compose-exit.yml
-✅ Updated: templates/docker-compose-bridge.yml
-...
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-✅ Version Update Complete
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  Current Version: 1.1.9
-  New Version:     2.0.0
-  Files Updated:   15
-
-🔵 Backup files created with .bak extension
-🔵 To restore: for f in *.bak; do mv "$f" "${f%.bak}"; done
-
-Next Steps:
-  1. Review changes: git diff
-  2. Update CHANGELOG.md with release notes
-  3. Commit changes: git add -A && git commit -m "chore: bump version to 2.0.0"
-  4. Create tag: git tag -a v2.0.0 -m "Release v2.0.0"
-  5. Push: git push && git push --tags
-```
-
-**Rollback:**
-
-If you need to undo changes:
-
-```bash
-# Restore from .bak files
-for f in *.bak **/*.bak; do
-  [ -f "$f" ] && mv "$f" "${f%.bak}"
-done
-
-# Or use git to reset
-git checkout -- .
-```
-
 ## CI/CD Integration
 
-The release workflow (`.github/workflows/release.yml`) integrates all three automation components:
+## 🏗️ Candidate pipeline
 
-### Automated SBOM Generation
+1. Resolve the triggering release tag, or the latest stable tag for a scheduled rebuild. Require its commit to be an ancestor of main. Resolve the current reviewed main security-policy SHA separately.
+2. Build stable and edge candidates for AMD64 and ARM64, without publishing.
+3. Run offline behavior tests and component security floors against each loaded image.
+4. Analyze Go source reachability with the tagged source/lock/toolchain, proving that the transport matches the candidate byte for byte. Generate SBOMs and run blocking vulnerability/secret scans. Use current main security policy and component floors even when rebuilding an older tag.
+5. Save each validated image, checksum, inspect metadata and scan evidence.
+6. Load those same image archives in promotion, verify image identity, publish unique staging references, and assemble version/alias manifests from their digests.
+7. Publish curated release notes and attach security evidence only after promotion succeeds.
 
-When a release tag is pushed, the workflow automatically:
+Schedules rebuild the latest released tag, not unreleased main. A dependency update on main reaches scheduled rebuilds only after a new reviewed release tag contains it. Manual dispatch defaults to validation without publication. The retention workflow produces a read-only registry inventory; it cannot delete rollback images. Review manifests, architecture digests and rollback references before any manual deletion.
 
-1. **Builds Docker image** with multi-arch support (AMD64, ARM64)
-2. **Generates SBOM** in multiple formats:
-   - **CycloneDX JSON** (`sbom-cyclonedx-v1.1.2.json`)
-   - **CycloneDX XML** (`sbom-cyclonedx-v1.1.2.xml`)
-   - **SPDX JSON** (`sbom-spdx-v1.1.2.json`)
-   - **SPDX tag-value** (`sbom-spdx-v1.1.2.spdx`)
-   - **Human-readable table** (`sbom-table-v1.1.2.txt`)
-3. **Uploads SBOM** as workflow artifacts (90-day retention)
-4. **Attaches SBOM** to GitHub release as downloadable assets
+The promotion job needs Docker Hub credentials and GitHub package permissions. Cross-registry promotion must be observed in the first maintainer-triggered run; local testing does not establish remote registry behavior.
 
-### Automated Release Notes
+### ✅ Required validation checks
 
-The workflow generates release notes with this priority:
+The validation workflow preserves the four names required by the main branch ruleset: `🔍 Lint and Validate`, `🏗️ Build Docker Image`, `🧪 Integration Tests` and `🛡️ Security Scan`. The last three aggregate the complete stable/edge and AMD64/ARM64 candidate matrix, including behavioral acceptance and security policy. They run even after a dependency fails and succeed only when source validation and every image job succeed.
 
-1. **CHANGELOG.md** (preferred)
-   - Extracts section for specific version
-   - Format: `## [v1.1.2] - 2025-01-14` or `## v1.1.2`
+Candidate artifacts are replaced on workflow reruns; registry staging tags include both the run ID and attempt so a retry does not reuse an earlier staging tag. Version and alias tags remain mutable for validated scheduled rebuilds.
 
-2. **Auto-generated from commits** (fallback)
-   - Uses `generate-release-notes.sh` script
-   - Parses conventional commits
-   - Categorizes by type with emojis
+### 📦 Dependency update boundaries
 
-3. **Simple commit list** (last resort)
-   - Basic git log output
-   - Shows commit messages with hashes
+Renovate proposes Docker base, GitHub Actions, locked Go module, scanner-tool and upstream Lyrebird source-pin updates. Its `custom.regex` manager follows upstream `main` with `git-refs`, keeping all four `LYREBIRD_REVISION` occurrences synchronized. Source and Go updates require review and the full candidate matrix. The bot integration must be enabled separately; configuration does not run the bot.
 
-**Release Note Sections:**
+Docker/toolchain, source and Go proposals can be created on any Renovate run without a weekly window. Security-alert PRs require review and bypass normal update scheduling. Review upstream changes against the independently maintained lock; patch a vulnerable Go dependency without waiting for a Lyrebird source commit when compatible.
 
-Every release includes:
-- 📦 Changes (categorized by type)
-- 🐳 Docker Images (pull commands for GHCR and Docker Hub)
-- 📋 SBOM (links to downloadable SBOM files)
-- 🔗 Full Changelog (compare link)
+Indirect Go updates are explicitly enabled. Renovate's OSV security PR coverage is limited to direct dependencies; Go source analysis and image scans cover additional findings that need maintainer triage. Do not assume the bot can automatically remediate every transitive vulnerability.
+
+After a Docker base version proposal, run `python3 scripts/release/check-versions.py --write` and review the synchronized examples and OCI base label. The consistency gate deliberately rejects unsynchronized documentation.
+
+<a id="expedited-security-response"></a>
+
+### 🚨 Expedited security response
+
+Do not wait for a scheduled rebuild or feature release when an applicable security fix is available. Update the affected source pin, Go lock, builder/base or component floor, run the full candidate gates, merge the reviewed change and publish a new patch tag. A merged lock/source update alone cannot change images rebuilt from an older release tag.
+
+If no fix exists, assess exposure and mitigate it, for example by disabling an affected transport or reviewing a backport. HIGH/CRITICAL image findings and reachable Go findings block publication even without a fix. There is no automatic ignore list or severity downgrade. Any policy change for demonstrated non-applicability needs an explicit reviewed change with supporting evidence.
+
+### 🔎 Continuous security watch
+
+The read-only `🔒🧅 Security watch` workflow runs on relevant main changes, manual dispatch and every six hours. It analyzes current pinned source/Go locks for both architectures and independently scans the exact published stable/edge architecture digests from Docker Hub and GHCR using current advisory data. It records manifests, image IDs and complete reports, including failure diagnostics, for 30 days. Failures appear in Actions; configure your GitHub Actions notifications to receive them.
+
+The published-image lane performs package/secret assessment; source reachability is reported for the current checkout, which may differ from a published release. GitHub schedules and advisory ingestion can be delayed. Monitoring never publishes images, changes a live relay, opens issues or sends third-party messages.
+
+---
 
 ## Release Workflow
 
-### Manual Release Process
+### 🧭 Maintainer publication order
 
-For creating a new release manually:
+1. Review the local branch, curated notes, compatibility changes and candidate evidence.
+2. Push the branch yourself and open a PR; wait for all required checks on its latest revision.
+3. Merge through the repository's review and linear-history policy.
+4. Create and push the reviewed release tag yourself. Observe all four candidate gates before promotion.
+5. Verify both architectures and exact published digests in Docker Hub and GHCR; retain evidence and rollback references.
+6. Upgrade the real relay deliberately after encrypted recovery rehearsal, then check fingerprint continuity, fresh bootstrap and public reachability.
 
-```bash
-# 1. Update version numbers across all files
-./scripts/release/update-version.sh 1.2.0
+The release workflow uses immutable candidate evidence and promotes the same images. A main push does not publish a version; manual dispatch defaults to validation. Current reviewed policy is separate from tagged source. Trusted main verifies the full source and policy commit SHAs against reviewed ancestry before preparing separate immutable worktrees. Checkout credentials are not retained.
 
-# 2. Review changes
-git diff
+## 🛡️ Evidence and rollback
 
-# 3. Generate release notes (optional, to preview)
-./scripts/release/generate-release-notes.sh 1.2.0
+Retain source and security-policy SHAs, architecture, image ID/digest, Tor version, Alpine/OpenSSL packages, Lyrebird revision/Go dependency graph, Go reachability report, SBOM and the full vulnerability/secret report. Promotion blocks secrets, all HIGH/CRITICAL image findings, and reachable Go vulnerabilities regardless of a fixed version or severity label. Unfixed and lower-severity findings remain in the report for assessment. Scanner failures and malformed/incomplete reports fail closed. Never call a candidate published based only on a local build.
 
-# 4. Update CHANGELOG.md with detailed notes
-vim CHANGELOG.md
-# Add release notes under ## [v1.2.0] - 2025-01-14
+Preserve the previous validated image digest, deployment and encrypted backup before upgrading. Do not rewrite historical release descriptions when updating current examples.
 
-# 5. Commit version bump
-git add -A
-git commit -m "chore: bump version to 1.2.0"
-
-# 6. Create annotated tag
-git tag -a v1.2.0 -m "Release v1.2.0"
-
-# 7. Push to trigger release workflow
-git push origin main
-git push origin v1.2.0
-
-# GitHub Actions will:
-# - Build multi-arch Docker images
-# - Generate SBOM files
-# - Create GitHub release with notes
-# - Attach SBOM to release
-# - Push images to GHCR and Docker Hub
-```
-
-### Automated Release (CI/CD)
-
-The workflow triggers on:
-
-1. **Git tag push** (`v*.*.*`)
-   - Full release with SBOM generation
-   - Release notes from CHANGELOG.md or auto-generated
-   - Updates `:latest` tag
-
-2. **Weekly schedule** (Sundays 18:30 UTC)
-   - Rebuilds last release with updated packages
-   - No release notes or SBOM (not a new release)
-   - Overwrites version tag with fresh build
-
-3. **Manual dispatch** (workflow_dispatch)
-   - Test builds with version suffix
-   - Useful for testing release process
+---
 
 ## SBOM (Software Bill of Materials)
 
@@ -352,14 +132,20 @@ SBOM provides transparency about software components and dependencies:
 **Check for vulnerabilities:**
 
 ```bash
-# Download SBOM from GitHub release
-wget https://github.com/r3bo0tbx1/test-0f376e81/releases/download/v1.1.2/sbom-cyclonedx-v1.1.2.json
+# After the maintainer publishes v2.2.0, download its evidence archive.
+# Until then, use the retained candidate artifacts from the validation run.
+curl --fail --location --output release-evidence.tar.gz \
+  https://github.com/r3bo0tbx1/tor-guard-relay/releases/download/v2.2.0/release-evidence.tar.gz
+mkdir release-evidence
+tar -xzf release-evidence.tar.gz -C release-evidence
+# Select one candidate's SBOM; the archive retains all four variants.
+cp release-evidence/candidate-stable-amd64/sbom/sbom.cdx.json sbom.cdx.json
 
 # Scan with Grype
-grype sbom:sbom-cyclonedx-v1.1.2.json
+grype sbom:sbom.cdx.json
 
 # Scan with Trivy
-trivy sbom sbom-cyclonedx-v1.1.2.json
+trivy sbom sbom.cdx.json
 ```
 
 **Integrate with security tools:**
@@ -368,13 +154,13 @@ trivy sbom sbom-cyclonedx-v1.1.2.json
 # Import into Dependency-Track
 curl -X POST "https://dtrack.example.com/api/v1/bom" \
   -H "X-Api-Key: $API_KEY" \
-  -F "bom=@sbom-cyclonedx-v1.1.2.json"
+  -F "bom=@sbom.cdx.json"
 
 # Analyze with Syft
-syft sbom-cyclonedx-v1.1.2.json
+syft sbom.cdx.json
 
 # View package list
-jq '.components[] | {name, version, type}' sbom-cyclonedx-v1.1.2.json
+jq '.components[] | {name, version, type}' sbom.cdx.json
 ```
 
 **Example SBOM Content:**
@@ -489,7 +275,7 @@ git log --oneline
 git describe --tags --abbrev=0
 
 # Specify previous version explicitly
-./scripts/release/generate-release-notes.sh 1.1.2 1.1.1
+sh scripts/release/generate-release-notes.sh 2.2.0 v2.1.0 --output /tmp/release-draft.md
 ```
 
 ### Version Update Missing Files
@@ -499,13 +285,13 @@ git describe --tags --abbrev=0
 **Solution:**
 ```bash
 # Check what current version was detected
-./scripts/release/update-version.sh --dry-run 1.1.2
+sh scripts/release/update-version.sh 2.2.0 --dry-run
 
 # Search for old version manually
-grep -r "1.1.1" . --exclude-dir=.git
+rg "RELAY_VERSION|Alpine|onion-relay:" README.md docs templates
 
-# Update manually missed files
-sed -i 's/1.1.1/1.1.2/g' path/to/file
+# Verify managed fields without rewriting historical releases.
+python3 scripts/release/check-versions.py
 ```
 
 ### SBOM Generation Fails
@@ -515,13 +301,13 @@ sed -i 's/1.1.1/1.1.2/g' path/to/file
 **Solution:**
 ```bash
 # Ensure image exists locally or in registry
-docker pull ghcr.io/r3bo0tbx1/onion-relay:1.1.8
+docker pull ghcr.io/r3bo0tbx1/onion-relay:2.2.0
 
 # Generate SBOM locally for testing
 docker run --rm \
   -v /var/run/docker.sock:/var/run/docker.sock \
   anchore/syft:latest \
-  ghcr.io/r3bo0tbx1/onion-relay:1.1.8 \
+  ghcr.io/r3bo0tbx1/onion-relay:2.2.0 \
   -o cyclonedx-json
 ```
 

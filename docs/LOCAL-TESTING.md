@@ -12,6 +12,55 @@
 
 ---
 
+> [!IMPORTANT]
+> 🧅 **v2.2.0 release candidate:** Tor must be **0.4.9.14 or newer**. Current-run health, validated configuration and encrypted recovery are described in the [release notes](releases/v2.2.0.md). Recreate from the validated image to update Tor; changing torrc alone does not upgrade the binary.
+
+## Environment
+
+Docker Desktop on Windows with WSL works. Run host scripts in Linux/WSL with Python 3.10+, age, ShellCheck and dos2unix. A Linux Docker daemon is also supported. ARM64 testing on an AMD64 machine requires registered QEMU/binfmt support.
+
+## 🔎 Source checks
+
+```sh
+python3 scripts/release/check-versions.py
+python3 scripts/testing/check-templates.py
+python3 scripts/testing/check-docs.py
+shellcheck -S warning -x docker-entrypoint.sh healthcheck.sh lib/*.sh tools/* scripts/utilities/relay-backup.sh scripts/utilities/relay-inventory.sh
+python3 -m unittest discover -s tests -v
+git diff --check
+```
+
+Archive tests require age on PATH. A skipped archive test is not a recovery pass. Check LF line endings with dos2unix before building on Windows.
+
+## 🏗️ Build and inspect candidates
+
+```sh
+docker buildx build --platform linux/amd64 --load \
+  --build-arg BUILD_VERSION=2.2.0-local -t tor-relay:2.2.0-local .
+python3 scripts/testing/image-acceptance.py tor-relay:2.2.0-local
+python3 scripts/testing/check-image.py tor-relay:2.2.0-local
+```
+
+Repeat with `Dockerfile.edge` and both `linux/amd64` and `linux/arm64`. Pass the platform explicitly to image acceptance for ARM64. Check-image reads the Go dependency metadata from the actual transport binary as well as Tor and installed OpenSSL packages.
+
+Acceptance covers guard, exit and bridge generation, custom torrc path, accounting, config validation, PID-preserving reload, fresh restart evidence, bridge transport state and clean shutdown. Injected bootstrap messages test observation logic; they are not proof of live bootstrap.
+
+## 🔐 Recovery rehearsal
+
+Follow [Backup](BACKUP.md) using a synthetic source. Create → verify → restore must preserve the fingerprint and pass offline Tor configuration validation. Rehearse named-volume and bind-mount layouts with includes when those match your deployment.
+
+The archive regression suite checks wrong identities, truncation, unsafe paths, links, duplicate entries, mismatched hashes and refusal to overwrite an existing restore destination. Failure-path checks should also confirm that a stopped source stays stopped and a source stopped by create is restarted.
+
+Run the isolated named-volume and bind-mount rehearsal with a task-owned scratch parent accessible to Docker:
+
+```sh
+python3 scripts/testing/recovery-rehearsal.py --image tor-relay:2.2.0-local --bind-parent /path/to/scratch
+```
+
+## 🎨 Presentation checks
+
+Check every local Markdown link and image with the docs checker. Review the README and curated notes rendered on desktop and mobile. Run the separate website's Hugo build, security audit and tests before including an article in a publication handoff.
+
 ## 📋 Prerequisites
 
 - Docker 20.10+
@@ -72,6 +121,10 @@ docker run --rm localhost:5000/onion-relay:test status
 ---
 
 ## 🧪 Test Scenarios
+
+> [!NOTE]
+> The original manual deployment fixtures below are optional developer examples. The release's behavioral gate is `image-acceptance.py` with networking disabled. Live fixtures cannot establish production readiness, and commands that pull `latest` test a published image rather than your local candidate.
+
 
 ### Test 1: Guard Relay (Mounted Config)
 
@@ -149,7 +202,7 @@ docker exec test-bridge cat /etc/tor/torrc
 docker exec test-bridge pgrep -a lyrebird
 
 # Test bridge-line tool (after bootstrap)
-docker exec test-bridge bridge-line
+docker exec test-bridge bridge-line --address 203.0.113.42
 
 # Cleanup
 docker stop test-bridge && docker rm test-bridge
@@ -196,22 +249,18 @@ docker volume rm test-bridge-mounted-data
 ### Test 4: Health Check
 
 ```bash
-# Test health check script directly
-docker run --rm \
-  -v /tmp/relay-test.conf:/etc/tor/torrc:ro \
-  localhost:5000/onion-relay:test \
-  /usr/local/bin/healthcheck.sh
+# The fixture starts Tor with networking disabled and checks stale/current-run evidence.
+python3 scripts/testing/image-acceptance.py localhost:5000/onion-relay:test --platform linux/amd64
 
-# Expected: exit code 0 (healthy)
-echo "Health check status: $?"
-
-# Test with invalid config
-docker run --rm localhost:5000/onion-relay:test sh -c \
-  "echo 'InvalidDirective BadValue' > /etc/tor/torrc && /usr/local/bin/healthcheck.sh"
-
-# Expected: exit code 1 (unhealthy)
-echo "Health check status: $?"
+# Against your deliberately started test relay:
+docker exec test-guard /usr/local/bin/healthcheck.sh
+docker exec test-guard health | jq '{liveness, config_valid, readiness, fresh, reason}'
+docker exec test-guard doctor --json
 ```
+
+Docker health requires a running Tor process and valid config. A container running only the healthcheck script must fail; a valid torrc alone does not make a relay healthy. Readiness additionally requires fresh current-run evidence.
+
+---
 
 ### Test 5: Input Validation
 
@@ -279,7 +328,7 @@ After building locally:
 - [ ] Diagnostic tools produce correct output
 - [ ] Input validation catches invalid values
 - [ ] OBFS4V_* whitelist blocks dangerous options
-- [ ] Image size is ~16.8 MB (`docker images localhost:5000/onion-relay:test`)
+- [ ] Image size is ~variant-dependent image size (`docker images localhost:5000/onion-relay:test`)
 
 ---
 
@@ -349,11 +398,11 @@ docker run --rm localhost:5000/onion-relay:multiarch cat /build-info.txt
 ## 🧹 Cleanup
 
 ```bash
-# Stop and remove all test containers
-docker ps -a | grep test- | awk '{print $1}' | xargs docker rm -f
+# Remove only the named fixtures you created for these tests
+docker rm -f test-guard test-bridge test-bridge-mounted
 
 # Remove test volumes
-docker volume ls | grep test- | awk '{print $2}' | xargs docker volume rm
+docker volume rm test-guard-data test-bridge-data test-bridge-mounted-data
 
 # Remove test images
 docker rmi localhost:5000/onion-relay:test

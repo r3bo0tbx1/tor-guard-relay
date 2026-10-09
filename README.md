@@ -14,24 +14,46 @@
 
 **A hardened, production-ready Tor relay with built-in diagnostics and monitoring**
 
-[Quick Start](#-quick-start) • [Features](#-key-features) • [🌐 Live Dashboard](https://relays.brokenbotnet.com/) • [Documentation](#-documentation) • [Gallery](#️-gallery) • [FAQ](docs/FAQ.md) • [Architecture](docs/ARCHITECTURE.md) • [Tools](#-diagnostic-tools) • [Contributing](#-contributing)
+[Quick Start](#-quick-start) • [Features](#-key-features) • [🌐 Live Dashboard](https://relays.brokenbotnet.com/) • [Documentation](#-documentation) • [Gallery](#gallery) • [FAQ](docs/FAQ.md) • [Architecture](docs/ARCHITECTURE.md) • [Tools](#-built-in-tools) • [Contributing](#-contributing)
 
 </div>
 
 ---
 
+## 🆕 v2.2.0: safer operations and recovery
+
+Current source version: <!-- RELAY_VERSION -->v2.2.0<!-- /RELAY_VERSION -->.
+
+> [!IMPORTANT]
+> 🛡️ Tor **0.4.9.14 or newer** is required. This release is locally validated; publication and live-relay verification are separate steps. See the [curated release notes](docs/releases/v2.2.0.md).
+
+| Improvement | Operator benefit | Guide |
+| --- | --- | --- |
+| 🔎 Current-run health and `doctor` | Separate liveness, configuration, freshness and readiness | [Tools](docs/TOOLS.md) |
+| ⚙️ Validated atomic config changes | Mounted torrc remains authoritative; generated config follows ENV | [Deployment](docs/DEPLOYMENT.md) |
+| 🔐 Encrypted complete recovery | Authenticate config/includes, keys and state before staged restore | [Backup](docs/BACKUP.md) |
+| 📊 Host inventory and metrics | Observe a fleet without exposing a metrics listener | [Monitoring](docs/MONITORING.md) |
+| 🏗️ Build-once release gates | Validate all four candidates before promoting their exact images | [Release process](scripts/release/README.md) |
+| 🛡️ Independent security updates | Reviewed Lyrebird pins, direct/indirect Go fixes and six-hour read-only scans | [Security policy](SECURITY.md) |
+
+**Stable runtime:** Alpine 3.24.2 pinned by digest. **Builder:** Go 1.27.2. The independent lock includes Pion STUN 3.1.7 and `klauspost/compress` 1.18.7. Both variants enforce the Tor floor.
+
+Generated torrc is regenerated from ENV on restart. Persist operator changes in deployment ENV or mount a torrc. Verify an encrypted backup and compare fingerprints before a real upgrade; never activate two copies of one relay identity.
+
+---
+
 ## 🚀 What is This?
 
-**Tor Guard Relay** is a production-ready, self-healing Tor relay container designed for privacy advocates who want to contribute to the Tor network securely and efficiently.
+**Tor Guard Relay** is a production-ready, Tor relay container designed for privacy advocates who want to contribute to the Tor network securely and efficiently.
 
 > 🌉 **Multi-Mode:** guard, exit, and bridge with obfs4 transport. Configure via `TOR_RELAY_MODE`.
 
 ### Why Choose This Project?
 
 - 🛡️ **Security-First** - Hardened Alpine Linux, non-root operation, and minimized port exposure
-- 🪶 **Very light** - Ultra-minimal 16.8 MB image
+- 🪶 **Very light** - Ultra-minimal variant-dependent image size image
 - 🎯 **Simple** - One command to deploy, minimal configuration needed
-- 📊 **Observable** - 7 busybox-only tools with JSON health and PID-preserving config reloads
+- 📊 **Observable** - 9 POSIX shell tools with JSON health and PID-preserving config reloads
 - 🌉 **Multi-Mode** - Supports guard, exit, and bridge (obfs4) relays
 - 🔄 **Automated** - Weekly security rebuilds, CI/CD ready
 - 📚 **Documented** - Comprehensive guides for deployment, monitoring, backup, and more
@@ -63,7 +85,7 @@
 
 Diagnostics are run only through `docker exec`, with no exposed monitoring ports.
 
-Minimal surface area, roughly 16.8 MB.
+Minimal surface area, roughly variant-dependent image size.
 
 ---
 
@@ -96,7 +118,7 @@ Minimal surface area, roughly 16.8 MB.
 
 ```bash
 # Download and run the quick-start script
-curl -fsSL https://raw.githubusercontent.com/r3bo0tbx1/tor-guard-relay/main/scripts/quick-start.sh -o quick-start.sh
+curl -fsSL https://raw.githubusercontent.com/r3bo0tbx1/tor-guard-relay/main/scripts/utilities/quick-start.sh -o quick-start.sh
 chmod +x quick-start.sh && sh ./quick-start.sh
 ```
 
@@ -153,7 +175,7 @@ We offer **two build variants** to match your risk tolerance and requirements:
 
 ### Stable Variant (Recommended)
 
-**Base:** Alpine 3.24.1 | **Recommended for:** Production relays
+**Base:** Alpine 3.24.2 | **Recommended for:** Production relays
 
 - ✅ Battle-tested Alpine stable release
 - ✅ Weekly automated rebuilds with latest security patches
@@ -163,11 +185,11 @@ We offer **two build variants** to match your risk tolerance and requirements:
 ```bash
 # Pull from Docker Hub (easiest)
 docker pull r3bo0tbx1/onion-relay:latest
-docker pull r3bo0tbx1/onion-relay:2.1.0
+docker pull r3bo0tbx1/onion-relay:2.2.0
 
 # Pull from GHCR
 docker pull ghcr.io/r3bo0tbx1/onion-relay:latest
-docker pull ghcr.io/r3bo0tbx1/onion-relay:2.1.0
+docker pull ghcr.io/r3bo0tbx1/onion-relay:2.2.0
 ```
 
 ### Edge Variant (Testing Only)
@@ -186,7 +208,7 @@ docker pull r3bo0tbx1/onion-relay:edge
 
 # Pull from GHCR
 docker pull ghcr.io/r3bo0tbx1/onion-relay:edge
-docker pull ghcr.io/r3bo0tbx1/onion-relay:2.1.0-edge
+docker pull ghcr.io/r3bo0tbx1/onion-relay:2.2.0-edge
 ```
 
 **When to use edge:**
@@ -225,6 +247,8 @@ See [Deployment Guide](docs/DEPLOYMENT.md) for complete instructions.
 
 ## 🔧 Built-in Tools
 
+🆕 `doctor`, `config` and host-only encrypted backup/inventory extend the original tools. See the [complete tools reference](docs/TOOLS.md).
+
 Seven busybox-only diagnostic and operational tools are included.
 
 | Tool | Purpose | Usage |
@@ -233,7 +257,7 @@ Seven busybox-only diagnostic and operational tools are included.
 | health | JSON health | `docker exec tor-relay health` |
 | refresh | Validate and reload torrc without restarting Tor | `docker exec tor-relay refresh` |
 | fingerprint | Show fingerprint | `docker exec tor-relay fingerprint` |
-| bridge-line | obfs4 line | `docker exec tor-relay bridge-line` |
+| bridge-line | obfs4 line | `docker exec tor-relay bridge-line --address 203.0.113.42` |
 | gen-auth | Credentials for Nyx | `docker exec tor-relay gen-auth` |
 | gen-family | Happy Family key gen | `docker exec tor-relay gen-family MyRelays` |
 
@@ -263,7 +287,7 @@ Example JSON:
 }
 ```
 
-> 📖 **Complete reference:** See [Tools Documentation](docs/TOOLS.md) for all 7 tools with examples, safety checks, JSON schema, and integration guides.
+> 📖 **Complete reference:** See [Tools Documentation](docs/TOOLS.md) for all 9 tools with examples, safety checks, JSON schema, and integration guides.
 
 ---
 
@@ -293,7 +317,7 @@ docker exec tor-relay health
 docker exec tor-relay health | jq .
 
 # Example cron-based monitoring
-*/5 * * * * docker exec tor-relay health | jq '.status' | grep -q 'healthy' || alert
+*/5 * * * * docker exec tor-relay health | jq -e '.liveness and .config_valid and .readiness and .fresh' >/dev/null || alert
 ```
 
 > **Note:** `jq` must be installed on your HOST machine (`apt install jq` / `brew install jq`), NOT in the container.
@@ -306,7 +330,7 @@ docker exec tor-relay health | jq .
 
 ### Security & Reliability
 - ✅ Non-root execution (runs as `tor` user)
-- ✅ Ultra-minimal Alpine Linux base (**~16.8 MB**)
+- ✅ Ultra-minimal Alpine Linux base (**~variant-dependent image size**)
 - ✅ Busybox-only tools (no bash/python dependencies)
 - ✅ Automatic permission healing on startup
 - ✅ Configuration validation before start
@@ -314,7 +338,7 @@ docker exec tor-relay health | jq .
 - ✅ Graceful shutdown with cleanup
 
 ### Operations & Automation
-- ✅ **7 busybox-only tools** (status, health, refresh, fingerprint, bridge-line, gen-auth, gen-family)
+- ✅ **9 POSIX shell tools** (status, doctor, config, health, refresh, fingerprint, bridge-line, gen-auth, gen-family)
 - ✅ **PID-preserving torrc reloads** with validation before SIGHUP
 - ✅ **JSON health API** for monitoring integration
 - ✅ **Multi-mode support** (guard, exit, bridge with obfs4)
@@ -335,6 +359,8 @@ docker exec tor-relay health | jq .
 - ✅ Multi-arch support (same command, any platform)
 
 ---
+
+<a id="gallery"></a>
 
 ## 🖼️ Gallery
 
@@ -378,7 +404,7 @@ docker exec tor-relay health | jq .
 
 ### Technical Reference
 - **[Architecture](docs/ARCHITECTURE.md)** - Technical architecture with Mermaid diagrams
-- **[Tools Reference](docs/TOOLS.md)** - Complete guide to all 7 built-in tools
+- **[Tools Reference](docs/TOOLS.md)** - Complete guide to all 9 built-in tools
 - **[Monitoring Guide](docs/MONITORING.md)** - External monitoring integration, JSON health API, alerts, and observability
 - **[Control Port Guide](docs/CONTROL-PORT.md)** - Authentication setup and Nyx integration
 - **[Backup Guide](docs/BACKUP.md)** - Data persistence, recovery, and disaster planning
@@ -433,7 +459,7 @@ Examples are found in the [`examples/`](examples/) directory for complete, annot
 - **[relay-guard.conf](examples/relay-guard.conf)** - Recommended production config
 - Additional examples for specific use cases
 
-> 📖 **Configuration help:** See [Deployment Guide](docs/DEPLOYMENT.md#configuration) for complete reference.
+> 📖 **Configuration help:** See [Deployment Guide](docs/DEPLOYMENT.md#configuration-ownership) for complete reference.
 
 ### Happy Family (Tor 0.4.9.2-alpha or Later)
 
@@ -489,7 +515,7 @@ environment:
 
 > ⚠️ **Treat the `.secret_family_key` like a private key.** Anyone with this file can claim their relay belongs to your family. Back it up securely - losing it means regenerating for all relays.
 
-> 📖 **Full guide with troubleshooting:** See [Deployment Guide](docs/DEPLOYMENT.md#happy-family) | **Official docs:** [Tor Happy Family Guide](https://community.torproject.org/relay/setup/post-install/family-ids/)
+> 📖 **Full guide with troubleshooting:** See [Deployment Guide](docs/TOOLS.md#gen-family) | **Official docs:** [Tor Happy Family Guide](https://community.torproject.org/relay/setup/post-install/family-ids/)
 
 ---
 
@@ -562,7 +588,7 @@ docker exec tor-relay refresh
 docker exec tor-relay fingerprint
 
 # For bridge mode: Get bridge line
-docker exec tor-relay bridge-line
+docker exec tor-relay bridge-line --address 203.0.113.42
 
 # Generate Control Port hash
 docker exec tor-relay gen-auth
@@ -582,7 +608,7 @@ docker exec tor-relay gen-family --show
 | Not on Tor Metrics | Wait 24h, verify bootstrap complete |
 | Low/no traffic | Normal for new relays (2-8 weeks to build reputation) |
 
-> 📖 **Full troubleshooting:** See [Tools Documentation](docs/TOOLS.md#troubleshooting) for detailed diagnostic procedures.
+> 📖 **Full troubleshooting:** See [Tools Documentation](docs/TOOLS.md#-troubleshooting) for detailed diagnostic procedures.
 
 ---
 
@@ -671,12 +697,12 @@ See [Contributing Guide](CONTRIBUTING.md) for detailed instructions.
 
 ### Best Practices
 
-✅ Store `relay.conf` with restricted permissions (`chmod 600`)  
-✅ Never commit configs with sensitive info to Git  
-✅ Use [CIISS v3](https://nusenu.github.io/ContactInfo-Information-Sharing-Specification/) format in ContactInfo for verification  
-✅ Regularly update Docker image for security patches  
-✅ Monitor logs for suspicious activity  
-✅ Configure firewall properly  
+✅ Store `relay.conf` with restricted permissions (`chmod 600`)<br>
+✅ Never commit configs with sensitive info to Git<br>
+✅ Use [CIISS v3](https://nusenu.github.io/ContactInfo-Information-Sharing-Specification/) format in ContactInfo for verification<br>
+✅ Regularly update Docker image for security patches<br>
+✅ Monitor logs for suspicious activity<br>
+✅ Configure firewall properly<br>
 
 ### Security Policy
 
@@ -688,7 +714,7 @@ Images are automatically rebuilt on separate schedules to include security patch
 
 **Stable Variant** (`:latest`)
 - **Schedule:** Every Sunday at 18:30 UTC
-- **Includes:** Latest Tor + Alpine 3.24.1 updates
+- **Includes:** Latest Tor + Alpine 3.24.2 updates
 - **Strategy:** Rebuilds the latest release source (e.g., `v2.1.0`) with updated packages
 - **Tags Updated:** `:latest` and version tags (e.g., `:2.1.0`)
 
@@ -732,7 +758,7 @@ All images auto-published to Docker Hub and GitHub Container Registry
 [![Open Issues](https://img.shields.io/github/issues/r3bo0tbx1/tor-guard-relay?style=for-the-badge&logo=github&logoColor=white&label=Open%20Issues&labelColor=0a0a0a&color=d73a49)](https://github.com/r3bo0tbx1/tor-guard-relay/issues)
 
 **Current Version:** v2.1.0<br>
-**Image Size:** 16.8 MB<br>
+**Image Size:** variant-dependent image size<br>
 **Registry Cleanup:** 14 recent GHCR package versions • 14 recent Docker Hub versioned tags<br>
 **Registries:** Docker Hub • GHCR
 
@@ -742,16 +768,16 @@ All images auto-published to Docker Hub and GitHub Container Registry
 
 ## 📄 License
 
-Project is licensed under the MIT License.  
+Project is licensed under the MIT License.<br>
 See [License](LICENSE.txt) for full details.
 
 ---
 
 ## 🙏 Acknowledgments
 
-- **The Tor Project** for maintaining the global privacy network  
-- **Alpine Linux** for a minimal and secure base image  
-- **azukaar** for Cosmos Cloud  
+- **The Tor Project** for maintaining the global privacy network<br>
+- **Alpine Linux** for a minimal and secure base image<br>
+- **azukaar** for Cosmos Cloud<br>
 - **All relay operators** supporting privacy and anti-censorship worldwide
 
 ---
@@ -793,12 +819,12 @@ For additional information, visit the [full donation page](https://brokenbotnet.
 
 ### Other Ways to Support
 
-- ⭐ Star the repo  
-- 🐛 Report bugs  
-- 💡 Suggest features  
-- 📖 Improve documentation  
-- 🤝 Submit patches  
-- 🧅 Run a relay  
+- ⭐ Star the repo<br>
+- 🐛 Report bugs<br>
+- 💡 Suggest features<br>
+- 📖 Improve documentation<br>
+- 🤝 Submit patches<br>
+- 🧅 Run a relay<br>
 
 ---
 
@@ -811,7 +837,7 @@ For additional information, visit the [full donation page](https://brokenbotnet.
 ⭐ Star this repo if you find it useful!
 
 🌍 [Support Internet Freedom](https://donate.brokenbotnet.com/)<br>
-📚 [Documentation](docs/README.md)  
+📚 [Documentation](docs/README.md)<br>
 ⬆ [Back to top](#readme-top)
 
 </div>

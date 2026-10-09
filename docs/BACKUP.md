@@ -24,7 +24,7 @@ Your Tor relay's **identity is permanent**. Once established, it becomes part of
 - 🔄 New relay starting from zero
 - ⏰ 8+ days to regain guard flag
 
-**Backup your keys immediately after first successful bootstrap.**
+**Create and verify an encrypted complete recovery set after first successful bootstrap.**
 
 ---
 
@@ -38,7 +38,10 @@ Located in `/var/lib/tor/`:
 |------|---------|-----------------|
 | `keys/ed25519_master_id_secret_key` | Master identity key | **CRITICAL** - Defines relay identity |
 | `keys/ed25519_signing_secret_key` | Signing key | **CRITICAL** - Signs all operations |
-| `keys/secret_onion_key` | Onion key | **CRITICAL** - Onion address generation |
+| `keys/secret_id_key` | RSA relay identity | **CRITICAL** - Preserve with Ed25519 identity |
+| `keys/secret_onion_key` | Circuit handshake key | Preserve as part of the complete data directory |
+| `keys/*.secret_family_key` | Happy Family key material | Preserve family continuity |
+| `pt_state/` | Transport state and bridge certificate | Preserve bridge compatibility |
 | `fingerprint` | Your relay fingerprint | Reference only (can regenerate) |
 
 ### 📋 Important Files (Backup Regularly)
@@ -60,491 +63,116 @@ Located in `/var/lib/tor/`:
 
 ## Backup Methods
 
-### Quick Backup (Simplest)
+## 📋 Before you start
 
-Copy the keys directory straight out of a running container:
+Run from the repository on Linux or WSL. With Docker Desktop, the command uses `docker.exe` from WSL when available. Set `DOCKER` to override the CLI. Store backups and private age identities in the Linux filesystem with restricted permissions; Windows-mounted directories do not provide the same Unix permission guarantees.
 
-```bash
-docker cp <container-name>:/var/lib/tor/keys ./RelayKeyBackup
+Create a recovery identity once, store its private key separately from the archives, and copy only its public recipient into the recipient file:
+
+```sh
+umask 077
+mkdir -p "$HOME/.config/relay-backup" "$HOME/relay-backups"
+age-keygen -o "$HOME/.config/relay-backup/identity.txt"
+age-keygen -y "$HOME/.config/relay-backup/identity.txt" > "$HOME/.config/relay-backup/recipients.txt"
 ```
 
-That's it. The `RelayKeyBackup/` folder now contains your relay's identity keys. Store it somewhere safe.
+Use an existing organization recipient file if you already manage recovery keys. Losing every decryption identity makes the backup unrecoverable. External or offline Tor master keys are **not included** and need a separate encrypted recovery procedure.
 
----
+## 📦 Create
 
-### Method 1: Docker Volume Backup (Recommended)
+Preview coverage first. The source must already have a fingerprint and keys.
 
-**Pros:** Complete, easy to restore, version-controlled  
-**Cons:** Requires disk space for full volume copy
+```sh
+sh scripts/utilities/relay-backup.sh create --container tor-relay \
+  --recipients "$HOME/.config/relay-backup/recipients.txt" \
+  --output-dir "$HOME/relay-backups" --dry-run
 
-#### Step 1: Stop the Relay Gracefully
-
-```bash
-# Stop relay (allows clean shutdown)
-docker stop guard-relay
-
-# Wait for graceful shutdown
-sleep 5
-
-# Verify stopped
-docker ps | grep guard-relay
+sh scripts/utilities/relay-backup.sh create --container tor-relay \
+  --recipients "$HOME/.config/relay-backup/recipients.txt" \
+  --output-dir "$HOME/relay-backups" --stop \
+  --deployment-file templates/docker-compose/docker-compose-guard-env.yml
 ```
 
-#### Step 2: Backup the Volume
+Replace the deployment-file path with your actual Compose or ENV file. Each optional file is encrypted too; use distinct basenames. Add `--logs` only when you need incident evidence. Interactive `--passphrase` replaces `--recipients`; never put a passphrase in command arguments or ENV variables.
 
-```bash
-# Create backup directory
-mkdir -p ~/tor-relay-backups/$(date +%Y-%m-%d)
+A running source requires explicit `--stop`. The command waits for Docker to report it stopped with PID zero, refuses shared storage with another running container writer, and restarts only the source it stopped. A source already stopped remains stopped. A failure removes the partial ciphertext and attempts source restart; a restart failure is reported separately. The default stop timeout is 45 seconds.
 
-# Backup the tor-guard-data volume
-docker run --rm \
-  -v tor-guard-data:/data \
-  -v ~/tor-relay-backups/$(date +%Y-%m-%d):/backup \
-  alpine tar czf /backup/tor-data-$(date +%s).tar.gz -C /data .
+| Included | Coverage |
+| --- | --- |
+| Configuration | Active torrc and supported recursive absolute includes |
+| Identity and state | Entire effective DataDirectory, including keys, fingerprint, family material, state, caches and pt_state |
+| Manifest | File hashes, modes, original paths, fingerprint, image identity and available build labels |
+| Optional files | Explicit deployment files; logs with `--logs` |
 
-# Verify backup created
-ls -lh ~/tor-relay-backups/$(date +%Y-%m-%d)/
+The command supports exact absolute include files, flat absolute include globs and directories with a trailing slash. Relative includes, unmatched globs, links, special files and conflicting DataDirectory overrides fail closed. Host processes writing bind mounts cannot be detected through Docker; stop those writers yourself. The default total payload limit is 20 GiB, configurable with `--max-bytes`.
+
+## ✅ Verify the complete archive
+
+Use the filename printed by create:
+
+```sh
+sh scripts/utilities/relay-backup.sh verify "$HOME/relay-backups/BACKUP.tar.gz.age" \
+  --identity "$HOME/.config/relay-backup/identity.txt"
 ```
 
-**Output:**
-```
--rw-r--r-- 1 user user 2.5M Jan 1 12:00 tor-data-1704110400.tar.gz
-```
-
-#### Step 3: Backup the Logs Volume
-
-```bash
-# Backup logs for audit trail
-docker run --rm \
-  -v tor-guard-logs:/data \
-  -v ~/tor-relay-backups/$(date +%Y-%m-%d):/backup \
-  alpine tar czf /backup/tor-logs-$(date +%s).tar.gz -C /data .
-
-# Verify
-ls -lh ~/tor-relay-backups/$(date +%Y-%m-%d)/
-```
-
-#### Step 4: Restart the Relay
-
-```bash
-# Restart relay
-docker start guard-relay
-
-# Monitor startup
-docker logs -f guard-relay
-```
-
----
-
-### Method 2: Direct Key Extraction
-
-**Pros:** Minimal, extracts only critical keys  
-**Cons:** Manual process, easier to miss files
-
-#### Extract Keys While Running
-
-```bash
-# Create secure backup directory
-mkdir -p ~/tor-relay-backups/keys-only
-chmod 700 ~/tor-relay-backups/keys-only
-
-# Extract keys directly from container
-docker exec guard-relay tar czf - -C /var/lib/tor/keys . | \
-  tar xzf - -C ~/tor-relay-backups/keys-only/
-
-# Verify contents
-ls -la ~/tor-relay-backups/keys-only/
-```
-
-**Expected output:**
-```
-ed25519_master_id_secret_key
-ed25519_signing_secret_key
-secret_onion_key
-```
-
-#### Secure the Backup
-
-```bash
-# Set restrictive permissions
-chmod 600 ~/tor-relay-backups/keys-only/*
-
-# Verify ownership
-ls -la ~/tor-relay-backups/keys-only/
-```
-
----
-
-### Method 3: Automated Daily Backup
-
-**Pros:** Hands-off, versioned history  
-**Cons:** Requires cron setup, disk space
-
-#### Create Backup Script
-
-```bash
-#!/bin/bash
-# Save as: /usr/local/bin/backup-tor-relay.sh
-
-set -euo pipefail
-
-BACKUP_DIR="/backups/tor-relay"
-RETENTION_DAYS=30
-CONTAINER="guard-relay"
-TIMESTAMP=$(date +%Y-%m-%d_%H-%M-%S)
-
-# Create backup directory
-mkdir -p "$BACKUP_DIR/$TIMESTAMP"
-
-# Stop relay gracefully
-echo "🛑 Stopping relay..."
-docker stop "$CONTAINER" || true
-sleep 5
-
-# Backup data volume
-echo "💾 Backing up data volume..."
-docker run --rm \
-  -v tor-guard-data:/data \
-  -v "$BACKUP_DIR/$TIMESTAMP":/backup \
-  alpine tar czf /backup/tor-data.tar.gz -C /data .
-
-# Backup logs volume
-echo "📝 Backing up logs..."
-docker run --rm \
-  -v tor-guard-logs:/data \
-  -v "$BACKUP_DIR/$TIMESTAMP":/backup \
-  alpine tar czf /backup/tor-logs.tar.gz -C /data .
-
-# Extract fingerprint for reference
-docker start "$CONTAINER"
-sleep 10
-docker exec "$CONTAINER" cat /var/lib/tor/fingerprint > "$BACKUP_DIR/$TIMESTAMP/fingerprint.txt" || true
-
-# Create manifest
-cat > "$BACKUP_DIR/$TIMESTAMP/MANIFEST.txt" << EOF
-Tor Guard Relay Backup
-Timestamp: $TIMESTAMP
-Container: $CONTAINER
-Relay: $(grep Nickname /opt/tor-relay/relay.conf | cut -d' ' -f2)
-Files:
-  - tor-data.tar.gz (Relay identity and state)
-  - tor-logs.tar.gz (Tor logs for audit)
-  - fingerprint.txt (Relay fingerprint reference)
-EOF
-
-# Cleanup old backups (keep last 30 days)
-echo "🧹 Cleaning up old backups..."
-find "$BACKUP_DIR" -maxdepth 1 -type d -mtime +$RETENTION_DAYS -exec rm -rf {} \;
-
-# Summary
-echo "✅ Backup complete: $BACKUP_DIR/$TIMESTAMP"
-du -sh "$BACKUP_DIR/$TIMESTAMP"
-```
-
-#### Make Executable
-
-```bash
-chmod +x /usr/local/bin/backup-tor-relay.sh
-```
-
-#### Add to Cron (Daily at 2 AM)
-
-```bash
-# Edit crontab
-crontab -e
-
-# Add line:
-0 2 * * * /usr/local/bin/backup-tor-relay.sh >> /var/log/tor-backup.log 2>&1
-```
-
-#### Monitor Backup Logs
-
-```bash
-# View backup logs
-tail -f /var/log/tor-backup.log
-
-# Check backup history
-ls -lah /backups/tor-relay/
-```
-
----
-
-### Method 4: Off-Site Backup (Cloud/External)
-
-**Pros:** Disaster recovery, geographic redundancy  
-**Cons:** Security risk if not encrypted, potential costs
-
-#### Encrypt Backup Before Upload
-
-```bash
-# Generate encryption key (save this somewhere secure!)
-openssl rand -base64 32 > ~/tor-relay-backup.key
-
-# Encrypt backup before upload
-gpg --symmetric --cipher-algo AES256 \
-  --output tor-data-encrypted.tar.gz.gpg \
-  tor-data-$(date +%s).tar.gz
-
-# Upload to cloud (e.g., AWS S3)
-aws s3 cp tor-data-encrypted.tar.gz.gpg s3://my-backups/tor-relay/
-```
-
-#### Decrypt When Needed
-
-```bash
-# Decrypt backup
-gpg --decrypt tor-data-encrypted.tar.gz.gpg > tor-data-restored.tar.gz
-
-# Verify integrity
-tar tzf tor-data-restored.tar.gz | head -10
-```
+Verification authenticates the complete age stream and reads every archived member, checking hashes against the encrypted manifest. It rejects truncated ciphertext, duplicate members, traversal, links, special files and unsafe permissions. A successful archive verification proves content integrity; rehearse recovery separately to prove operational recovery.
 
 ---
 
 ## Recovery Procedures
 
-### Scenario 1: Container Corruption
+## 🔄 Restore into a new staging directory
 
-**Problem:** Container is running but data is corrupted  
-**Recovery time:** 15 minutes
+Load a compatible local validation image first. Restore never pulls an image or starts a relay on the Tor network.
 
-#### Steps
-
-```bash
-# 1. Stop the relay
-docker stop guard-relay
-
-# 2. Remove corrupted volume
-docker volume rm tor-guard-data
-
-# 3. Create new volume
-docker volume create tor-guard-data
-
-# 4. Restore from backup
-docker run --rm \
-  -v tor-guard-data:/data \
-  -v ~/tor-relay-backups/2024-01-01:/backup \
-  alpine tar xzf /backup/tor-data-1704110400.tar.gz -C /data
-
-# 5. Verify permissions
-docker exec guard-relay chown -R tor:tor /var/lib/tor
-
-# 6. Restart relay
-docker start guard-relay
-
-# 7. Monitor startup
-docker logs -f guard-relay
+```sh
+sh scripts/utilities/relay-backup.sh restore "$HOME/relay-backups/BACKUP.tar.gz.age" \
+  --identity "$HOME/.config/relay-backup/identity.txt" \
+  --destination "$HOME/relay-restored" \
+  --validation-image tor-relay:2.2.0-local
 ```
 
----
+The destination must not exist. The command authenticates before extraction, checks the restored fingerprint, then validates torrc/includes in a disposable container with networking disabled. Omit `--validation-image` to use the original image ID if it is still available locally. Any failure removes only the newly created staging directory. As root, restore applies UID 100/GID 101; otherwise arrange ownership before activation.
 
-### Scenario 2: Server Failure - Full Restore
+| Restored path | Activation mapping |
+| --- | --- |
+| `relay-restored/data/` | Mount at the manifest's original DataDirectory |
+| `relay-restored/config/etc/tor/torrc` | Mount at the original config path |
+| Other `config/` files | Mount each include at its original absolute path |
+| `deployment/` | Review against current ports, mounts and image |
+| `logs/` | Retain as evidence; do not confuse it with current-run readiness |
 
-**Problem:** Entire server lost, migrating to new hardware  
-**Recovery time:** 30 minutes
+Stop the old relay before activating the restored identity. Never run two relays with the same identity. Check ownership, validate the deployment, start deliberately, compare fingerprints, and examine fresh health and external reachability. Do not replace live data as part of verification.
 
-#### Steps
 
-```bash
-# 1. Prepare new server with Docker
+### 🐳 Scenario 1: Container corruption
 
-# 2. Copy backup to new server
-scp -r ~/tor-relay-backups/2024-01-01 user@new-server:/tmp/
+If state remains intact, validate it with the recorded deployment and image before recreating. Stop the old writer; do not activate a restored copy concurrently. If restoring is necessary, use a new staging directory and compare the fingerprint before explicit activation.
 
-# 3. On new server, create volume and restore
-docker volume create tor-guard-data
-docker run --rm \
-  -v tor-guard-data:/data \
-  -v /tmp/2024-01-01:/backup \
-  alpine tar xzf /backup/tor-data-1704110400.tar.gz -C /data
+### 🖥️ Scenario 2: Server failure
 
-# 4. Copy relay configuration
-scp /opt/tor-relay/relay.conf user@new-server:/opt/tor-relay/
+Recover the encrypted archive, compatible validation image and separately protected age identity. Verify before extraction, restore offline and review every config/include mapping on the replacement host. Prepare UID 100/GID 101 ownership, firewall and public addresses before deliberate activation.
 
-# 5. On new server, start relay
-docker run -d \
-  --name guard-relay \
-  --network host \
-  -v /opt/tor-relay/relay.conf:/etc/tor/torrc:ro \
-  -v tor-guard-data:/var/lib/tor \
-  -v tor-guard-logs:/var/log/tor \
-  --restart unless-stopped \
-  r3bo0tbx1/onion-relay:latest
+### 🔑 Scenario 3: Key loss
 
-# 6. Verify relay is using old identity
-docker exec guard-relay fingerprint
-# Should match original fingerprint!
-```
-
----
-
-### Scenario 3: Key Loss - Emergency Recovery
-
-**Problem:** All keys lost, only backup exists  
-**Recovery time:** 5 minutes
-
-#### Restore Keys Only
-
-```bash
-# Stop relay
-docker stop guard-relay
-
-# Clear tor data
-docker run --rm \
-  -v tor-guard-data:/data \
-  alpine rm -rf /data/*
-
-# Restore from backup
-docker run --rm \
-  -v tor-guard-data:/data \
-  -v ~/tor-relay-backups/keys-only:/backup \
-  alpine bash -c "cp -r /backup/* /data/"
-
-# Fix permissions
-docker exec guard-relay chown -R tor:tor /var/lib/tor
-docker exec guard-relay chmod 700 /var/lib/tor/keys
-
-# Restart
-docker start guard-relay
-
-# Verify identity recovered
-docker exec guard-relay fingerprint
-```
+Restore the complete identity/state set from a verified archive. A fingerprint text file is not a replacement for private identity keys. If private keys and usable backups are lost, the old identity cannot be recovered; do not claim a new key is the old relay.
 
 ---
 
 ## Migration Guide
 
-### Move Relay to New Server (Same Identity)
+### 🌍 Move a relay to a new server
 
-**Goal:** Keep relay fingerprint, move to new hardware
+1. Record fingerprint, image digest, config/include paths, deployment and public listeners.
+2. Create and verify a complete encrypted backup, and separately preserve external master keys.
+3. Transfer ciphertext and deployment through your approved channel; keep the decryption identity in separate custody.
+4. Rehearse staged restore on the new host with networking disabled and compare fingerprints.
+5. Stop the original relay before deliberately activating the restored identity.
+6. Confirm fresh bootstrap, transport state and external reachability. Retain the old image/deployment for rollback.
 
-#### Pre-Migration Checklist
+### ⏱️ Downtime and identity safety
 
-- ✅ Recent full backup created
-- ✅ New server prepared with Docker
-- ✅ Network firewall rules ready
-- ✅ DNS/IP planning done
-- ✅ Maintenance window scheduled
-
-#### Step-by-Step Migration
-
-```bash
-# === ON OLD SERVER ===
-
-# 1. Create final backup
-docker stop guard-relay
-sleep 5
-docker run --rm \
-  -v tor-guard-data:/data \
-  -v ~/tor-relay-backups/migration:/backup \
-  alpine tar czf /backup/tor-data-final.tar.gz -C /data .
-
-# 2. Verify backup
-ls -lh ~/tor-relay-backups/migration/
-
-# === TRANSFER TO NEW SERVER ===
-
-# 3. Copy backup securely
-scp -r ~/tor-relay-backups/migration user@new-server:/tmp/
-
-# 4. Copy relay configuration
-scp /opt/tor-relay/relay.conf user@new-server:/opt/tor-relay/
-
-# === ON NEW SERVER ===
-
-# 5. Create volume and restore
-docker volume create tor-guard-data
-docker run --rm \
-  -v tor-guard-data:/data \
-  -v /tmp/migration:/backup \
-  alpine tar xzf /backup/tor-data-final.tar.gz -C /data
-
-# 6. Start relay on new server
-docker run -d \
-  --name guard-relay \
-  --network host \
-  -v /opt/tor-relay/relay.conf:/etc/tor/torrc:ro \
-  -v tor-guard-data:/var/lib/tor \
-  -v tor-guard-logs:/var/log/tor \
-  --restart unless-stopped \
-  r3bo0tbx1/onion-relay:latest
-
-# 7. Verify startup and identity
-docker logs -f guard-relay
-docker exec guard-relay fingerprint
-
-# === FINAL VERIFICATION ===
-
-# 8. Check on Tor Metrics (should recognize old fingerprint within hours)
-# https://metrics.torproject.org/rs.html
-
-# 9. After verification, on old server:
-docker stop guard-relay
-docker rm guard-relay
-```
-
-#### Verification After Migration
-
-```bash
-# Check logs for successful bootstrap
-docker logs guard-relay 2>&1 | grep "Bootstrapped 100"
-
-# Verify fingerprint matches backup
-docker exec guard-relay fingerprint
-# Compare with: cat ~/tor-relay-backups/migration/fingerprint.txt
-
-# Monitor for 24 hours for any issues
-docker stats guard-relay --no-stream
-```
-
----
-
-### Zero-Downtime Migration (Advanced)
-
-**Goal:** Migrate relay without downtime by running dual servers
-
-#### Setup
-
-```bash
-# 1. OLD SERVER: Create backup
-docker stop guard-relay
-docker run --rm \
-  -v tor-guard-data:/data \
-  -v ~/tor-relay-backups/dual:/backup \
-  alpine tar czf /backup/tor-data.tar.gz -C /data .
-
-# 2. NEW SERVER: Restore backup and start
-docker volume create tor-guard-data
-docker run --rm \
-  -v tor-guard-data:/data \
-  -v /tmp/dual:/backup \
-  alpine tar xzf /backup/tor-data.tar.gz -C /data
-
-docker run -d \
-  --name guard-relay \
-  --network host \
-  -v /opt/tor-relay/relay.conf:/etc/tor/torrc:ro \
-  -v tor-guard-data:/var/lib/tor \
-  -v tor-guard-logs:/var/log/tor \
-  --restart unless-stopped \
-  r3bo0tbx1/onion-relay:latest
-
-# 3. Verify NEW server is running
-docker logs guard-relay | grep "Bootstrapped"
-
-# 4. Wait 30 minutes for NEW server to stabilize
-sleep 1800
-
-# 5. OLD SERVER: Restart old relay
-docker start guard-relay
-
-# 6. Both servers now running same relay identity
-# Tor network handles this gracefully
-
-# 7. OLD SERVER: After 24 hours, shut down
-docker stop guard-relay
-```
+The built-in command stops writers for a consistent snapshot. Plan that short interruption; it does not promise zero downtime. Never run two relay instances sharing the same identity or data directory. See [migration](MIGRATION.md) for ownership and rollback details.
 
 ---
 
@@ -588,60 +216,46 @@ Maintain at minimum:
 
 ## Troubleshooting
 
-### Backup Failed: "Volume is in use"
+### 🛑 Backup refuses a running source
 
-```bash
-# Problem: Cannot backup running volume
-# Solution: Stop relay first
+Use `--stop` for a controlled snapshot, or stop the source explicitly first. Other running containers sharing the storage must also be stopped. Docker cannot detect host processes writing a bind directory; stop those writers separately.
 
-docker stop guard-relay
-sleep 5
-# Retry backup command
-```
+### 🔐 Decryption or integrity verification fails
 
-### Restore Failed: "File permissions denied"
+Confirm the correct private age identity is available. A wrong identity, truncated ciphertext or tampered archive must fail closed; do not bypass verification. Retry from an independent encrypted copy.
 
-```bash
-# Problem: Restored files have wrong ownership
-# Solution: Fix permissions
+### 📁 Restore destination exists or permissions are wrong
 
-docker exec guard-relay chown -R tor:tor /var/lib/tor
-docker exec guard-relay chmod 700 /var/lib/tor/keys
-```
+Choose a new staging path. Never overwrite live state. Prepare ownership on that newly restored directory for UID 100/GID 101 before activation; WSL Linux storage gives stronger Unix permission guarantees than Windows-mounted backup storage.
 
-### Fingerprint Changed After Restore
+### 🆔 Fingerprint differs after restore
 
-```bash
-# Problem: Restored relay has different fingerprint
-# Cause: Keys weren't backed up, only state
-# Solution: Use Method 2 (Direct Key Extraction) for future backups
-
-# For now, accept new identity:
-docker exec guard-relay fingerprint
-# This is your new permanent fingerprint
-```
+Stop before activation. Compare the encrypted manifest, restored fingerprint and complete private key set. Confirm mount paths and external master-key custody; do not erase the previous recovery material while investigating.
 
 ---
 
 ## Reference
 
-**Backup Command Cheat Sheet:**
+**🔐 Encrypted recovery cheat sheet:**
 
-```bash
-# Quick backup (stop relay)
-docker stop guard-relay && \
-docker run --rm -v tor-guard-data:/data -v ~/backups:/backup alpine tar czf /backup/tor-$(date +%s).tar.gz -C /data . && \
-docker start guard-relay
+```sh
+# Preview encrypted coverage, then take a controlled snapshot.
+sh scripts/utilities/relay-backup.sh create --container tor-relay \
+  --recipients "$HOME/.config/relay-backup/recipients.txt" \
+  --output-dir "$HOME/relay-backups" --dry-run
+sh scripts/utilities/relay-backup.sh create --container tor-relay \
+  --recipients "$HOME/.config/relay-backup/recipients.txt" \
+  --output-dir "$HOME/relay-backups" --stop
 
-# Quick restore
-docker run --rm -v tor-guard-data:/data -v ~/backups:/backup alpine tar xzf /backup/tor-1704110400.tar.gz -C /data
-
-# Verify backup integrity
-tar tzf ~/backups/tor-1704110400.tar.gz | head -20
-
-# Calculate backup size
-du -sh ~/backups/tor-1704110400.tar.gz
+# Replace BACKUP with the archive name printed by create.
+sh scripts/utilities/relay-backup.sh verify "$HOME/relay-backups/BACKUP.tar.gz.age" \
+  --identity "$HOME/.config/relay-backup/identity.txt"
+sh scripts/utilities/relay-backup.sh restore "$HOME/relay-backups/BACKUP.tar.gz.age" \
+  --identity "$HOME/.config/relay-backup/identity.txt" \
+  --destination "$HOME/relay-restored" --validation-image tor-relay:2.2.0-local
 ```
+
+🔐 Keep the private age identity separately. Restore only to a new staging directory, validate ownership and mounts, and stop the previous relay before activating its identity. The validation image must already exist locally.
 
 ---
 

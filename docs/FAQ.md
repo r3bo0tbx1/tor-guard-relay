@@ -4,6 +4,25 @@ Common questions about Tor Guard Relay deployment, configuration, and troublesho
 
 ---
 
+> [!IMPORTANT]
+> 🧅 **v2.2.0 release candidate:** Tor must be **0.4.9.14 or newer**. Current-run health, validated configuration and encrypted recovery are described in the [release notes](releases/v2.2.0.md). Recreate from the validated image to update Tor; changing torrc alone does not upgrade the binary.
+
+## 🆕 v2.2.0 operator questions
+
+### Why does Docker say healthy while the relay is still bootstrapping?
+
+Docker health covers process liveness and config validity. Read `readiness`, `fresh` and `reason` from `health`, or run `doctor`, for current-run bootstrap evidence. Public reachability remains a separate check.
+
+### Will changing the pinned Lyrebird source automatically patch my relay?
+
+Renovate proposes a reviewed pin update. Go fixes can update the independent lock without waiting for upstream. Merge, publish a new reviewed tag and recreate the container from the validated image; monitoring and bot configuration do not mutate a running relay.
+
+### How do I back up config, includes and keys safely?
+
+Use the host [encrypted backup command](BACKUP.md), verify the full archive and rehearse restore into a new staging directory. Keep age private identities separately from ciphertext and preserve external master keys through their own encrypted custody procedure.
+
+---
+
 ## 📋 Table of Contents
 
 - [General](#-general)
@@ -24,14 +43,14 @@ Common questions about Tor Guard Relay deployment, configuration, and troublesho
 - **Exit relay** - Last hop (requires legal preparation)
 - **Bridge relay** - Helps users bypass censorship (obfs4 support)
 
-Built on Alpine Linux 3.24.1 with a minimal 20MB image size, busybox-only tools, and weekly automated security rebuilds.
+Built on Alpine Linux 3.24.2 with a minimal 20MB image size, busybox-only tools, and weekly automated security rebuilds.
 
 ### What makes this different from the official Tor images?
 
 | Feature | This Project | Official Images |
 |---------|--------------|-----------------|
-| **Image size** | ~16.8 MB | ~100+ MB |
-| **Base** | Alpine 3.24.1 | Debian |
+| **Image size** | ~variant-dependent image size | ~100+ MB |
+| **Base** | Alpine 3.24.2 | Debian |
 | **Built-in tools** | 7 busybox tools + JSON API and safe torrc reloads | None |
 | **Multi-mode** | Guard/Exit/Bridge in one image | Separate images |
 | **Weekly rebuilds** | ✅ Automated | ❌ Manual |
@@ -174,12 +193,12 @@ BandwidthBurst 100 MBytes
 
 ### Can I use OBFS4V_* variables with spaces (like "1024 MB")?
 
-**Yes**, as of v1.1.1! The busybox regex bug was fixed (docker-entrypoint.sh:309-321).
+**Yes**, as of v1.1.1! The busybox compatibility issue is recorded in the historical changelog; current validation lives in `lib/config.sh`.
 
 **This now works:**
 ```bash
 OBFS4_ENABLE_ADDITIONAL_VARIABLES=1
-OBFS4V_MaxMemInQueues=1024 MB
+OBFS4V_MaxMemInQueues="1024 MB"
 OBFS4V_AddressDisableIPv6=0
 OBFS4V_NumCPUs=4
 ```
@@ -245,7 +264,7 @@ sudo ufw allow 9002/tcp
 
 **After 24-48 hours**, run:
 ```bash
-docker exec tor-bridge bridge-line
+docker exec tor-bridge bridge-line --address 203.0.113.42
 ```
 
 **Output format:**
@@ -299,10 +318,10 @@ docker logs tor-bridge | grep "bridge line"
 **Fix:**
 ```bash
 # Alpine uses UID 100 (tor user)
-docker run --rm -v tor-data:/data alpine:3.24.1 chown -R 100:101 /data
+docker run --rm -v tor-data:/data alpine:3.24.2 chown -R 100:101 /data
 
 # Verify fix
-docker run --rm -v tor-data:/data alpine:3.24.1 ls -ldn /data
+docker run --rm -v tor-data:/data alpine:3.24.2 ls -ldn /data
 # Should show: drwx------ X 100 101 ...
 ```
 
@@ -393,53 +412,52 @@ docker images ghcr.io/r3bo0tbx1/onion-relay:latest --format='{{.ID}}'
 
 ### How do I migrate from thetorproject/obfs4-bridge?
 
-**Official image → This image migration:**
+# 🔄 Migration Guide
 
-1. **Backup your data:**
-```bash
-docker run --rm -v obfs4-data:/data -v /tmp:/backup \
-  alpine tar czf /backup/tor-backup.tar.gz /data
-```
+[Documentation](README.md) · [Encrypted recovery](BACKUP.md) · [Deployment](DEPLOYMENT.md)
 
-2. **Fix UID/GID (REQUIRED):**
-```bash
-# Official image: UID 101 (debian-tor)
-# Our image: UID 100 (tor)
-docker run --rm -v obfs4-data:/data alpine:3.24.1 chown -R 100:101 /data
-```
+Preserve identity and transport state before changing image, ownership or storage. The v2.2.0 candidate upgrades Tor and the runtime without intentionally rotating relay identity.
 
-3. **Update configuration:**
-```bash
-# Change ONLY the image name - keep same ENV variables!
-# Old:
-# image: thetorproject/obfs4-bridge:latest
+## 📋 Prepare
 
-# New:
-image: ghcr.io/r3bo0tbx1/onion-relay:latest
-```
+Record source image digest, deployment, fingerprint, public listeners and mount layout. Identify the active torrc, all include files and the effective DataDirectory. Preserve family key material and obfs4 pt_state with identity keys.
 
-4. **Recreate container:**
-```bash
-docker stop obfs4-bridge
-docker rm obfs4-bridge
-docker run -d \
-  --name obfs4-bridge \
-  --network host \
-  -e OR_PORT=9001 \
-  -e PT_PORT=9002 \
-  -e EMAIL=admin@example.com \
-  -e NICKNAME=MyBridge \
-  -v obfs4-data:/var/lib/tor \  # Same volume!
-  ghcr.io/r3bo0tbx1/onion-relay:latest
-```
+Create and verify an [encrypted backup](BACKUP.md), then rehearse restore into a new staging directory using a compatible local image. Keep the original data untouched until recovery and fingerprint checks pass.
 
-5. **Verify fingerprint unchanged:**
-```bash
-docker exec obfs4-bridge fingerprint
-# Must match your old fingerprint!
-```
+## 🚀 Upgrade an existing deployment
 
-**See:** [MIGRATION.md](MIGRATION.md) for complete guide
+1. Review ENV versus mounted config ownership. Persist lasting changes in the deployment.
+2. Validate torrc and Compose/template syntax.
+3. Stop the old relay and confirm no other writer shares the data.
+4. Recreate with the validated image, retaining the original data and include mounts.
+5. Confirm Tor 0.4.9.14 or newer and the original fingerprint.
+6. Check fresh bootstrap evidence and public listeners independently.
+7. Keep the previous image/deployment and backup until the new relay is verified.
+
+Avoid volume deletion commands. Do not remove keys or pt_state to fix configuration errors.
+
+## 🌉 Official bridge ownership
+
+Earlier Debian-based bridge deployments commonly used UID 101; this image uses UID 100/GID 101. Inspect actual ownership before changing it. Apply ownership fixes only to the intended stopped relay data, after verified recovery. Retain the original owner information for rollback.
+
+The interactive [migration assistant](../scripts/migration/README.md) now requires encrypted backup creation and verification before mutation. Unsupported source layouts fail instead of silently falling back to a plaintext archive. Manual staged recovery is preferable for layouts the assistant cannot identify.
+
+## 👨‍👩‍👧 Happy Family and accounting
+
+Preserve family keys and FamilyId settings. Accounting state is part of DataDirectory, so keep it with the configuration defining AccountingMax and AccountingStart. IPv6 listener/policy changes also require provider and firewall checks; syntax validity does not prove connectivity.
+
+## ↩️ Rollback
+
+Stop the new relay before bringing back the old image with the old deployment. Preserve the current data for investigation. If restoring is necessary, restore into a new directory, validate offline, compare the original fingerprint, and activate explicitly. Never run both copies of the identity.
+
+## 📜 Historical references
+
+The [v1.1.x record](MIGRATION-V1.1.X.md) and [bridge troubleshooting record](TROUBLESHOOTING-BRIDGE-MIGRATION.md) describe older ownership/configuration problems. Their plaintext backup and automatic-cleanup procedures have been retired in favor of the current staged recovery workflow.
+
+
+See [migration](MIGRATION.md) and [encrypted backup](BACKUP.md) for the full procedure.
+
+---
 
 ### How do I upgrade from v1.1.0 to >=v1.1.1?
 
@@ -500,7 +518,7 @@ docker exec tor-relay fingerprint
 
 **Security features:**
 - ✅ Non-root execution (tor user, UID 100, GID 101)
-- ✅ Ultra-minimal image (~16.8 MB, Alpine 3.24.1)
+- ✅ Ultra-minimal image (~variant-dependent image size, Alpine 3.24.2)
 - ✅ Busybox-only (no bash, python, or unnecessary binaries)
 - ✅ No exposed monitoring ports (diagnostics via `docker exec` only)
 - ✅ Weekly automated security rebuilds (Sundays 18:30 UTC)

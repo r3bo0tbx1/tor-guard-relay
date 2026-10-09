@@ -36,9 +36,9 @@
 
 ### Steps to Test
 
-1. 
-2. 
-3. 
+1.
+2.
+3.
 
 ---
 
@@ -59,3 +59,14 @@
 - [ ] I have updated documentation as needed
 - [ ] I have added an entry to CHANGELOG.md (if applicable)
 - [ ] I have removed sensitive information from logs/config examples
+
+---
+
+## 🧬 Release and recovery evidence
+
+- [ ] Version, documentation and recursive template checks pass.
+- [ ] Affected stable/edge architectures pass behavior and security gates.
+- [ ] Config ownership and identity continuity are preserved; recovery changes have staged-restore evidence.
+- [ ] Publication and rollback steps are explicit; examples contain no private keys.
+
+Record source/image identities, completed checks and any unverified behavior.

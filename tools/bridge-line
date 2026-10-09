@@ -1,83 +1,40 @@
 #!/bin/sh
-# Extract obfs4 bridge line (slim version)
-
-TOR_DATA_DIR="${TOR_DATA_DIR:-/var/lib/tor}"
-PT_STATE_DIR="${TOR_DATA_DIR}/pt_state"
-BRIDGE_LINE_FILE="${PT_STATE_DIR}/obfs4_bridgeline.txt"
-TORRC_FILE="${TOR_CONFIG:-/etc/tor/torrc}"
-
-if [ -f "$TORRC_FILE" ] && grep -q "^BridgeRelay 1" "$TORRC_FILE" 2>/dev/null; then
-  :
-elif [ -f "$TORRC_FILE" ]; then
-  echo ""
-  echo "❌ Not a bridge relay"
-  echo ""
-  echo "Bridge line is only available for bridge mode relays."
-  echo "Set TOR_RELAY_MODE=bridge to run as a bridge."
-  echo ""
-  exit 1
+set -eu
+. "${RELAY_LIB:-/usr/local/lib/relay}/runtime.sh"
+inspect_process || true
+inspect_config_paths
+format=human; address=${TOR_BRIDGE_ADDRESS:-}; port=${TOR_OBFS4_PORT:-9002}
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --plain) format=plain; shift ;;
+    --json) format=json; shift ;;
+    --address) [ "$#" -ge 2 ] || exit 2; address=$2; shift 2 ;;
+    --port) [ "$#" -ge 2 ] || exit 2; port=$2; shift 2 ;;
+    -h|--help) echo 'Usage: bridge-line [--plain|--json] --address PUBLIC_ADDRESS [--port PORT]'; exit 0 ;;
+    *) echo 'Unknown argument' >&2; exit 2 ;;
+  esac
+done
+reason=ready; line=''
+if ! grep -qi '^BridgeRelay[[:space:]]\+1' "$TOR_CONFIG" 2>/dev/null; then reason=not_bridge
+elif [ ! -s "$TOR_DATA_DIR/pt_state/obfs4_bridgeline.txt" ] || [ ! -s "$TOR_DATA_DIR/fingerprint" ]; then reason=transport_pending
+elif [ -z "$address" ]; then reason=address_required
 else
-  echo ""
-  echo "⚠️  Cannot determine relay mode (torrc not found)"
-  echo ""
-  echo "Bridge line requires running Tor in bridge mode."
-  echo ""
-  exit 1
-fi
-
-if [ -f "$BRIDGE_LINE_FILE" ]; then
-  echo ""
-  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-  echo "🌉 obfs4 Bridge Line"
-  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-  echo ""
-
-  cat "$BRIDGE_LINE_FILE"
-
-  echo ""
-  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-  echo ""
-  echo "📋 Sharing Guidelines:"
-  echo "   • Only share with people you trust"
-  echo "   • Do NOT publish publicly"
-  echo "   • Helps users in censored countries"
-  echo ""
-  echo "👤 How users add this bridge:"
-  echo "   1. Open Tor Browser"
-  echo "   2. Settings → Connection → Bridges"
-  echo "   3. Select 'Provide a bridge I know'"
-  echo "   4. Paste the bridge line above"
-  echo ""
-  exit 0
-fi
-
-echo ""
-echo "⏳ Bridge line not available yet"
-echo ""
-echo "Timeline: Bridge line appears 24-48 hours after first start"
-echo ""
-echo "🔍 Troubleshooting:"
-echo ""
-echo "  1. Check if lyrebird is running:"
-echo "     docker exec <container> pgrep -a lyrebird"
-echo ""
-echo "  2. Check pt_state directory:"
-echo "     docker exec <container> ls -la $PT_STATE_DIR"
-echo ""
-echo "  3. Check Tor logs:"
-echo "     docker logs <container> | grep -i obfs4"
-echo ""
-echo "  4. Verify bridge config:"
-echo "     docker exec <container> grep BridgeRelay $TORRC_FILE"
-echo ""
-
-if [ -f "/var/log/tor/notices.log" ]; then
-  if grep -q "bridge line" /var/log/tor/notices.log 2>/dev/null; then
-    echo "📝 Found in logs:"
-    echo ""
-    grep "bridge line" /var/log/tor/notices.log | tail -n 1
-    echo ""
+  case "$address" in *[!A-Za-z0-9.:\[\]-]*|0.0.0.0|localhost|::) reason=invalid_address ;; esac
+  case "$port" in ''|*[!0-9]*) reason=invalid_port ;; *) [ "$port" -ge 1 ] && [ "$port" -le 65535 ] || reason=invalid_port ;; esac
+  fingerprint=$(awk 'NR==1 {print $2}' "$TOR_DATA_DIR/fingerprint")
+  printf '%s' "$fingerprint" | grep -qE '^[A-Fa-f0-9]{40}$' || reason=identity_pending
+  template=$(grep -E '^(Bridge )?obfs4 ' "$TOR_DATA_DIR/pt_state/obfs4_bridgeline.txt" | head -n 1 || true)
+  [ -n "$template" ] || reason=transport_pending
+  if [ "$reason" = ready ]; then
+    case "$address" in *:*) case "$address" in \[*\]) ;; *) address="[$address]" ;; esac ;; esac
+    line=$(printf '%s\n' "$template" | sed "s/<IP ADDRESS>/$address/g;s/<IPADDRESS>/$address/g;s/<PORT>/$port/g;s/<FINGERPRINT>/$fingerprint/g")
+    case "$line" in *'<'*|*'>'*) reason=transport_pending; line='' ;; esac
   fi
 fi
-
-exit 1
+if [ "$format" = json ]; then
+  printf '{"reason":"%s","line":' "$reason"; json_string "$line"; printf '}\n'
+elif [ "$reason" != ready ]; then
+  printf 'Bridge line unavailable: %s\n' "$reason" >&2
+elif [ "$format" = plain ]; then printf '%s\n' "$line"
+else printf 'obfs4 bridge line\n%s\n\nShare privately with intended users.\n' "$line"; fi
+[ "$reason" = ready ]

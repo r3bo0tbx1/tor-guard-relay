@@ -1,5 +1,3 @@
-version: '3.8'
-
 # Happy Family Setup (Tor 0.4.9.2-alpha or later):
 #
 # Option A - Generate a new key:

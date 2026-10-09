@@ -6,6 +6,28 @@ This guide documents **two successful real-world migration paths** validated in 
 
 ---
 
+## ✨ Changes recorded in v1.1.1
+
+The earlier release tightened OBFS4V input validation, ENV health checks, privilege handling, temporary-file handling and workflow permissions. It also corrected contact-info validation and bridge configuration.
+
+## 🛡️ Mounted guard/middle deployments
+
+Earlier guard/middle deployments with persistent data and a mounted torrc could keep their identity through image recreation. The essential checks remain: preserve keys, validate configuration, retain mounts, and compare fingerprints after recreation. A historic successful migration is not evidence that today's untested deployment will succeed.
+
+## 🌉 Official bridge deployments
+
+The earlier Debian image used UID 101 while this Alpine image uses UID 100/GID 101. That mismatch caused data-directory permission failures when volumes were reused without preparing ownership.
+
+The earlier migration also encountered old torrc files remaining in volumes, and configurations pointing at a different data path. Those are configuration and storage ownership problems; deleting identity keys is never the repair.
+
+## 🧭 Procedure today
+
+Follow [Migration](MIGRATION.md). Create and verify an encrypted archive, rehearse staged offline restoration, stop every writer, then update ownership or deployment deliberately. Preserve family material and pt_state with the keys. Record the original image and ownership for rollback.
+
+
+> [!WARNING]
+> 📜 This guide retains historical problem descriptions and deployment context. Its legacy plaintext backup and live-volume replacement procedures are superseded by verified encrypted recovery. Use the current procedure above; do not copy old cleanup commands onto live state.
+
 ## 📋 What's New in v1.1.1
 
 ### Security Fixes
@@ -46,24 +68,8 @@ docker inspect <container> --format='{{range .Mounts}}{{if eq .Destination "/etc
 
 ### Step 1: Backup
 
-```bash
-# Stop container
-docker stop <container>
+> 🔐 This historical backup/cleanup command is retired. Follow the encrypted create → verify → staged restore procedure in the current backup guide.
 
-# Backup volumes
-docker run --rm \
-  -v tor-guard-data:/data \
-  -v /tmp:/backup \
-  alpine:3.24.1 tar czf /backup/tor-guard-data-backup-$(date +%Y%m%d).tar.gz /data
-
-docker run --rm \
-  -v tor-guard-logs:/data \
-  -v /tmp:/backup \
-  alpine:3.24.1 tar czf /backup/tor-guard-logs-backup-$(date +%Y%m%d).tar.gz /data
-
-# Save fingerprint
-docker run --rm -v tor-guard-data:/data alpine:3.24.1 cat /data/fingerprint > /tmp/fingerprint-backup.txt
-```
 
 ### Step 2: Update Configuration
 
@@ -154,40 +160,25 @@ docker inspect <container> --format='{{range .Config.Env}}{{println .}}{{end}}' 
 
 ### Step 1: Backup Everything
 
-```bash
-# Stop container
-docker stop obfs4-bridge
+> 🔐 This historical backup/cleanup command is retired. Follow the encrypted create → verify → staged restore procedure in the current backup guide.
 
-# Backup volume (CRITICAL!)
-docker run --rm \
-  -v obfs4-data:/data \
-  -v /tmp:/backup \
-  alpine:3.24.1 tar czf /backup/obfs4-data-backup-$(date +%Y%m%d).tar.gz /data
-
-# Verify backup
-ls -lh /tmp/obfs4-data-backup-*.tar.gz
-
-# Save fingerprint
-docker run --rm -v obfs4-data:/data alpine:3.24.1 cat /data/fingerprint > /tmp/bridge-fingerprint-backup.txt
-cat /tmp/bridge-fingerprint-backup.txt
-```
 
 ### Step 2: Fix Volume Ownership (CRITICAL!)
 
 ```bash
 # Check current ownership (should be 101:101)
-docker run --rm -v obfs4-data:/data alpine:3.24.1 ls -ldn /data
+docker run --rm -v obfs4-data:/data alpine:3.24.2 ls -ldn /data
 # Output: drwx------ ... 101 101 ...
 
 # Fix ownership: 101 → 100
-docker run --rm -v obfs4-data:/data alpine:3.24.1 chown -R 100:101 /data
+docker run --rm -v obfs4-data:/data alpine:3.24.2 chown -R 100:101 /data
 
 # Verify fix
-docker run --rm -v obfs4-data:/data alpine:3.24.1 ls -ldn /data
+docker run --rm -v obfs4-data:/data alpine:3.24.2 ls -ldn /data
 # Output: drwx------ ... 100 101 ...  ← MUST show 100!
 
 # Verify key files are readable
-docker run --rm -v obfs4-data:/data alpine:3.24.1 ls -la /data/keys/
+docker run --rm -v obfs4-data:/data alpine:3.24.2 ls -la /data/keys/
 # Should show files owned by 100:101
 ```
 
@@ -321,7 +312,7 @@ docker exec obfs4-bridge status
 
 ```bash
 # Bridge line appears after Tor publishes to BridgeDB
-docker exec obfs4-bridge bridge-line
+docker exec obfs4-bridge bridge-line --address 203.0.113.42
 ```
 
 ### ✅ Success Criteria
@@ -348,7 +339,7 @@ Directory /var/lib/tor cannot be read: Permission denied
 **Fix**:
 ```bash
 docker stop obfs4-bridge
-docker run --rm -v obfs4-data:/data alpine:3.24.1 chown -R 100:101 /data
+docker run --rm -v obfs4-data:/data alpine:3.24.2 chown -R 100:101 /data
 docker start obfs4-bridge
 ```
 
@@ -359,12 +350,8 @@ docker start obfs4-bridge
 **Cause**: Bridge keys not preserved
 
 **Fix**: Restore from backup:
-```bash
-docker stop obfs4-bridge
-docker run --rm -v obfs4-data:/data -v /tmp:/backup alpine:3.24.1 \
-  sh -c 'rm -rf /data/* && tar xzf /backup/obfs4-data-backup-*.tar.gz -C / && chown -R 100:101 /data'
-docker start obfs4-bridge
-```
+> 🔐 This historical backup/cleanup command is retired. Follow the encrypted create → verify → staged restore procedure in the current backup guide.
+
 
 ### Issue 3: "TOR_CONTACT_INFO contains invalid characters"
 

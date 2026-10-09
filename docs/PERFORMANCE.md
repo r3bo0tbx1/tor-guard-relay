@@ -4,6 +4,26 @@ Complete guide to optimizing CPU, memory, bandwidth, and network performance for
 
 ---
 
+> [!IMPORTANT]
+> 🧅 **v2.2.0 release candidate:** Tor must be **0.4.9.14 or newer**. Current-run health, validated configuration and encrypted recovery are described in the [release notes](releases/v2.2.0.md). Recreate from the validated image to update Tor; changing torrc alone does not upgrade the binary.
+
+## 🆕 Current-run health and fleet metrics
+
+```sh
+docker exec tor-relay health | jq '{liveness, config_valid, readiness, fresh, reason, bootstrap, reachable}'
+docker exec tor-relay doctor
+sh scripts/utilities/relay-inventory.sh --json tor-relay
+sh scripts/utilities/relay-inventory.sh --prometheus tor-relay > relay.prom
+```
+
+`status: "up"` reports process liveness, not readiness. Docker health checks process/configuration and deliberately tolerates normal bootstrap delay. Alert separately on sustained missing freshness/readiness. The existing string `reachable` is Tor self-test evidence, not an independent network probe. A stopped container has no live health observation.
+
+The host inventory command writes Prometheus text; connect it to an existing textfile collector or scraper. It opens no listener and adds no runtime dependencies. Existing external exporter examples below require a separately installed service; they are not built into the relay image.
+
+Resource tables below are planning estimates, not v2.2.0 measurements. Measure your actual traffic and hardware before tuning. The prepared candidate has not been validated on a production relay.
+
+---
+
 ## Table of Contents
 
 - [Performance Baseline](#performance-baseline)
@@ -170,7 +190,7 @@ INTERVAL=300  # 5 minutes
 while true; do
   MEMORY=$(docker exec "$CONTAINER" ps aux | \
     grep '[t]or ' | awk '{print $6}' | head -1)
-  
+
   echo "$(date): Memory = ${MEMORY}KB"
   sleep $INTERVAL
 done

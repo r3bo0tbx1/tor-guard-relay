@@ -2,6 +2,35 @@
 
 This guide addresses the specific issue where migrating from `thetorproject/obfs4-bridge` to `r3bo0tbx1/onion-relay` results in configuration validation failures and changing fingerprints.
 
+## 🔎 Symptoms and original causes
+
+- Configuration validation failed when an old torrc remained authoritative but used incompatible paths or directives.
+- UID mismatch between the earlier Debian deployment and Alpine prevented access to persistent data.
+- Fingerprints changed when keys were not preserved at the effective DataDirectory.
+
+A changing fingerprint is a reason to stop and inspect the storage layout. It is not a reason to regenerate or delete keys.
+
+## 🛠️ Diagnose with current tools
+
+```sh
+docker exec tor-bridge doctor --json
+docker exec tor-bridge config validate
+docker exec tor-bridge health
+docker inspect tor-bridge --format '{{json .Mounts}}'
+```
+
+Inspect mount destinations and ownership privately. Avoid printing full environment variables or private config in issue reports. If a bridge line is unavailable, use the reason from `bridge-line --json --address YOUR_PUBLIC_ADDRESS`; local state availability has no fixed waiting period.
+
+## 🔐 Recovery today
+
+Use [Backup](BACKUP.md) and [Migration](MIGRATION.md) to preserve config, includes, identity, family keys and pt_state before any repair. Validate a staged recovery with networking disabled, compare fingerprints, and activate only after the old identity is stopped.
+
+If ownership must change, check the exact intended volume and original UID/GID first. Keep the old image and deployment. Roll back by stopping the new relay and deliberately activating the old deployment or validated staged data.
+
+
+> [!WARNING]
+> 📜 This guide retains historical problem descriptions and deployment context. Its legacy plaintext backup and live-volume replacement procedures are superseded by verified encrypted recovery. Use the current procedure above; do not copy old cleanup commands onto live state.
+
 ## Problem Description
 
 ### Symptoms
@@ -47,13 +76,8 @@ We've provided a comprehensive diagnostic script that will:
 
 **Run this first:**
 
-```bash
-# Make sure you're in the tor-guard-relay directory
-cd /path/to/tor-guard-relay
+> 🔐 This historical backup/cleanup command is retired. Follow the encrypted create → verify → staged restore procedure in the current backup guide.
 
-# Run the diagnostic script
-./bridge-migration-fix.sh
-```
 
 **Expected output:**
 ```
@@ -262,7 +286,7 @@ Nov 12 18:30:10.000 [notice] Bootstrapped 100% (done): Done
 
 5. **Get bridge line** (after 10-30 minutes of operation):
    ```bash
-   docker exec obfs4-bridge bridge-line
+   docker exec obfs4-bridge bridge-line --address 203.0.113.42
    ```
 
 ## If Still Failing: Advanced Debugging
@@ -300,10 +324,10 @@ docker logs obfs4-bridge 2>&1 | grep -A 10 "Configuration validation failed"
 **Fix:**
 ```bash
 # Check if torrc exists in volume
-docker run --rm -v obfs4-data:/data alpine find /data -name "torrc"
+docker run --rm -v obfs4-data:/data alpine:3.24.2 find /data -name "torrc"
 
 # Remove any found torrc files
-docker run --rm -v obfs4-data:/data alpine rm -f /data/torrc /data/etc/tor/torrc
+docker run --rm -v obfs4-data:/data alpine:3.24.2 rm -f /data/torrc /data/etc/tor/torrc
 ```
 
 #### Issue 2: Fingerprints still changing after migration
@@ -313,20 +337,8 @@ docker run --rm -v obfs4-data:/data alpine rm -f /data/torrc /data/etc/tor/torrc
 **Cause:** Volume is being recreated or not properly mounted
 
 **Fix:**
-```bash
-# Verify volume exists and has keys
-docker run --rm -v obfs4-data:/data alpine ls -la /data/keys
+> 🔐 This historical backup/cleanup command is retired. Follow the encrypted create → verify → staged restore procedure in the current backup guide.
 
-# Should see:
-#   -rw------- secret_id_key
-#   -rw------- ed25519_master_id_secret_key
-
-# If missing, restore from backup:
-docker run --rm \
-  -v obfs4-data:/data \
-  -v $(pwd):/backup \
-  alpine tar xzf /backup/bridge-backup-YYYYMMDD-HHMMSS.tar.gz -C /
-```
 
 #### Issue 3: Permission errors after migration
 
@@ -338,8 +350,8 @@ docker run --rm \
 **Fix:** v1.1.1 has automatic permission healing. If it still fails:
 ```bash
 # Fix permissions manually
-docker run --rm -v obfs4-data:/data alpine chown -R 100:101 /data
-docker run --rm -v obfs4-data:/data alpine chmod 700 /data
+docker run --rm -v obfs4-data:/data alpine:3.24.2 chown -R 100:101 /data
+docker run --rm -v obfs4-data:/data alpine:3.24.2 chmod 700 /data
 ```
 
 #### Issue 4: obfs4 transport not working
@@ -372,16 +384,8 @@ docker rm obfs4-bridge
 
 ### Step 2: Restore backup (if needed)
 
-```bash
-# Only if you lost keys or data
-docker volume rm obfs4-data
-docker volume create obfs4-data
+> 🔐 This historical backup/cleanup command is retired. Follow the encrypted create → verify → staged restore procedure in the current backup guide.
 
-docker run --rm \
-  -v obfs4-data:/data \
-  -v $(pwd):/backup \
-  alpine tar xzf /backup/bridge-backup-YYYYMMDD-HHMMSS.tar.gz -C /
-```
 
 ### Step 3: Redeploy official bridge
 
@@ -429,12 +433,7 @@ docker logs -f obfs4-bridge
 ## Prevention for Future Migrations
 
 1. **Always backup first:**
-   ```bash
-   docker run --rm \
-     -v obfs4-data:/data \
-     -v $(pwd):/backup \
-     alpine tar czf /backup/bridge-backup-$(date +%Y%m%d).tar.gz /data
-   ```
+   Use the current [encrypted backup procedure](BACKUP.md). Preview coverage, create with `--stop`, verify the complete archive and retain it separately from the private decryption identity.
 
 2. **Test with DEBUG=true** on first migration
 
@@ -488,7 +487,7 @@ After migration:
 - [ ] Fingerprint matches original (verify with `docker exec obfs4-bridge fingerprint`)
 - [ ] Health check passes (`docker exec obfs4-bridge health | jq .`)
 - [ ] Bootstrap reaches 100%
-- [ ] Bridge line available after 10-30 minutes (`docker exec obfs4-bridge bridge-line`)
+- [ ] Bridge line available once transport state and fingerprint exist (`docker exec obfs4-bridge bridge-line --address 203.0.113.42`)
 - [ ] Tor Metrics still shows your bridge (wait 1-2 hours)
 
 **Migration should preserve:**
@@ -501,7 +500,7 @@ After migration:
 - ✨ Official Tor Project ENV variable compatibility
 - ✨ Bootstrap progress logs in terminal
 - ✨ Enhanced emoji logging (v1.1.0 style)
-- ✨ 7 built-in tools (status, health, refresh, fingerprint, bridge-line, gen-auth, gen-family)
+- ✨ 9 built-in tools (status, doctor, config, health, refresh, fingerprint, bridge-line, gen-auth, gen-family)
 - ✨ Auto-detection of bridge mode from PT_PORT
 - ✨ OBFS4V_* variable processing
 

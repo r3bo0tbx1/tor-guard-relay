@@ -3,6 +3,7 @@
 # Automates UID fix (Debian 101 → Alpine 100) and validates migration
 
 set -e
+SCRIPT_DIR=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # Color Output (POSIX-compatible)
@@ -75,7 +76,7 @@ get_container_volumes() {
 
 get_fingerprint_from_volume() {
     volume_name="$1"
-    docker run --rm -v "${volume_name}:/data:ro" alpine:3.24.1 sh -c \
+    docker run --rm -v "${volume_name}:/data:ro" alpine:3.24.2 sh -c \
         'if [ -f /data/fingerprint ]; then cat /data/fingerprint; elif [ -f /data/keys/ed25519_master_id_public_key ]; then echo "Keys exist but fingerprint not yet generated"; else echo "NOT_FOUND"; fi' 2>/dev/null
 }
 
@@ -85,7 +86,7 @@ get_fingerprint_from_volume() {
 
 check_volume_ownership() {
     volume_name="$1"
-    ownership=$(docker run --rm -v "${volume_name}:/data:ro" alpine:3.24.1 stat -c '%u:%g' /data 2>/dev/null)
+    ownership=$(docker run --rm -v "${volume_name}:/data:ro" alpine:3.24.2 stat -c '%u:%g' /data 2>/dev/null)
     printf '%s' "$ownership"
 }
 
@@ -159,21 +160,13 @@ wait_for_bootstrap() {
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 backup_volume() {
-    volume_name="$1"
-    backup_dir="${2:-/tmp}"
-    backup_file="${backup_dir}/tor-backup-$(date +%Y%m%d-%H%M%S).tar.gz"
-
-    log "Creating backup of volume '${volume_name}'..."
-
-    if ! docker run --rm -v "${volume_name}:/data:ro" -v "${backup_dir}:/backup" alpine:3.24.1 \
-        tar czf "/backup/$(basename "$backup_file")" -C /data . 2>/dev/null; then
-        error "Backup failed"
-        return 1
-    fi
-
-    success "Backup created: ${backup_file}"
+    [ -n "$OLD_CONTAINER" ] || die "Automatic migration requires a source container; follow docs/MIGRATION.md for staged recovery"
+    [ -n "${RELAY_BACKUP_RECIPIENTS:-}" ] && [ -n "${RELAY_BACKUP_IDENTITY:-}" ] || die "Set RELAY_BACKUP_RECIPIENTS and RELAY_BACKUP_IDENTITY for encrypted recovery"
+    backup_dir="${2:-$HOME/tor-backups}"
+    backup_file=$(sh "$SCRIPT_DIR/../utilities/relay-backup.sh" create --container "$OLD_CONTAINER" \
+        --recipients "$RELAY_BACKUP_RECIPIENTS" --output-dir "$backup_dir" --stop) || return 1
+    sh "$SCRIPT_DIR/../utilities/relay-backup.sh" verify "$backup_file" --identity "$RELAY_BACKUP_IDENTITY" >&2 || return 1
     printf '%s' "$backup_file"
-    return 0
 }
 
 fix_volume_ownership() {
@@ -184,7 +177,7 @@ fix_volume_ownership() {
     current_ownership=$(check_volume_ownership "$volume_name")
     log "Current ownership: ${current_ownership}"
 
-    if ! docker run --rm -v "${volume_name}:/data" alpine:3.24.1 chown -R 100:101 /data 2>/dev/null; then
+    if ! docker run --rm -v "${volume_name}:/data" alpine:3.24.2 chown -R 100:101 /data 2>/dev/null; then
         error "Failed to fix ownership"
         return 1
     fi
@@ -355,17 +348,11 @@ main() {
 
     step "Step 3: Backup Current Data"
 
-    if confirm "Create backup of volume '${DATA_VOLUME}'?"; then
-        BACKUP_DIR="${HOME}/tor-backups"
-        mkdir -p "$BACKUP_DIR" 2>/dev/null || BACKUP_DIR="/tmp"
-
-        if BACKUP_FILE=$(backup_volume "$DATA_VOLUME" "$BACKUP_DIR"); then
-            log "Backup location: ${BACKUP_FILE}"
-        else
-            warn "Backup failed, but continuing..."
-        fi
+    BACKUP_DIR="${HOME}/tor-backups"
+    if BACKUP_FILE=$(backup_volume "$DATA_VOLUME" "$BACKUP_DIR"); then
+        log "Verified encrypted backup: $BACKUP_FILE"
     else
-        warn "Skipping backup (not recommended)"
+        die "Encrypted backup verification failed; migration stopped before data changes"
     fi
 
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

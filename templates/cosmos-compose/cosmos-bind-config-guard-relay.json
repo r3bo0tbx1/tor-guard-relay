@@ -46,7 +46,7 @@
         "cosmos-icon": "https://raw.githubusercontent.com/r3bo0tbx1/tor-guard-relay/refs/heads/main/src/onion.png",
         "cosmos-stack": "TorGuardRelay",
         "cosmos-stack-main": "TorGuardRelay",
-        "cosmos-version": "1.1.8",
+        "cosmos-version": "2.2.0",
         "maintainer": "rE-Bo0t.bx1 <r3bo0tbx1@brokenbotnet.com>"
       }
     }

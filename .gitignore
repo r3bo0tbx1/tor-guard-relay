@@ -11,3 +11,8 @@ Thumbs.db
 *.tmp
 *.log
 .github/copilot-instructions.md
+__pycache__/
+*.pyc
+*.tar.gz.age
+*.tar.gz.age.part
+.release-policy/

@@ -11,27 +11,65 @@
   "rebaseWhen": "behind-base-branch",
   "assignees": ["r3bo0tbx1"],
   "reviewers": ["r3bo0tbx1"],
-  "enabledManagers": ["dockerfile", "github-actions"],
+  "enabledManagers": ["dockerfile", "github-actions", "gomod", "custom.regex"],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["/^Dockerfile(?:\\.edge)?$/"],
+      "matchStrings": ["ARG LYREBIRD_REVISION=(?<currentDigest>[a-f0-9]{40})(?:\\r?\\n|$)"],
+      "currentValueTemplate": "main",
+      "depNameTemplate": "Lyrebird source",
+      "packageNameTemplate": "https://gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/lyrebird.git",
+      "datasourceTemplate": "git-refs",
+      "versioningTemplate": "git"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["/^build/security-tools\\.json$/"],
+      "matchStrings": ["\"govulncheck\":\\s*\"(?<currentValue>v[0-9]+\\.[0-9]+\\.[0-9]+)\""],
+      "depNameTemplate": "golang.org/x/vuln",
+      "datasourceTemplate": "go"
+    }
+  ],
   "packageRules": [
     {
       "matchDatasources": ["docker"],
       "matchPackageNames": ["alpine"],
       "groupName": "🐳 Alpine Base Image",
       "labels": ["dependencies", "alpine", "docker"],
-      "schedule": ["before 3am on monday"],
+      "schedule": ["at any time"],
       "prPriority": 1,
       "automerge": false,
       "allowedVersions": "/^3\\.(2[2-9]|[3-9][0-9])\\./",
-      "description": "Track Alpine 3.22+ versions for security updates"
+      "description": "Track supported Alpine stable versions; current examples must pass the consistency check"
     },
     {
       "matchManagers": ["dockerfile"],
-      "excludePackageNames": ["alpine"],
+      "matchPackageNames": ["!alpine"],
       "groupName": "🐳 Other Docker Images",
       "labels": ["dependencies", "docker"],
-      "schedule": ["before 3am on monday"],
+      "schedule": ["at any time"],
       "prPriority": 2,
       "automerge": false
+    },
+    {
+      "matchManagers": ["gomod", "custom.regex"],
+      "schedule": ["at any time"],
+      "automerge": false,
+      "prPriority": 5
+    },
+    {
+      "matchManagers": ["gomod"],
+      "matchDepTypes": ["indirect"],
+      "enabled": true,
+      "automerge": false
+    },
+    {
+      "matchDatasources": ["git-refs"],
+      "groupName": "🧅 Lyrebird source pin",
+      "labels": ["dependencies", "lyrebird"],
+      "automerge": false,
+      "prBodyNotes": ["Update both source and metadata pins in both Dockerfiles. Review upstream changes against the independently maintained Go lock. Publication requires a new reviewed release tag after all candidate gates pass."]
     },
     {
       "matchManagers": ["github-actions"],
@@ -52,6 +90,9 @@
   ],
   "vulnerabilityAlerts": {
     "enabled": true,
+    "automerge": false,
+    "prCreation": "immediate",
+    "minimumReleaseAge": "0 days",
     "labels": ["security", "dependencies"],
     "assignees": ["r3bo0tbx1"],
     "schedule": ["at any time"]
@@ -59,5 +100,5 @@
   "osvVulnerabilityAlerts": true,
   "timezone": "UTC",
   "prConcurrentLimit": 5,
-  "description": "Renovate tracks Docker base images and GitHub Actions. Alpine packages (tor and tini) are not pinned and update automatically via weekly rebuilds."
+  "description": "Propose reviewed Lyrebird source pins and independent Go/toolchain/base updates without a weekly wait. Security fixes receive priority; scheduled rebuilds still use released source and require current candidate security gates."
 }

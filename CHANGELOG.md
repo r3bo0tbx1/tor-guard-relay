@@ -1,22 +1,37 @@
 # 📜 Changelog
 
-All notable changes to this project will be documented in this file.
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-
----
+Current source: <!-- RELAY_VERSION -->v2.2.0<!-- /RELAY_VERSION -->. Historical entries below retain their original release context.
 
 ## [Unreleased]
 
+## [v2.2.0] - 2026-10-09
+
 ### 🛡️ Security
 
-- **Pion STUN dependency:** Updated Lyrebird's linked `github.com/pion/stun/v3` dependency to v3.1.5 or later in stable and edge builds, preventing remote denial of service through malformed `XOR-MAPPED-ADDRESS` attributes (`CVE-2026-54909`).
+- Require Tor 0.4.9.14 or newer in stable and edge images; upstream recommends updating as soon as possible.
+- Update stable Alpine to 3.24.2, pin Go 1.27.2 and the Lyrebird source revision, and lock the dependency graph with Pion STUN 3.1.7.
+- Track Lyrebird source-pin updates through reviewed Renovate PRs independently of Go dependency security fixes; add source/metadata pin consistency checks, candidate-matched Go reachability analysis and six-hour read-only published-image monitoring. Block unfixed HIGH/CRITICAL image findings and reachable Go vulnerabilities; apply current reviewed security policy when rebuilding released source.
+- Update the independently maintained Go lock to `klauspost/compress` 1.18.7 for GO-2026-5841; retain module/reachability evidence separately from severity labels.
+- Validate all architecture/variant candidates before promotion and retain SBOM and scan evidence.
+- Verify full source and policy commit ancestry from trusted main before preparing separate release worktrees; retain no checkout credentials.
 
-### 🎯 Planned Features
+### 🛠️ Operator changes
 
-* 📊 Additional monitoring integrations (Datadog, New Relic)
-* 🔄 Automatic relay configuration updates
-* 🧪 Enhanced integration testing suite
+- Add current-run readiness/freshness, doctor reason codes, precise reload and bounded shutdown.
+- Add validated atomic config handling, redacted directive diff, accounting and IPv6 ENV options.
+- Add host-only encrypted backup, full verification, staged offline restore and fleet metrics.
+- Preserve the README's branding, badges and screenshot gallery; restore detailed guides and 15 rendered Mermaid architecture diagrams, including recovery and security-update flows.
+- Restore emoji workflow labels and add job outcome summaries while preserving required PR check names and blocking gates.
+- Handle missing startup metadata as a retryable recovery-fixture error without bypassing archive validation.
+
+### 💥 Compatibility and migration
+
+- ENV-generated torrc files are regenerated on restart. Persist changes in deployment ENV or use a mounted configuration.
+- Readiness requires evidence from the current run; historical bootstrap logs cannot establish readiness after a restart.
+- Retire legacy plaintext-backup and live-volume replacement helpers. Recovery requires host Python 3.10+, age and a verified encrypted archive; restore stages into a new directory.
+- Older release tags without the new validation contract fail closed under the updated release pipeline.
+
+See [v2.2.0 release notes](docs/releases/v2.2.0.md) for migration and validation limits.
 
 ---
 

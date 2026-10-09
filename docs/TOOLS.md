@@ -1,14 +1,19 @@
 # 🛠️ Tools Reference Guide
 
-**Tor Guard Relay 2.1.0** includes 7 essential diagnostic and operational tools built directly into the ultra-optimized container. All tools are busybox-compatible, executable without file extensions, and designed for production use.
+**Tor Guard Relay 2.2.0** includes 9 essential diagnostic and operational tools built directly into the ultra-optimized container. All tools are busybox-compatible, executable without file extensions, and designed for production use.
 
 ---
+
+> [!IMPORTANT]
+> 🧅 **v2.2.0 release candidate:** Tor must be **0.4.9.14 or newer**. Current-run health, validated configuration and encrypted recovery are described in the [release notes](releases/v2.2.0.md). Recreate from the validated image to update Tor; changing torrc alone does not upgrade the binary.
 
 ## 📋 Tool Overview
 
 | Tool | Purpose | Output Format | Notes |
 |------|---------|---------------|-------|
 | **status** | Complete relay health report | Text (emoji) | Full diagnostic dashboard |
+| **doctor** | Explain health and configuration failures | Text / JSON | Reason codes and remediation |
+| **config** | Inspect, validate, diff and apply configuration | Text | Redacted diff and atomic apply |
 | **health** | JSON health diagnostics | JSON | Machine-readable for monitoring |
 | **refresh** | Validate and reload torrc | Text | Preserves Tor PID and process uptime |
 | **fingerprint** | Display relay fingerprint | Text | With Tor Metrics link |
@@ -20,6 +25,25 @@
 
 ## 🔧 Tool Details
 
+### `doctor` and `config`
+
+```sh
+docker exec tor-relay doctor
+docker exec tor-relay doctor --json
+docker exec tor-relay config --help
+docker exec tor-relay config validate
+docker cp candidate-torrc tor-relay:/tmp/candidate-torrc
+docker exec tor-relay config validate /tmp/candidate-torrc
+docker exec tor-relay config diff /tmp/candidate-torrc
+docker exec tor-relay config apply /tmp/candidate-torrc --reload
+```
+
+`doctor` returns nonzero when it finds an operational problem. `config diff` redacts directive values. Applying generated configuration validates a candidate before atomic replacement; mounted configuration remains authoritative. ENV changes require container recreation, and direct edits to an ENV-generated file do not survive regeneration on restart.
+
+Host-only commands are described in [encrypted backup](BACKUP.md) and [fleet monitoring](MONITORING.md). Python and age are not installed in the runtime image.
+
+---
+
 ### `status`
 
 **Purpose:** Comprehensive relay health and status report with emoji formatting
@@ -29,23 +53,25 @@
 docker exec tor-relay status
 ```
 
-**Output Example:**
+**Output Example (illustrative fixture):**
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🧅 Tor Relay Status
+🧅 Tor Relay Status · 2.2.0
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-🚀 Status: RUNNING (PID: 123)
-📶 Bootstrap: 100% COMPLETE
-🌐 ORPort: REACHABLE (Tor self-test)
-🪪 Nickname: MyGuardRelay
-🔑 Fingerprint: ABCD1234...WXYZ9876
-🛡️ Errors: 0
+🚀 Process: true (PID 123)
 ⏱️ Uptime: 2d 14h 30m
+🩺 Readiness: true (ready)
+📶 Bootstrap: 100%
+🌐 ORPort: true (Tor self-test)
+🧩 Config: environment · valid: true
+📂 Path: /etc/tor/torrc
+🪪 Nickname: MyGuardRelay · mode: guard
+🔑 Fingerprint: ABCD1234...WXYZ9876
+🛡️ Current-run errors: 0
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-💡 Tip: Use 'docker logs -f <container>' for live logs
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+💡 Tip: Use 'doctor' for next steps and 'docker logs -f <container>' for live logs.
 ```
 
 **Exit Codes:**
@@ -66,7 +92,7 @@ docker exec tor-relay health
 docker exec tor-relay health | jq .status
 ```
 
-**Output Example:**
+**Output Example (illustrative fixture):**
 ```json
 {
   "status": "up",
@@ -77,21 +103,27 @@ docker exec tor-relay health | jq .status
   "errors": 0,
   "nickname": "MyGuardRelay",
   "fingerprint": "ABCD1234567890ABCDEF1234567890ABCDEFGHIJ",
-  "tor_version": "0.4.9.1",
+  "tor_version": "0.4.9.14",
   "relay_mode": "guard",
-  "build_version": "2.1.0",
-  "config_source": "environment"
+  "build_version": "2.2.0",
+  "config_source": "environment",
+  "config_path": "/etc/tor/torrc",
+  "liveness": true,
+  "readiness": true,
+  "config_valid": true,
+  "fresh": true,
+  "reason": "ready"
 }
 ```
 
 **Status Values:**
-- `up` - Relay is running and healthy
+- `up` - The Tor process is running; inspect `readiness`, `config_valid` and `fresh` separately
 - `down` - Relay is not running
-- `error` - Critical issues detected
+- `reason` - Explains process, configuration, bootstrap or observation state
 
 **Exit Codes:**
-- `0` - Health check completed
-- `1` - Critical error or Tor not running
+- `0` - Tor is live; inspect readiness, config validity and freshness separately
+- `1` - Tor is not live; the JSON observation still explains the failure
 
 **Integration Example:**
 ```bash
@@ -181,10 +213,10 @@ docker exec tor-relay fingerprint
 
 **Usage:**
 ```bash
-docker exec tor-bridge bridge-line
+docker exec tor-bridge bridge-line --address 203.0.113.42
 ```
 
-**Output Example:**
+**Illustrative sharing card (terminal formatting may differ):**
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 🌉 obfs4 Bridge Line
@@ -199,7 +231,7 @@ Bridge obfs4 203.0.113.42:9002 ABCD...WXYZ cert=abc123...xyz789 iat-mode=0
    • Do NOT publish publicly
    • Helps users in censored countries
 
-💡 Bridge line available 24-48 hours after first start
+💡 A bridge line requires local transport state, fingerprint and an explicit public address; there is no fixed waiting period.
 ```
 
 **Exit Codes:**
@@ -207,7 +239,7 @@ Bridge obfs4 203.0.113.42:9002 ABCD...WXYZ cert=abc123...xyz789 iat-mode=0
 - `1` - Bridge line not yet available or not in bridge mode
 
 **When Available:**
-- Bridges take 24-48 hours after first start to generate the bridge line
+💡 A bridge line requires local transport state, fingerprint and an explicit public address; there is no fixed waiting period.
 - The bridge line is stored in `/var/lib/tor/pt_state/obfs4_bridgeline.txt`
 - Also visible in logs: `docker logs <container> | grep "bridge line"`
 
@@ -355,9 +387,9 @@ docker exec tor-relay fingerprint
 ### 5. Share Your Bridge
 ```bash
 # Get bridge line (bridge mode only)
-docker exec tor-bridge bridge-line
+docker exec tor-bridge bridge-line --address 203.0.113.42
 
-# Wait 24-48 hours after first start
+💡 A bridge line requires local transport state, fingerprint and an explicit public address; there is no fixed waiting period.
 # Share ONLY with trusted users, NOT publicly
 ```
 
@@ -393,7 +425,7 @@ while true; do
 done
 ```
 
-### 7. Check Logs
+### 8. Check Logs
 ```bash
 # View recent logs
 docker logs --tail 100 tor-relay
@@ -427,7 +459,7 @@ docker logs tor-relay 2>&1 | grep -i warn
 # Verify tools exist
 docker exec tor-relay ls -la /usr/local/bin/
 
-# Should show: status, health, refresh, fingerprint, bridge-line, gen-auth, gen-family
+# Should show: status, doctor, config, health, refresh, fingerprint, bridge-line, gen-auth, gen-family
 
 # Check PATH
 docker exec tor-relay echo $PATH
@@ -464,7 +496,7 @@ docker logs tor-relay | grep "Bootstrapped 100%"
 
 ### Bridge line not available
 ```bash
-# Normal for first 24-48 hours
+💡 A bridge line requires local transport state, fingerprint and an explicit public address; there is no fixed waiting period.
 # Check if in bridge mode
 docker exec tor-relay grep BridgeRelay /etc/tor/torrc
 
@@ -489,7 +521,7 @@ docker logs tor-relay | grep -i obfs4
 
 5. **Monitor bootstrap** - New relays take 5-15 minutes to fully bootstrap
 
-6. **Be patient with bridges** - Bridge lines take 24-48 hours to generate
+💡 A bridge line requires local transport state, fingerprint and an explicit public address; there is no fixed waiting period.
 
 7. **Use docker logs** - Built-in logging is comprehensive and easier than installing extra tools
 
@@ -508,7 +540,7 @@ docker logs tor-relay | grep -i obfs4
 
 ## ❓ FAQ
 
-**Q: Why only 7 tools?**
+**Q: Why only 9 tools?**
 
 A: The minimal toolset covers health checks, safe configuration reloads, identity, authentication setup, and Happy Family key management without adding Python, Bash, or exposed monitoring services.
 

@@ -1,8 +1,11 @@
-# Architecture Documentation
+# 🏗️ Architecture Documentation
 
 **Tor Guard Relay Container** - Technical Architecture & Design
 
-## Table of Contents
+> [!IMPORTANT]
+> 🧅 **v2.2.0 release candidate:** Tor must be **0.4.9.14 or newer**. Current-run health, validated configuration and encrypted recovery are described in the [release notes](releases/v2.2.0.md). Recreate from the validated image to update Tor; changing torrc alone does not upgrade the binary.
+
+## 📋 Table of Contents
 
 1. [Overview](#overview)
 2. [Container Lifecycle](#container-lifecycle)
@@ -13,26 +16,35 @@
 7. [Directory Structure](#directory-structure)
 8. [Security Model](#security-model)
 9. [Signal Handling](#signal-handling)
+10. [Build Process](#build-process)
+11. [Health Check](#health-check)
+12. [Encrypted Recovery](#-encrypted-recovery-boundary)
+13. [Independent Security Updates](#independent-security-updates)
+14. [References](#references)
 
 ---
 
-## Overview
+<a id="overview"></a>
+
+## 🧅 Overview
 
 This container implements a production-ready Tor relay with three operational modes:
-- **Guard/Middle**: Directory-enabled relay for traffic routing
+- **Guard/Middle**: Relay for traffic routing; DirPort is disabled by default
 - **Exit**: High-trust relay with customizable exit policies
 - **Bridge**: Censorship-resistant relay with obfs4 transport
 
 **Design Principles:**
 - POSIX sh compatibility (busybox ash, no bash)
-- Minimal dependencies (~16.8 MB total image)
+- Minimal runtime dependencies; image size varies by variant and architecture
 - Security-first (non-root, minimal capabilities, strict validation)
 - Multi-architecture (AMD64, ARM64)
 - Production-ready (graceful shutdown, health checks, observability)
 
 ---
 
-## Container Lifecycle
+<a id="container-lifecycle"></a>
+
+## 🔄 Container Lifecycle
 
 ```mermaid
 flowchart TD
@@ -55,6 +67,8 @@ flowchart TD
 
     DiagTools -->|status| StatusTool[📝 tools/status]
     DiagTools -->|health| HealthTool[📊 tools/health]
+    DiagTools -->|doctor| DoctorTool[🩺 tools/doctor]
+    DiagTools -->|config| ConfigTool[🧩 tools/config]
     DiagTools -->|refresh| RefreshTool[🔄 tools/refresh]
     DiagTools -->|fingerprint| FingerprintTool[🆔 tools/fingerprint]
     DiagTools -->|bridge-line| BridgeTool[🌉 tools/bridge-line]
@@ -63,6 +77,8 @@ flowchart TD
 
     StatusTool --> Running
     HealthTool --> Running
+    DoctorTool --> Running
+    ConfigTool -->|Validate, diff or atomic apply| Running
     RefreshTool -->|Validated SIGHUP to exact Tor PID| Running
     FingerprintTool --> Running
     BridgeTool --> Running
@@ -71,7 +87,7 @@ flowchart TD
 
     Trap --> StopTail[🧽 Kill tail -F PID]
     StopTail --> StopTor[📨 Send SIGTERM to Tor]
-    StopTor --> Wait[⏳ Wait for Tor Exit]
+    StopTor --> Wait[⏳ Bounded wait, then SIGKILL if needed]
     Wait --> Cleanup[🧹 Cleanup and Exit]
     Cleanup --> End([🔴 Container Stop])
 
@@ -84,7 +100,9 @@ flowchart TD
 
 ---
 
-## Initialization Flow
+<a id="initialization-flow"></a>
+
+## 🚀 Initialization Flow
 
 The entrypoint script (`docker-entrypoint.sh`) executes **6 distinct phases** in sequence:
 
@@ -102,9 +120,9 @@ flowchart TD
     end
 
     subgraph P3["⚙️ Phase 3: Configuration Setup"]
-        P3_1{🧩 Mounted config exists?} -->|Yes| P3_2[📄 Use mounted file]
-        P3_1 -->|No| P3_3{🌐 ENV vars set?}
-        P3_3 -->|Yes| P3_4[🧪 Validate ENV] --> P3_5[📝 Generate config]
+        P3_1{🧩 Resolve explicit or auto ownership} -->|Yes| P3_2[📄 Use mounted file]
+        P3_1 -->|Environment| P3_3{🌐 ENV vars set?}
+        P3_3 -->|Yes| P3_4[🧪 Validate ENV] --> P3_5[📝 Stage, validate and atomically publish ENV config]
         P3_3 -->|No| P3_6[❌ ERROR: No config]
     end
 
@@ -142,69 +160,45 @@ flowchart TD
 |-------|---------|----------------|----------------|
 | **1** | Directory Setup | `mkdir -p` data/log/run, show disk space | Fail if mkdir fails |
 | **2** | Permissions | `chmod 700` data, `chmod 755` log, detect family keys | Warn on failure (read-only mount) |
-| **3** | Configuration | Priority: mounted > ENV > error | Die if no config source |
+| **3** | Configuration | Explicit source override; auto detects mounts/generated ownership; validate before publication | Die if no config source |
 | **4** | Validation | `tor --verify-config` syntax check | Die if invalid config |
 | **5** | Build Info | Show version/arch/mode/source | Warn if missing |
 | **6** | Diagnostics | List available tools | Informational only |
 
 ---
 
-## Configuration System
+<a id="configuration-system"></a>
+
+## ⚙️ Configuration System
 
 ### Configuration Priority
 
 ```mermaid
 flowchart TD
-    Start([🟢 Configuration Needed]) --> Check1{📄 File exists at /etc/tor/torrc?}
-
-    Check1 -->|Yes| Check2{📏 File not empty?}
-    Check2 -->|Yes| UseMounted[📁 Use Mounted Config]
-    Check2 -->|No| Check3
-
-    Check1 -->|No| Check3{🌐 ENV vars set? TOR_NICKNAME and TOR_CONTACT_INFO}
-
-    Check3 -->|Yes| Validate[🧪 Validate ENV Values]
-    Validate -->|Valid| Generate[✍️ Generate torrc from ENV]
-    Validate -->|Invalid| Error1[❌ ERROR: Invalid ENV]
-
-    Generate --> ModeCheck{⚙️ TOR_RELAY_MODE?}
-    ModeCheck -->|guard/middle| GenGuard[🛡️ Generate Guard Config]
-    ModeCheck -->|exit| GenExit[🚪 Generate Exit Config]
-    ModeCheck -->|bridge| GenBridge[🌉 Generate Bridge Config]
-
-    GenBridge --> OBFS4Check{🔐 OBFS4_ENABLE_ADDITIONAL_VARIABLES?}
-    OBFS4Check -->|Yes| ProcessOBFS4V[🧩 Process OBFS4V_* vars]
-    OBFS4Check -->|No| UseEnv
-    ProcessOBFS4V --> UseEnv[🧾 Use Generated Config]
-
-    GenGuard --> UseEnv
-    GenExit --> UseEnv
-
-    Check3 -->|No| Error2[❌ ERROR: No Config Found]
-
-    UseMounted --> Success([✅ Config Ready])
-    UseEnv --> Success
-    Error1 --> Failure([⛔ Container Exit])
-    Error2 --> Failure
-
-    style Start fill:#c8e6c9
-    style UseMounted fill:#b2fab4
-    style UseEnv fill:#b2fab4
-    style Success fill:#b2fab4
-    style Error1 fill:#ffcdd2
-    style Error2 fill:#ffcdd2
-    style Failure fill:#ffcdd2
-    style Validate fill:#fff9c4
-    style Generate fill:#fff9c4
-    style ModeCheck fill:#e1f5fe
-    style GenGuard fill:#e3f2fd
-    style GenExit fill:#fce4ec
-    style GenBridge fill:#e8f5e9
-    style OBFS4Check fill:#f3e5f5
-    style ProcessOBFS4V fill:#ede7f6
+    Start(["🟢 Configuration needed"]) --> Source{"🧩 TOR_CONFIG_SOURCE"}
+    Source -->|mounted| Mounted["📄 Keep operator-mounted torrc authoritative"]
+    Source -->|environment| Env["🌐 Validate TOR_* values and bridge aliases"]
+    Source -->|auto| Detect{"📁 Mount or generated-file ownership?"}
+    Detect -->|Mount or custom file| Mounted
+    Detect -->|Generated or missing file| Env
+    Mounted --> Check["🧪 tor --verify-config against active path"]
+    Env --> Stage["✍️ Render same-directory temporary candidate"]
+    Stage --> Valid{"🧪 Candidate valid?"}
+    Valid -->|Yes| Rename["⚛️ Atomic rename to active torrc"]
+    Valid -->|No| Keep["🛑 Retain old config; reject startup/change"]
+    Rename --> Check
+    Check --> Ready(["✅ Configuration ready for launch"])
+    style Mounted fill:#90caf9,stroke:#1976d2
+    style Env fill:#e1bee7,stroke:#7b1fa2
+    style Rename fill:#b2fab4,stroke:#388e3c
+    style Keep fill:#ffcdd2,stroke:#c62828
+    style Ready fill:#b2fab4,stroke:#388e3c
 ```
 
-**Code Reference:** `docker-entrypoint.sh` lines 201-220 (phase_3_configuration)
+`auto` respects actual mounted files and recognizes the generated-file marker. Explicit `mounted` and `environment` modes make operator intent clear. ENV-generated torrc is regenerated on restart; keep persistent changes in deployment ENV or use a mounted torrc. A custom `TOR_CONFIG` path is used consistently for launch, validation and tools.
+
+
+**Code Reference:** `docker-entrypoint.sh` — configuration ownership, compatibility aliases and process lifecycle.
 
 ### ENV Variable Validation
 
@@ -261,11 +255,13 @@ flowchart TD
     style V5 fill:#e3f2fd
 ```
 
-**Code Reference:** `docker-entrypoint.sh` lines 115-198 (validate_relay_config)
+**Code Reference:** `lib/config.sh` — ENV validation, rendering and OBFS4V whitelist.
 
 ---
 
-## ENV Compatibility Layer
+<a id="env-compatibility-layer"></a>
+
+## 🔗 ENV Compatibility Layer
 
 The container supports **two naming conventions** for maximum compatibility:
 
@@ -323,18 +319,20 @@ flowchart LR
 
 ### Priority Rules
 
-1. **Official names OVERRIDE Dockerfile defaults** (lines 23-26)
+1. **Official names OVERRIDE Dockerfile defaults**
    - Example: `OR_PORT=443` overrides `ENV TOR_ORPORT=9001`
-2. **PT_PORT auto-detects bridge mode** (lines 29-31)
+2. **PT_PORT auto-detects bridge mode**
    - Setting `PT_PORT` automatically sets `TOR_RELAY_MODE=bridge`
 3. **OBFS4V_\* variables** require `OBFS4_ENABLE_ADDITIONAL_VARIABLES=1`
-   - Whitelist-validated for security (lines 292-343)
+   - Whitelist-validated for security
 
-**Code Reference:** `docker-entrypoint.sh` lines 8-31 (ENV Compatibility Layer)
+**Code Reference:** `docker-entrypoint.sh` — configuration ownership, compatibility aliases and process lifecycle.
 
 ---
 
-## Configuration Generation
+<a id="configuration-generation"></a>
+
+## 📝 Configuration Generation
 
 ### Mode-Specific Config Generation
 
@@ -348,7 +346,7 @@ flowchart TD
     Mode -->|exit| Exit[🚪 Add Exit Config]
     Mode -->|bridge| Bridge[🌉 Add Bridge Config]
 
-    subgraph GuardConfig["🛡️ Guard/Middle Config (lines 247-257)"]
+    subgraph GuardConfig["🛡️ Guard/Middle Config"]
         G1[DirPort TOR_DIRPORT] --> G2[ExitRelay 0]
         G2 --> G3[BridgeRelay 0]
         G3 --> G4{TOR_BANDWIDTH_RATE?}
@@ -366,7 +364,7 @@ flowchart TD
         G11 --> GuardDone([🛡️ Guard Config Done])
     end
 
-    subgraph ExitConfig["🚪 Exit Config (lines 260-273)"]
+    subgraph ExitConfig["🚪 Exit Config"]
         E1[DirPort TOR_DIRPORT] --> E2[ExitRelay 1]
         E2 --> E3[BridgeRelay 0]
         E3 --> E4[Add Exit Policy]
@@ -385,7 +383,7 @@ flowchart TD
         E12 --> ExitDone([🚪 Exit Config Done])
     end
 
-    subgraph BridgeConfig["🌉 Bridge Config (lines 276-343)"]
+    subgraph BridgeConfig["🌉 Bridge Config"]
         B1[BridgeRelay 1] --> B2[PublishServerDescriptor bridge]
         B2 --> B3[ServerTransportPlugin obfs4]
         B3 --> B4[ServerTransportListenAddr obfs4]
@@ -421,7 +419,7 @@ flowchart TD
 **Base Config Includes:** Nickname, ContactInfo, ORPort, SocksPort 0, DataDirectory, Logging
 **Family Config (guard/exit):** Optional FamilyId (Tor 0.4.9.2-alpha or later) and MyFamily (legacy, comma-separated fingerprints via TOR_MY_FAMILY)
 
-**Code Reference:** `docker-entrypoint.sh` lines 222-350 (generate_config_from_env)
+**Code Reference:** `lib/config.sh` — ENV validation, rendering and OBFS4V whitelist.
 
 ### OBFS4V_* Variable Processing (Bridge Mode)
 
@@ -446,7 +444,7 @@ flowchart TD
     V3 -->|Yes| Warn3[⚠️ WARN: Control characters] --> Next
     V3 -->|No| Whitelist{🛡️ Key in whitelist?}
 
-    subgraph WhitelistCheck["🧾 Whitelist (lines 325-331)"]
+    subgraph WhitelistCheck["🧾 Whitelist"]
         WL1[AccountingMax/Start]
         WL2[Address/AddressDisableIPv6]
         WL3[Bandwidth*/RelayBandwidth*]
@@ -480,13 +478,15 @@ flowchart TD
 - **Whitelist enforcement:** Only known-safe torrc options allowed
 - **No code execution:** Values written with `printf`, not `eval`
 
-**Code Reference:** `docker-entrypoint.sh` lines 292-343 (OBFS4V processing)
+**Code Reference:** `lib/config.sh` — ENV validation, rendering and OBFS4V whitelist.
 
 ---
 
-## Diagnostic Tools
+<a id="diagnostic-tools"></a>
 
-Seven busybox-only tools provide observability and safe in-container operations:
+## 🛠️ Diagnostic Tools
+
+Nine POSIX shell tools provide observability and safe in-container operations:
 
 ```mermaid
 flowchart TD
@@ -495,21 +495,23 @@ flowchart TD
     Choice -->|status| StatusFlow
     Choice -->|health| HealthFlow
     Choice -->|refresh| RefreshFlow
+    Choice -->|doctor| Doctor["🩺 Reason codes and next steps"]
+    Choice -->|config| Config["⚙️ Validate, redacted diff, atomic apply"]
     Choice -->|fingerprint| FingerprintFlow
     Choice -->|bridge-line| BridgeFlow
     Choice -->|gen-family| FamilyFlow
 
     subgraph StatusFlow["📊 tools/status - Full Health Report"]
-        S1[🔍 Check Tor process running] --> S2[📈 Read bootstrap %]
+        S1[🔍 Check Tor process running] --> S2[📈 Read current-run bootstrap %]
         S2 --> S3[🌐 Read reachability status]
         S3 --> S4[🆔 Show fingerprint]
-        S4 --> S5[📝 Show recent logs]
-        S5 --> S6[💽 Show resource usage]
+        S4 --> S5[🧩 Show config validity and readiness]
+        S5 --> S6[⏱️ Show process uptime and reason]
         S6 --> S7[😁 Output with emoji formatting]
     end
 
     subgraph HealthFlow["📡 tools/health - JSON API"]
-        H1[🔍 Check Tor process] --> H2[📈 Parse log for bootstrap]
+        H1[🔍 Check Tor process] --> H2[📈 Parse only fresh launch-boundary evidence]
         H2 --> H3[⚠️ Parse log for errors]
         H3 --> H4[🆔 Get fingerprint if exists]
         H4 --> H5[📤 Output JSON]
@@ -534,10 +536,10 @@ flowchart TD
 
     subgraph BridgeFlow["🌉 tools/bridge-line - Bridge Sharing"]
         B1{Bridge mode?} -->|No| B2[❌ Error: Not a bridge]
-        B1 -->|Yes| B3[📄 Read pt_state/obfs4_state.json]
+        B1 -->|Yes| B3[📄 Read pt_state/obfs4_bridgeline.txt]
         B3 --> B4{File exists?}
-        B4 -->|Yes| B5[🔐 Parse cert and iat-mode]
-        B5 --> B6[🌍 Get public IP]
+        B4 -->|Yes| B5[🔐 Keep transport-generated cert and iat-mode]
+        B5 --> B6[🌍 Require explicit public address]
         B6 --> B7[📤 Output bridge line]
         B4 -->|No| B8[⚠️ Warn: Not ready yet]
     end
@@ -569,14 +571,16 @@ flowchart TD
     style Output5 fill:#b2fab4
 ```
 
-**JSON Output Fields:** status, pid, uptime, bootstrap, reachable, errors, fingerprint, nickname
+**JSON Output Fields:** Existing status, pid, uptime, bootstrap, reachable, errors, fingerprint and nickname remain available. Boolean `liveness`, `readiness`, `config_valid` and `fresh`, plus `reason`, distinguish process/configuration/readiness evidence. `reachable` remains a string; it is Tor self-test evidence, not an independent network probe.
 
 ### Tool Characteristics
 
 | Tool | Purpose | Output Format | Dependencies |
 |------|---------|---------------|--------------|
-| **status** | Full health check | Emoji-rich text | busybox: pgrep, grep, sed, awk, ps |
-| **health** | Monitoring integration | JSON | busybox: pgrep, grep, awk |
+| **status** | Liveness, readiness and active config | Emoji-rich text / JSON | Shared runtime inspection |
+| **health** | Current-run monitoring observation | JSON | Shared runtime inspection |
+| **doctor** | Diagnose reason and next step | Emoji-rich text / JSON | Shared runtime inspection |
+| **config** | Validate, diff, atomic apply | Text | Shared config/runtime libraries and Tor |
 | **refresh** | Validated config reload | Text | busybox: pgrep, awk, ps, kill, tor --verify-config |
 | **fingerprint** | Relay identity | Text + URL | busybox: cat, awk |
 | **bridge-line** | Bridge sharing | obfs4 bridge line | busybox: grep, sed, awk, wget |
@@ -585,7 +589,7 @@ flowchart TD
 
 **All tools:**
 - Use `#!/bin/sh` (POSIX sh, not bash)
-- No external dependencies (Python, jq, curl, etc.)
+- No Python or scanner dependency in runtime; host-only backup/inventory use Python and backup additionally uses age
 - Numeric sanitization to prevent "bad number" errors
 - Installed at `/usr/local/bin/` (no `.sh` extensions)
 
@@ -593,7 +597,9 @@ flowchart TD
 
 ---
 
-## Directory Structure
+<a id="directory-structure"></a>
+
+## 🗂️ Directory Structure
 
 ```mermaid
 graph TD
@@ -611,7 +617,7 @@ graph TD
         TorEtc["📁 /etc/tor"]
         TorRC["⚙️ torrc"]
         TorRCSample["🗑️ torrc.sample"]
-        
+
         TorEtc --> TorRC
         TorEtc -.->|Deleted at build| TorRCSample
     end
@@ -626,7 +632,7 @@ graph TD
         FamilyKey["👨‍👩‍👧 *.secret_family_key"]
         FingerprintFile["🆔 fingerprint"]
         PTState["🌀 pt_state/"]
-        
+
         Lib --> TorData
         TorData --> Keys
         Keys --> FamilyKey
@@ -641,7 +647,7 @@ graph TD
         Log["📁 /var/log"]
         TorLog["📦 /var/log/tor VOLUME"]
         Notices["📄 notices.log"]
-        
+
         Log --> TorLog
         TorLog --> Notices
     end
@@ -651,8 +657,8 @@ graph TD
     subgraph run_group["⚡ Runtime State"]
         direction TB
         TorRun["📁 /run/tor"]
-        TorPID["🧩 tor.pid"]
-        
+        TorPID["🧩 relay.state: PID, start time, inode and offset"]
+
         TorRun --> TorPID
     end
     Run --> TorRun
@@ -671,7 +677,7 @@ graph TD
         BridgeLine["🌉 bridge-line"]
         GenAuth["🔑 gen-auth"]
         GenFamily["👨‍👩‍👧 gen-family"]
-        
+
         UsrLocal --> Bin
         Bin --> Entrypoint
         Bin --> Healthcheck
@@ -682,6 +688,9 @@ graph TD
         Bin --> BridgeLine
         Bin --> GenAuth
         Bin --> GenFamily
+        Bin --> Doctor["🩺 doctor"]
+        Bin --> ConfigTool["⚙️ config"]
+        UsrLocal --> SharedLib["📚 /usr/local/lib/relay: runtime.sh and config.sh"]
     end
     Usr --> UsrLocal
 
@@ -691,7 +700,7 @@ graph TD
         UsrBin["📁 /usr/bin"]
         TorBin["🧅 tor"]
         Lyrebird["🎶 lyrebird"]
-        
+
         UsrBin --> TorBin
         UsrBin --> Lyrebird
     end
@@ -730,13 +739,15 @@ graph TD
 | `/var/log/tor` | tor:tor (100:101) | `755` | Dockerfile + entrypoint |
 | `/run/tor` | tor:tor (100:101) | `755` | Dockerfile |
 | `/etc/tor` | tor:tor (100:101) | `755` | Dockerfile |
-| `/etc/tor/torrc` | tor:tor (100:101) | `644` (default) | Generated at runtime |
+| `/etc/tor/torrc` | tor:tor (100:101) | `600` for atomically generated files | Generated at runtime; mounted permissions remain operator-owned |
 
 **Migration Note:** Official `thetorproject/obfs4-bridge` uses Debian `debian-tor` user (UID 101), while this image uses Alpine `tor` user (UID 100). Volume ownership must be fixed when migrating.
 
 ---
 
-## Security Model
+<a id="security-model"></a>
+
+## 🛡️ Security Model
 
 ### Attack Surface Minimization
 
@@ -746,20 +757,20 @@ flowchart TD
         NonRoot[👤 Non-root Execution]
         Tini[🔧 Tini Init]
         Minimal[📦 Minimal Image]
-        NoCaps[🚫 Minimal Capabilities]
-        NoPriv[🔒 no-new-privileges]
+        NoCaps["🚫 Operator drops unnecessary capabilities"]
+        NoPriv["🔒 Deployment no-new-privileges setting"]
     end
 
     subgraph CodeSec["💻 Code Security"]
         POSIX[📜 POSIX sh Only]
         SetE[⚠️ set -e Exit on error]
         Validation[🧪 Input Validation]
-        NoEval[🚫 No eval or exec]
+        NoEval["🛡️ Validated ENV names; no shell evaluation of user values"]
         Whitelist[🛡️ OBFS4V Whitelist]
     end
 
     subgraph NetworkSec["🌐 Network Security"]
-        HostNet[🏠 --network host]
+        HostNet["🏠 Operator-controlled host networking"]
         NoPorts[🔕 No Exposed Monitoring Ports]
         Configurable[🧭 Configurable Ports]
     end
@@ -789,185 +800,230 @@ flowchart TD
 7. **OBFS4V_\* Values** - No newlines (`wc -l`), no control chars (`tr -d '[ -~]'`)
 8. **OBFS4V_\* Whitelist** - Only known-safe torrc options
 
-**Code Reference:** `docker-entrypoint.sh` lines 115-198 (validation), 309-321 (OBFS4V security)
+**Code Reference:** `lib/config.sh` — ENV validation, rendering and OBFS4V whitelist.
 
 ---
 
-## Signal Handling
+<a id="signal-handling"></a>
 
-Graceful shutdown ensures relay reputation is maintained:
+## 📨 Signal Handling
+
+Graceful shutdown stops the notice stream, forwards SIGTERM to the recorded Tor process and waits within the configured limit. Natural Tor exits preserve their original exit status.
 
 ```mermaid
 sequenceDiagram
-    participant User as 👤 User
+    participant Operator as 👤 Operator
     participant Docker as 🐳 Docker
-    participant Tini as 🔧 Tini PID1
-    participant Entrypoint as 🚀 docker-entrypoint.sh
-    participant Tor as 🌀 Tor Process
-    participant Tail as 📄 tail -F Process
-
-    User->>Docker: docker stop <container>
+    participant Tini as 🔧 Tini PID 1
+    participant Entry as 🚀 Entrypoint
+    participant Tor as 🧅 Tor
+    participant Tail as 📜 Notice stream
+    Operator->>Docker: docker stop --time 45 relay
     Docker->>Tini: SIGTERM
-    Tini->>Entrypoint: SIGTERM (forwarded)
-
-    Note over Entrypoint: trap 'cleanup_and_exit' SIGTERM
-
-    Entrypoint->>Entrypoint: cleanup_and_exit()
-    Entrypoint->>Tail: kill -TERM $TAIL_PID
-    Tail-->>Entrypoint: Process exits
-
-    Entrypoint->>Tor: kill -TERM $TOR_PID
-    Note over Tor: 🔄 Graceful shutdown, close circuits, notify directory, save state
-
-    Tor-->>Entrypoint: Process exits (wait)
-    Entrypoint->>Entrypoint: ✅ Success, relay stopped cleanly
-    Entrypoint-->>Tini: exit 0
+    Tini->>Entry: Forward SIGTERM
+    Entry->>Tail: SIGTERM
+    Entry->>Tor: SIGTERM to recorded PID
+    Note over Entry,Tor: TOR_SHUTDOWN_TIMEOUT defaults to 30 seconds
+    alt Tor exits within the limit
+        Tor-->>Entry: Saved state and process exits
+        Entry-->>Tini: Exit 0 for handled shutdown
+    else Configured limit expires
+        Entry->>Tor: SIGKILL
+        Entry-->>Tini: Exit 137
+    end
     Tini-->>Docker: Container stopped
-    Docker-->>User: Stopped
-
-    Note over User,Tail: ⏱️ Total 5–10 seconds, Tor gets 10s before SIGKILL
 ```
 
-**Signal Flow:**
-1. Docker sends `SIGTERM` to Tini (PID 1)
-2. Tini forwards signal to entrypoint script
-3. Entrypoint trap triggers `cleanup_and_exit()` function
-4. Stop log tail process first (non-blocking)
-5. Send `SIGTERM` to Tor process
-6. Wait for Tor to exit cleanly
-7. Log success message and exit
+| Boundary | Responsibility |
+| --- | --- |
+| 🔧 Tini | PID 1 signal forwarding and child reaping |
+| 🚀 Entrypoint | Exact Tor PID, notice stream and bounded wait |
+| 🐳 Docker / Compose | Stop grace period longer than the entrypoint timeout |
+| 🔎 Operator | Verify stopped state before snapshot or activation of a restored identity |
 
-**Timeout:** Docker waits 10 seconds (default) before sending `SIGKILL`.
+Use a Docker/Compose stop grace period longer than `TOR_SHUTDOWN_TIMEOUT`. Docker's default stop timeout can cut the graceful wait short. Backup uses an explicit 45-second default Docker stop timeout.
 
-**Code Reference:** `docker-entrypoint.sh` lines 51-74 (signal handler)
+**Code Reference:** `docker-entrypoint.sh` — configuration ownership, compatibility aliases and process lifecycle.
 
 ---
 
-## Build Process
+<a id="build-process"></a>
+
+## 🏗️ Build Process
+
+The native Go builder cross-compiles Lyrebird using a pinned source revision and independent module lock. No build tools or vulnerability scanner are copied into the runtime.
 
 ```mermaid
 flowchart LR
-    subgraph Source["📁 Source Files"]
-        Dockerfile[📄 Dockerfile]
-        Scripts[🧾 Scripts]
-        Tools[🛠️ Diagnostic Tools]
+    subgraph Source["📁 Reviewed inputs"]
+        Pin["🧅 Lyrebird source SHA"]
+        Lock["🔒 Independent go.mod / go.sum"]
+        Go["🐹 Go 1.27.2 builder digest"]
+        Files["📜 POSIX libraries and tools"]
     end
-
-    subgraph Build["🏗️ Docker Build"]
-        Alpine[🐧 Alpine 3.24.1]
-        Install[📦 apk add packages]
-        Copy[📥 Copy scripts and tools]
-        Perms[🔒 Set permissions]
-        User[👤 Switch to USER tor]
+    subgraph Build["🏗️ Candidate build"]
+        Native["🔨 Native builder / target cross-compile"]
+        Stable["🐧 Stable Alpine 3.24.2 digest"]
+        Edge["🧪 Alpine edge"]
+        Matrix["🌍 Stable / edge × AMD64 / ARM64"]
     end
-
-    subgraph CI["⚙️ CI/CD (GitHub Actions)"]
-        Trigger{🚀 Trigger Type?}
-        Trigger -->|Weekly| Weekly[📆 Rebuild latest tag]
-        Trigger -->|Git Tag| Release[🏷️ New release build]
-        Trigger -->|Manual| Manual[🖐 workflow_dispatch]
-
-        Weekly --> MultiArch[🌍 Multi-arch build]
-        Release --> MultiArch
-        Manual --> MultiArch
-
-        MultiArch --> Push[📤 Push to registries]
-        Release --> GHRelease[📦 Create GitHub Release]
+    subgraph Gates["🛡️ Current reviewed policy"]
+        Behavior["🧪 Offline behavior and component floors"]
+        GoScan["🔎 Matching transport bytes and Go reachability"]
+        ImageScan["🔐 Full vulnerability / secret scan"]
+        Evidence["📦 Image archive, ID, checksum and SBOM"]
     end
-
-    Source --> Build
-    Build --> Image[🧱 Container Image]
-    Image --> CI
-
-    style Image fill:#fff59d
-    style Push fill:#b2fab4
-    style GHRelease fill:#b2fab4
+    subgraph Promotion["🚀 Publication after all gates"]
+        Load["📥 Load verified candidate archives"]
+        Push["🐳 Push candidate digests to both registries"]
+        Manifest["🏷️ Assemble version and alias manifests"]
+        Notes["📝 Curated notes and full evidence"]
+    end
+    Pin --> Native
+    Lock --> Native
+    Go --> Native
+    Native --> Matrix
+    Stable --> Matrix
+    Edge --> Matrix
+    Files --> Matrix
+    Matrix --> Behavior --> GoScan --> ImageScan --> Evidence
+    Evidence --> Load --> Push --> Manifest --> Notes
+    style Evidence fill:#e1bee7,stroke:#7b1fa2
+    style Manifest fill:#b2fab4,stroke:#388e3c
+    style Behavior fill:#90caf9,stroke:#1976d2
+    style ImageScan fill:#fff59d,stroke:#f57f17
 ```
 
-**Weekly Rebuild Strategy:**
-- Rebuilds use the **same version tag** as the last release (e.g., `1.1.8`)
-- Overwrites existing image with fresh Alpine packages (security updates)
-- No `-weekly` suffix needed - just updated packages
-- `:latest` always points to most recent release version
+### 📆 Rebuild and source policy
 
-**Code Location:** `.github/workflows/release.yml`
+- Tags select their exact reviewed source commit; schedules select the latest stable release tag.
+- Security policy and scanner come from current reviewed main, separately from tagged source/lock/toolchain.
+- Every candidate must pass before any promotion. Promotion loads those same images and verifies IDs/checksums; it never rebuilds.
+- A source or Go-lock change requires a new reviewed release tag before schedules can ship it.
+- Release jobs check out trusted main, validate both full commit SHAs against reviewed main ancestry, then materialize separate immutable source and policy worktrees. Publication credentials exist only in promotion; checkout credentials are not retained.
+- Registry inventory is read-only and preserves rollback references for manual retention review.
+
+**Code Location:** `.github/workflows/release.yml`, `build/lyrebird/`, `scripts/testing/`.
 
 ---
 
-## Health Check
+<a id="health-check"></a>
 
-Docker `HEALTHCHECK` runs every 10 minutes:
+## 🩺 Health Check
+
+Docker health checks liveness and active configuration. Current-run bootstrap readiness and external reachability remain separate observations.
 
 ```mermaid
 flowchart TD
-    Start([⏱️ Health Check Timer]) -->|Every 10 min| Script["usr/local/bin/healthcheck.sh"]
-
-    Script --> Check1{🌀 Tor process running?}
-    Check1 -->|No| Unhealthy1[❌ Exit 1: UNHEALTHY]
-    Check1 -->|Yes| Check2{📄 Config file exists?}
-
-    Check2 -->|No| Unhealthy2[❌ Exit 1: No config]
-    Check2 -->|Yes| Check3{🔍 Config readable?}
-
-    Check3 -->|No| Unhealthy3[❌ Exit 1: Unreadable config]
-    Check3 -->|Yes| Check4{📈 Bootstrap ≥ 75%?}
-
-    Check4 -->|Unknown| Healthy2[⚪ Exit 0: Can't determine]
-    Check4 -->|No| Unhealthy4[⚠️ Exit 1: Bootstrap stuck]
-    Check4 -->|Yes| Healthy1[✅ Exit 0: HEALTHY]
-
-    Healthy1 --> Status([🟢 Container: healthy])
-    Healthy2 --> Status
-    Unhealthy1 --> Status2([🔴 Container: unhealthy])
-    Unhealthy2 --> Status2
-    Unhealthy3 --> Status2
-    Unhealthy4 --> Status2
-
-    style Healthy1 fill:#b2fab4
-    style Healthy2 fill:#b2fab4
-
-    style Unhealthy1 fill:#ffcdd2
-    style Unhealthy2 fill:#ffcdd2
-    style Unhealthy3 fill:#ffcdd2
-    style Unhealthy4 fill:#ffcdd2
+    Timer(["⏱️ Every 10 minutes"]) --> Inspect["🔎 Shared runtime inspection"]
+    Inspect --> Process{"🧅 Exactly one live Tor process?"}
+    Process -->|No| Down["❌ Docker unhealthy; process reason"]
+    Process -->|Yes| Config{"📄 Active config valid?"}
+    Config -->|No| Invalid["❌ Docker unhealthy; config_invalid"]
+    Config -->|Yes| Healthy["✅ Docker healthy: live + valid config"]
+    Healthy --> Fresh{"📜 Launch boundary and log identity match?"}
+    Fresh -->|No| Missing["⚠️ Missing/stale observation; readiness false"]
+    Fresh -->|Yes| Bootstrap{"📈 Current-run bootstrap = 100%?"}
+    Bootstrap -->|No| Pending["⏳ bootstrap_pending; readiness false"]
+    Bootstrap -->|Yes| Ready["🟢 readiness true"]
+    Ready --> External["🌐 Verify public reachability separately"]
+    style Healthy fill:#b2fab4,stroke:#388e3c
+    style Ready fill:#b2fab4,stroke:#388e3c
+    style Down fill:#ffcdd2,stroke:#c62828
+    style Invalid fill:#ffcdd2,stroke:#c62828
+    style Missing fill:#fff59d,stroke:#f57f17
+    style Pending fill:#90caf9,stroke:#1976d2
 ```
 
-**Health Check Configuration:**
-- **Interval:** 10 minutes
-- **Timeout:** 15 seconds
-- **Start Period:** 30 seconds (grace period for bootstrap)
-- **Retries:** 3 consecutive failures = unhealthy
+| Docker setting | Value |
+| --- | --- |
+| ⏱️ Interval | 10 minutes |
+| ⌛ Timeout | 15 seconds |
+| 🌱 Start period | 30 seconds |
+| 🔁 Retries | 3 |
 
-**Code Location:** `healthcheck.sh`, called by Dockerfile `HEALTHCHECK` directive
+`health` exposes `liveness`, `config_valid`, `readiness`, `fresh` and `reason`. The entrypoint records PID, process start time, log inode and byte offset in `/run/tor/relay.state`. Old log lines cannot mark a restarted relay ready; rotation invalidates the recorded observation boundary. A custom mounted configuration must keep notice logging at the expected path for readiness evidence.
+
+**Code Location:** `healthcheck.sh`, `lib/runtime.sh`, `tools/health`, `tools/doctor`.
 
 ---
 
-## References
+## 🔐 Encrypted recovery boundary
+
+```mermaid
+flowchart TD
+    Source["🧅 Source identity + active torrc/includes"] --> Stop["⏸️ Stop all writers and confirm PID zero"]
+    Stop --> Stream["📦 Stream full state with integrity manifest"]
+    Stream --> Encrypt["🔐 Compress directly into age ciphertext"]
+    Encrypt --> Restart["▶️ Restart only a source stopped by this command"]
+    Encrypt --> Verify["✅ Authenticate every member and hash"]
+    Verify --> Stage["📁 Restore into a new staging directory"]
+    Stage --> Offline["🧪 Network-disabled config/include validation"]
+    Offline --> Compare["🆔 Compare fingerprint and prepare mounts/ownership"]
+    Compare --> Activate["👤 Explicit operator activation; one identity writer"]
+    style Encrypt fill:#e1bee7,stroke:#7b1fa2
+    style Verify fill:#b2fab4,stroke:#388e3c
+    style Stage fill:#90caf9,stroke:#1976d2
+    style Activate fill:#fff59d,stroke:#f57f17
+```
+
+Backup and inventory run on the host. Python 3.10+ and age are not runtime dependencies. The backup command never writes a plaintext archive, rejects unsupported includes/links and shared running-container writers, and verifies before staged extraction. External master keys and host writers require operator handling. See [encrypted recovery](BACKUP.md).
+
+<a id="independent-security-updates"></a>
+
+## 🛡️ Independent security updates
+
+```mermaid
+flowchart TD
+    Upstream["🧅 Upstream Lyrebird commit"] --> PinPR["🔀 Reviewed source-pin PR"]
+    Advisory["🚨 Go / toolchain / base advisory"] --> FixPR["🔀 Independent compatible fix PR"]
+    PinPR --> Checks["🧪 Full candidate matrix"]
+    FixPR --> Checks
+    Checks --> Tag["🏷️ New reviewed release tag"]
+    Tag --> Promote["🚀 Verified image publication"]
+    Promote --> Recreate["👤 Operator recreates and verifies relay"]
+    Watch["🔎 Six-hour read-only security watch"] --> SourceScan["🐹 Current source: both architectures"]
+    Watch --> Published["🐳 Published stable/edge digests: both registries"]
+    SourceScan --> Findings["📋 Full reports and failure diagnostics"]
+    Published --> Findings
+    Findings --> Triage["👤 Expedited assessment, patch or mitigation"]
+    Triage --> FixPR
+    style Watch fill:#90caf9,stroke:#1976d2
+    style Findings fill:#e1bee7,stroke:#7b1fa2
+    style Tag fill:#b2fab4,stroke:#388e3c
+    style Triage fill:#fff59d,stroke:#f57f17
+```
+
+Renovate tracks all four source/metadata pins and direct/indirect module updates. Source and Go changes require review. OSV automatic alerts cover direct dependencies only; scans and maintainer triage cover other findings. HIGH/CRITICAL image vulnerabilities, secrets and known reachable Go findings block release even without a fix. Static reachability and advisory ingestion have limits, and hosted schedules can be delayed. Monitoring never patches a running relay.
+
+<a id="references"></a>
+
+## 📚 References
 
 ### Key Files
 
-| File | Purpose | Lines of Code |
+| File | Purpose | Location |
 |------|---------|---------------|
-| `Dockerfile` | Container build | 117 |
-| `docker-entrypoint.sh` | Initialization & startup | 478 |
-| `healthcheck.sh` | Docker health check | ~50 |
-| `tools/status` | Human-readable status | ~150 |
-| `tools/health` | JSON health API | ~100 |
-| `tools/fingerprint` | Show relay identity | ~50 |
-| `tools/bridge-line` | Generate bridge line | ~80 |
-| `tools/gen-auth` | Generate Control Port auth | ~30 |
-| `tools/gen-family` | Happy Family key management | ~180 |
+| `Dockerfile` | Container build | Source functions; no fragile line-count reference |
+| `docker-entrypoint.sh` | Initialization & startup | Source functions; no fragile line-count reference |
+| `healthcheck.sh` | Docker health check | Source functions; no fragile line-count reference |
+| `tools/status` | Human-readable status | Source functions; no fragile line-count reference |
+| `tools/health` | JSON health API | Source functions; no fragile line-count reference |
+| `tools/fingerprint` | Show relay identity | Source functions; no fragile line-count reference |
+| `tools/bridge-line` | Generate bridge line | Source functions; no fragile line-count reference |
+| `tools/gen-auth` | Generate Control Port auth | Source functions; no fragile line-count reference |
+| `tools/gen-family` | Happy Family key management | Source functions; no fragile line-count reference |
 
 ### External Documentation
 
 - [Tor Project Manual](https://2019.www.torproject.org/docs/tor-manual.html.en) - Complete torrc reference
 - [Alpine Linux](https://alpinelinux.org/) - Base image documentation
-- [Lyrebird](https://gitlab.com/yawning/lyrebird) - obfs4 pluggable transport
+- [Lyrebird](https://gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/lyrebird) - obfs4 pluggable transport
 - [Tini](https://github.com/krallin/tini) - Init system for containers
 
 ---
 <div align="center">
 
-**Document Version:** 1.1.1 • **Last Updated:** 2026-07-22 • **Container Version:** v2.1.0
+**Document Version:** 2.2.0 • **Last Updated:** 2026-10-09 • **Container Version:** v2.2.0
 
 </div>

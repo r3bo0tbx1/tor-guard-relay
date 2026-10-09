@@ -1,8 +1,51 @@
 # 🚀 Deployment Guide - Tor Guard Relay
 
+[Documentation](README.md) · [Release notes](releases/v2.2.0.md)
+
+<a id="configuration-ownership"></a>
+
+## 🧩 Configuration ownership
+
+Generated ENV configuration is validated before atomic publication and regenerated at each start. A mounted torrc is authoritative; ENV does not overwrite it. Set `TOR_CONFIG` for a custom path or pass an explicit `tor -f PATH` command. `TOR_CONFIG_SOURCE=mounted|environment|auto` makes ownership explicit; auto is the default.
+
+Keep data persistent at the effective DataDirectory and arrange UID 100/GID 101 ownership. Never remove keys to repair a configuration error. Use [encrypted recovery](BACKUP.md) before changing mounts, ownership or image.
+
+For local Docker Desktop tests use isolated network-disabled fixtures from [Local testing](LOCAL-TESTING.md). Production host networking examples below target Linux hosts with deliberate public listeners.
+
+<a id="accounting-and-ipv6-env-options"></a>
+
+## 🌐 Accounting and IPv6 ENV options
+
+| Variable | Tor directive |
+| --- | --- |
+| `TOR_ACCOUNTING_MAX` | AccountingMax |
+| `TOR_ACCOUNTING_START` | AccountingStart |
+| `TOR_ORPORT_IPV6` | Additional ORPort, including an explicit IPv6 address/listener |
+| `TOR_EXIT_POLICY_IPV6` | Additional ExitPolicy |
+| `TOR_ADDRESS_DISABLE_IPV6` | AddressDisableIPv6 |
+| `TOR_IPV6_EXIT` | IPv6Exit |
+
+Tor validates these values. Defaults retain existing IPv4 behavior. Test listeners, provider IPv6 routing and policy separately. Read [Tools](TOOLS.md) for validate, redacted diff, atomic apply and reload behavior.
+
 Complete deployment instructions for guard, exit, and bridge relays across various hosting environments.
 
 ---
+
+<a id="bind-mount-ownership"></a>
+
+## 📁 Bind mount ownership
+
+On Linux, the runtime uses UID **100** and GID **101**. Named volumes and bind mounts must allow that identity to read configuration and write the effective DataDirectory. Keep private keys and state together across image upgrades.
+
+```bash
+# Inspect the exact directory selected in your deployment; do not print private files.
+ls -ldn /srv/tor/data /srv/tor/logs
+docker inspect tor-relay --format '{{json .Mounts}}'
+```
+
+For a new deployment, create its directories with the required ownership and restrictive permissions. Before changing ownership on existing relay storage, stop every writer, make and verify an [encrypted backup](BACKUP.md), and rehearse recovery. Never erase keys or restore over live storage to solve a permission error.
+
+Docker Desktop on Windows does not provide the same Unix permission guarantees for Windows bind paths. Use Linux storage in WSL for permission-sensitive recovery work, and validate your actual mounts before activation.
 
 ## Table of Contents
 
@@ -91,7 +134,7 @@ docker ps | grep tor-relay
 # Check logs and bootstrap progress
 docker logs -f tor-relay
 
-# Run built-in tools (7 available)
+# Run built-in tools (see the Tools guide)
 docker exec tor-relay status         # Full health report with emojis
 docker exec tor-relay health         # JSON health data
 docker exec tor-relay refresh        # Validate and reload torrc without restart
@@ -402,13 +445,13 @@ docker run -d \
   r3bo0tbx1/onion-relay:latest
 
 # Get bridge line for sharing
-docker exec tor-bridge bridge-line
+docker exec tor-bridge bridge-line --address 203.0.113.42
 ```
 
 **Templates:**
-- Guard: [docker-compose-guard-env.yml](../templates/docker-compose-guard-env.yml)
-- Exit: [docker-compose-exit.yml](../templates/docker-compose-exit.yml)
-- Bridge: [docker-compose-bridge.yml](../templates/docker-compose-bridge.yml)
+- Guard: [docker-compose-guard-env.yml](../templates/docker-compose/docker-compose-guard-env.yml)
+- Exit: [docker-compose-exit.yml](../templates/docker-compose/docker-compose-exit.yml)
+- Bridge: [docker-compose-bridge.yml](../templates/docker-compose/docker-compose-bridge.yml)
 
 ---
 
@@ -527,7 +570,7 @@ docker exec tor-relay refresh
 docker exec tor-relay fingerprint
 
 # Get bridge line (bridge mode only)
-docker exec tor-relay bridge-line
+docker exec tor-relay bridge-line --address 203.0.113.42
 ```
 
 **Expected output from `status`:**
@@ -799,7 +842,7 @@ Choose providers with <1% consensus weight for better network health.
 - **TekSavvy** (Canada): Server-friendly, supports Tor
 - **MonkeyBrains** (US): Allows Tor but colocation only
 
-**Recommendation**: 
+**Recommendation**:
 - ✅ **Bridges**: Safe for home networks (won't be publicly listed)
 - ⚠️ **Guard/Middle relays**: Check ISP TOS first, use VPS if uncertain
 - ❌ **Exit nodes**: Never on residential - use VPS with clear exit policy
@@ -970,7 +1013,7 @@ After successful deployment:
 ## Support
 
 - 📖 [Main README](../README.md)
-- 🔧 [Tools Documentation](TOOLS.md) - Complete guide to the 7 built-in tools
+- 🔧 [Tools Documentation](TOOLS.md) - Complete guide to the 9 built-in tools
 - 📊 [Monitoring Guide](MONITORING.md) - External monitoring integration
 - 🐛 [Report Issues](https://github.com/r3bo0tbx1/tor-guard-relay/issues)
 - 💬 [Tor Project Forum](https://forum.torproject.net/)
