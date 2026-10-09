@@ -14,6 +14,7 @@ Current source: <!-- RELAY_VERSION -->v2.2.0<!-- /RELAY_VERSION -->. Historical 
 - Update the independently maintained Go lock to `klauspost/compress` 1.18.7 for GO-2026-5841; retain module/reachability evidence separately from severity labels.
 - Validate all architecture/variant candidates before promotion and retain SBOM and scan evidence.
 - Verify full source and policy commit ancestry from trusted main before preparing separate release worktrees; retain no checkout credentials.
+- Authenticate the complete Go module graph before read-only transport builds so reviewed Renovate updates with partial checksums can build. Reject changes to the reviewed go.mod and disable automatic toolchain switching.
 
 ### 🛠️ Operator changes
 
@@ -23,6 +24,7 @@ Current source: <!-- RELAY_VERSION -->v2.2.0<!-- /RELAY_VERSION -->. Historical 
 - Preserve the README's branding, badges and screenshot gallery; restore detailed guides and 15 rendered Mermaid architecture diagrams, including recovery and security-update flows.
 - Restore emoji workflow labels and add job outcome summaries while preserving required PR check names and blocking gates.
 - Handle missing startup metadata as a retryable recovery-fixture error without bypassing archive validation.
+- Show the published version, exact scanned image, blocking advisories and reported fixes in Security watch summaries; keep alerts failing until affected published images are replaced or findings are otherwise resolved.
 
 ### 💥 Compatibility and migration
 
