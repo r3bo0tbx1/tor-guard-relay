@@ -1,84 +1,26 @@
-name: 🗑️🧹
-
+name: Registry retention review
 on:
-  workflow_call:
-    secrets:
-      DOCKERHUB_USERNAME:
-        required: true
-      DOCKERHUB_TOKEN:
-        required: true
-  schedule:
-    - cron: '0 0 * * 0'
   workflow_dispatch:
-
 permissions:
-  actions: write
-  packages: write
-
+  contents: read
+  packages: read
+  actions: read
 jobs:
-  clear-cache:
-    name: 💥 Nuke Caches
+  inventory:
     runs-on: ubuntu-latest
     steps:
-      - name: 💥 Nuke GitHub Actions Cache
+      - name: List registry versions for manual retention review
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OWNER: ${{ github.repository_owner }}
         run: |
-          echo "🔍 meaningful-text: check for caches..."
-          gh cache delete --all --repo ${{ github.repository }} || true
-          echo "✅ Cache storage is now empty."
-
-  prune-ghcr:
-    name: 🧊 Prune GHCR
-    runs-on: ubuntu-latest
-    steps:
-      - name: 🗑️ Delete old GHCR versions
-        uses: actions/delete-package-versions@v5
+          set -euo pipefail
+          gh api --paginate "users/$OWNER/packages/container/onion-relay/versions" > ghcr-versions.json
+          curl --fail --silent --show-error "https://hub.docker.com/v2/repositories/r3bo0tbx1/onion-relay/tags/?page_size=100" > dockerhub-tags.json
+          echo "Read-only inventory. Preserve current aliases, version manifests, their architecture digests and the verified rollback set before any manual deletion."
+      - uses: actions/upload-artifact@v7.0.2
         with:
-          package-name: 'onion-relay'
-          package-type: 'container'
-          min-versions-to-keep: 14
-          ignore-versions: '^(latest|edge)$'
-          delete-only-untagged-versions: 'false'
-
-  prune-dockerhub:
-    name: 🐋 Prune Docker Hub
-    runs-on: ubuntu-latest
-    steps:
-      - name: 🪄 Clean Docker Hub Tags
-        env:
-          DOCKER_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-          DOCKER_PASSWORD: ${{ secrets.DOCKERHUB_TOKEN }}
-          REPOSITORY: "r3bo0tbx1/onion-relay"
-        run: |
-          set -e
-          echo "🔑 Authenticating with Docker Hub..."
-          TOKEN=$(curl -s -H "Content-Type: application/json" -X POST \
-            -d "{\"username\": \"$DOCKER_USERNAME\", \"password\": \"$DOCKER_PASSWORD\"}" \
-            https://hub.docker.com/v2/users/login/ | jq -r .token)
-
-          if [ "$TOKEN" == "null" ] || [ -z "$TOKEN" ]; then
-            echo "❌ Authentication failed. Check DOCKERHUB_TOKEN."
-            exit 1
-          fi
-
-          echo "🔍 Fetching tags for $REPOSITORY..."
-          ALL_TAGS=$(curl -s -H "Authorization: JWT $TOKEN" \
-            "https://hub.docker.com/v2/repositories/$REPOSITORY/tags/?page_size=100")
-
-          VERSION_TAGS=$(echo "$ALL_TAGS" | jq -r '.results | sort_by(.last_updated) | reverse | .[].name' | grep -E -v "^(latest|edge)$" || true)
-
-          COUNT=$(echo "$VERSION_TAGS" | wc -w)
-          echo "📊 Found $COUNT versioned tags."
-
-          if [ "$COUNT" -gt 14 ]; then
-            OLD_TAGS=$(echo "$VERSION_TAGS" | awk 'NR>14')
-            for TAG in $OLD_TAGS; do
-              echo "🗑️ Deleting old versioned tag: $TAG"
-              curl -s -H "Authorization: JWT $TOKEN" -X DELETE \
-                "https://hub.docker.com/v2/repositories/$REPOSITORY/tags/$TAG/"
-            done
-            echo "✅ Docker Hub cleanup complete."
-          else
-            echo "✨ Current version count ($COUNT) is within the limit. No deletion needed."
-          fi
+          name: registry-retention-review
+          path: |
+            ghcr-versions.json
+            dockerhub-tags.json

@@ -235,9 +235,9 @@ EOF
 
   log ""
   log "🔑 Checking for generated keys..."
-  BRIDGE_KEYS=$(docker run --rm -v "${BRIDGE_VOLUME}:/data" alpine:3.22.2 \
+  BRIDGE_KEYS=$(docker run --rm -v "${BRIDGE_VOLUME}:/data" alpine:3.24.2 \
     sh -c "test -d /data/keys && ls -1 /data/keys 2>/dev/null | wc -l || echo 0")
-  GUARD_KEYS=$(docker run --rm -v "${GUARD_DATA_VOLUME}:/data" alpine:3.22.2 \
+  GUARD_KEYS=$(docker run --rm -v "${GUARD_DATA_VOLUME}:/data" alpine:3.24.2 \
     sh -c "test -d /data/keys && ls -1 /data/keys 2>/dev/null | wc -l || echo 0")
 
   if [[ "$BRIDGE_KEYS" -gt 0 ]]; then

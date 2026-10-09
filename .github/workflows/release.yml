@@ -1,672 +1,248 @@
 name: 🚀✨
-
 on:
   push:
-    tags:
-      - 'v*.*.*'
+    tags: ['v*.*.*']
   workflow_dispatch:
     inputs:
-      build_mode:
-        description: 'Build mode'
-        required: true
-        default: 'rebuild'
-        type: choice
-        options:
-          - rebuild
-          - version_bump
-      variants:
-        description: 'Which variants to build'
-        required: true
-        default: 'both'
-        type: choice
-        options:
-          - both
-          - latest
-          - edge
-      release_type:
-        description: 'Release type (only for version_bump mode)'
-        required: false
-        default: 'patch'
-        type: choice
-        options:
-          - major
-          - minor
-          - patch
+      source_tag:
+        description: 'Existing release tag to rebuild (empty = latest stable tag)'
+        default: ''
+        type: string
+      publish:
+        description: 'Publish validated candidates'
+        default: false
+        type: boolean
   schedule:
     - cron: '30 18 * * 0'
     - cron: '0 12 */3 * *'
-
 permissions:
   contents: read
-
-env:
-  GHCR_REGISTRY: ghcr.io
-  GHCR_IMAGE_NAME: ${{ github.repository_owner }}/onion-relay
-  DOCKERHUB_IMAGE_NAME: r3bo0tbx1/onion-relay
-
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 jobs:
-  determine-version:
-    name: 🏷️ Determine Version and Build Type
+  source:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
     outputs:
-      version: ${{ steps.version.outputs.version }}
-      build_type: ${{ steps.version.outputs.build_type }}
-      is_release: ${{ steps.version.outputs.is_release }}
-      build_date: ${{ steps.version.outputs.build_date }}
-      short_sha: ${{ steps.version.outputs.short_sha }}
-      build_variants: ${{ steps.version.outputs.build_variants }}
-      source_ref: ${{ steps.version.outputs.source_ref }}
-
+      sha: ${{ steps.source.outputs.sha }}
+      version: ${{ steps.source.outputs.version }}
+      publish: ${{ steps.source.outputs.publish }}
+      release: ${{ steps.source.outputs.release }}
+      build_date: ${{ steps.source.outputs.build_date }}
     steps:
-      - name: 📥 Checkout Repository
-        uses: actions/checkout@v7
+      - uses: actions/checkout@v7.0.1
         with:
           fetch-depth: 0
-
-      - name: 🏷️ Fetch All Tags
-        run: git fetch --tags --force
-
-      - name: 🔍 Detect Version and Build Type
-        id: version
+      - id: source
+        env:
+          EVENT: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref_name }}
+          INPUT_TAG: ${{ inputs.source_tag }}
+          INPUT_PUBLISH: ${{ inputs.publish }}
         run: |
-          set -e
-          echo "🔍 Determining version context..."
-          BUILD_VARIANTS="both"
-          SOURCE_REF="${GITHUB_SHA}"
-
-          latest_semver_tag() {
-            git tag --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1 || echo "v1.0.0"
-          }
-
-          if [[ "${GITHUB_EVENT_NAME}" == "push" ]]; then
-            TAG_NAME="${GITHUB_REF_NAME}"
-            if [[ ! "${TAG_NAME}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-              echo "❌ Invalid release tag: ${TAG_NAME}"
-              exit 1
-            fi
-
-            VERSION="${TAG_NAME#v}"
-            BUILD_TYPE="release"
-            IS_RELEASE="true"
-            BUILD_VARIANTS="both"
-            SOURCE_REF=$(git rev-parse "${GITHUB_REF}^{commit}")
-            echo "🏷️ Release tag detected: ${TAG_NAME}"
-          elif [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
-            BUILD_MODE="${{ github.event.inputs.build_mode }}"
-            BUILD_VARIANTS="${{ github.event.inputs.variants }}"
-            BUILD_MODE="${BUILD_MODE:-rebuild}"
-            BUILD_VARIANTS="${BUILD_VARIANTS:-both}"
-            LATEST_TAG=$(latest_semver_tag)
-
-            if [[ "${BUILD_MODE}" == "rebuild" ]]; then
-              VERSION="${LATEST_TAG#v}"
-              BUILD_TYPE="manual-rebuild"
-              IS_RELEASE="false"
-              SOURCE_REF="${LATEST_TAG}"
-              echo "🔄 Manual rebuild of last release: ${VERSION} (with updated packages)"
-              echo "   Variants: ${BUILD_VARIANTS}"
-            else
-              VERSION="${LATEST_TAG#v}-manual-${GITHUB_RUN_NUMBER}"
-              BUILD_TYPE="manual"
-              IS_RELEASE="false"
-              echo "👤 Manual build version: ${VERSION}"
-              echo "   Variants: ${BUILD_VARIANTS}"
-            fi
-          elif [[ "${GITHUB_EVENT_NAME}" == "schedule" ]]; then
-            LATEST_TAG=$(latest_semver_tag)
-            VERSION="${LATEST_TAG#v}"
-            IS_RELEASE="false"
-            SOURCE_REF="${LATEST_TAG}"
-
-            SCHEDULE_EXPR="${{ github.event.schedule }}"
-            if [[ "${SCHEDULE_EXPR}" == "30 18 * * 0" ]]; then
-              BUILD_TYPE="weekly"
-              BUILD_VARIANTS="latest"
-              echo "📅 Weekly rebuild of last release: ${VERSION} (stable variant with updated packages)"
-            elif [[ "${SCHEDULE_EXPR}" == "0 12 */3 * *" ]]; then
-              BUILD_TYPE="edge-rebuild"
-              BUILD_VARIANTS="edge"
-              echo "⚡ Edge-only rebuild of last release: ${VERSION} (edge variant with updated packages)"
-            else
-              echo "⚠️ Unknown schedule expression: ${SCHEDULE_EXPR}; defaulting to edge rebuild"
-              BUILD_TYPE="edge-rebuild"
-              BUILD_VARIANTS="edge"
-            fi
+          set -euo pipefail
+          publish=false
+          release=false
+          if [ "$EVENT" = push ]; then
+            tag="$REF_NAME"
+            publish=true
+            release=true
           else
-            LATEST_TAG=$(latest_semver_tag)
-            VERSION="${LATEST_TAG#v}"
-            BUILD_TYPE="unknown"
-            IS_RELEASE="false"
-            BUILD_VARIANTS="both"
-            echo "⚠️ Unknown trigger: ${VERSION}"
+            tag="$INPUT_TAG"
+            if [ -z "$tag" ]; then
+              tag=$(git tag --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -n 1)
+            fi
+            if [ "$EVENT" = schedule ] || [ "$INPUT_PUBLISH" = true ]; then publish=true; fi
           fi
-
-          SOURCE_REF=$(git rev-parse "${SOURCE_REF}^{commit}")
-          git fetch --no-tags origin '+refs/heads/main:refs/remotes/origin/main'
-          if ! git merge-base --is-ancestor "${SOURCE_REF}" refs/remotes/origin/main; then
-            echo "❌ Refusing to build: source commit ${SOURCE_REF} is not contained in main"
-            exit 1
-          fi
-
-          BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
-          SHORT_SHA=$(git rev-parse --short "${SOURCE_REF}")
+          [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          sha=$(git rev-parse "$tag^{commit}")
+          git merge-base --is-ancestor "$sha" origin/main
           {
-            echo "version=${VERSION}"
-            echo "build_type=${BUILD_TYPE}"
-            echo "is_release=${IS_RELEASE}"
-            echo "build_date=${BUILD_DATE}"
-            echo "short_sha=${SHORT_SHA}"
-            echo "build_variants=${BUILD_VARIANTS}"
-            echo "source_ref=${SOURCE_REF}"
+            echo "sha=$sha"
+            echo "version=${tag#v}"
+            echo "publish=$publish"
+            echo "release=$release"
+            echo "build_date=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           } >> "$GITHUB_OUTPUT"
 
-      - name: 📋 Version Information
-        run: |
-          echo "📦 Build Info:"
-          echo "  🏷️ Version: ${{ steps.version.outputs.version }}"
-          echo "  📝 Build Type: ${{ steps.version.outputs.build_type }}"
-          echo "  ✅ Release: ${{ steps.version.outputs.is_release }}"
-          echo "  📅 Date: ${{ steps.version.outputs.build_date }}"
-          echo "  🔑 SHA: ${{ steps.version.outputs.short_sha }}"
-          echo "  📌 Source: ${{ steps.version.outputs.source_ref }}"
-
-  release-cleanup:
-    name: 🧹 Clean Registries Before Release
-    needs: determine-version
-    if: needs.determine-version.outputs.is_release == 'true'
-    permissions:
-      actions: write
-      contents: read
-      packages: write
-    uses: ./.github/workflows/cleanup.yml
-    secrets:
-      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
-
-  build-and-push:
-    name: 🏗️ Multi-Arch Build and Push (${{ matrix.variant.name }})
+  source-validation:
+    needs: source
     runs-on: ubuntu-latest
-    needs: [determine-version, release-cleanup]
-    permissions:
-      contents: read
-      packages: write
-    if: |
-      always() &&
-      needs.determine-version.result == 'success' &&
-      (needs.release-cleanup.result == 'success' ||
-      needs.release-cleanup.result == 'skipped')
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ needs.source.outputs.sha }}
+      - run: sudo apt-get update && sudo apt-get install -y age shellcheck
+      - name: Validate selected release source
+        run: |
+          python3 scripts/release/check-versions.py
+          python3 scripts/testing/check-docs.py
+          python3 scripts/testing/check-templates.py
+          shellcheck -S warning -x docker-entrypoint.sh healthcheck.sh lib/*.sh tools/* scripts/utilities/relay-backup.sh scripts/utilities/relay-inventory.sh
+          python3 -m unittest discover -s tests -v
+
+  candidate:
+    needs: [source, source-validation]
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        variant:
-          - name: stable
-            dockerfile: Dockerfile
-            suffix: ""
-            is_latest: "true"
-            base: "Alpine 3.24.1"
-            push_dockerhub: "true"
-          - name: edge
-            dockerfile: Dockerfile.edge
-            suffix: "-edge"
-            is_latest: "false"
-            base: "Alpine edge"
-            push_dockerhub: "true"
-
+        variant: [stable, edge]
+        arch: [amd64, arm64]
     steps:
-      - name: 📥 Checkout Repository
-        uses: actions/checkout@v7
+      - uses: actions/checkout@v7.0.1
         with:
-          ref: ${{ needs.determine-version.outputs.source_ref }}
-
-      - name: 🎯 Check if variant should be built
-        id: should_build
+          ref: ${{ needs.source.outputs.sha }}
+      - uses: docker/setup-qemu-action@v4.4.0
+      - uses: docker/setup-buildx-action@v4.4.1
+      - name: Validate source and templates
         run: |
-          BUILD_VARIANTS="${{ needs.determine-version.outputs.build_variants }}"
-          VARIANT_NAME="${{ matrix.variant.name }}"
-
-          SHOULD_BUILD="false"
-
-          if [ "$BUILD_VARIANTS" = "both" ]; then
-            SHOULD_BUILD="true"
-          elif [ "$BUILD_VARIANTS" = "latest" ] && [ "$VARIANT_NAME" = "stable" ]; then
-            SHOULD_BUILD="true"
-          elif [ "$BUILD_VARIANTS" = "edge" ] && [ "$VARIANT_NAME" = "edge" ]; then
-            SHOULD_BUILD="true"
-          fi
-
-          echo "should_build=${SHOULD_BUILD}" >> "$GITHUB_OUTPUT"
-          echo "🔍 Variant: ${VARIANT_NAME}, Build Variants: ${BUILD_VARIANTS}, Should Build: ${SHOULD_BUILD}"
-
-      - name: 🎯 Verify Tools Directory
-        if: steps.should_build.outputs.should_build == 'true'
+          python3 scripts/release/check-versions.py
+          python3 scripts/testing/check-templates.py
+      - name: Build once into local candidate
+        uses: docker/build-push-action@v7.4.0
+        with:
+          context: .
+          file: ${{ matrix.variant == 'edge' && 'Dockerfile.edge' || 'Dockerfile' }}
+          platforms: linux/${{ matrix.arch }}
+          load: true
+          push: false
+          tags: relay-candidate:${{ matrix.variant }}-${{ matrix.arch }}
+          build-args: |
+            BUILD_VERSION=${{ needs.source.outputs.version }}
+            BUILD_DATE=${{ needs.source.outputs.build_date }}
+            SOURCE_REVISION=${{ needs.source.outputs.sha }}
+      - name: Offline behavioral acceptance
+        run: python3 scripts/testing/image-acceptance.py relay-candidate:${{ matrix.variant }}-${{ matrix.arch }} --platform linux/${{ matrix.arch }}
+      - name: Enforce component security floors
+        run: python3 scripts/testing/check-image.py relay-candidate:${{ matrix.variant }}-${{ matrix.arch }}
+      - name: Rehearse encrypted recovery with both storage layouts
+        if: matrix.variant == 'stable' && matrix.arch == 'amd64'
         run: |
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "📝 Pre-Build: Verifying Tools"
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo ""
-
-          if [ ! -d "tools" ]; then
-            echo "❌ tools/ directory not found"
-            exit 1
-          fi
-
-          TOOL_COUNT=0
-
-          for file in tools/*; do
-            [ -f "$file" ] || continue
-            filename=$(basename "$file")
-
-            if head -1 "$file" 2>/dev/null | grep -q "^#!/bin/sh"; then
-              echo "✅ $filename (busybox sh)"
-              TOOL_COUNT=$((TOOL_COUNT + 1))
-            fi
-          done
-
-          echo ""
-          if [ $TOOL_COUNT -lt 1 ]; then
-            echo "❌ Build blocked: No tools found in tools/"
-            exit 1
-          else
-            echo "🎉 Found $TOOL_COUNT diagnostic tools (busybox-only, no .sh extension)"
-          fi
-
-      - name: 🔧 Normalize scripts before build
-        if: steps.should_build.outputs.should_build == 'true'
+          sudo apt-get update && sudo apt-get install -y age
+          python3 scripts/testing/recovery-rehearsal.py --image relay-candidate:stable-amd64 --bind-parent "$RUNNER_TEMP"
+      - name: Scan exact candidate
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: relay-candidate:${{ matrix.variant }}-${{ matrix.arch }}
+          version: v0.75.0
+          format: json
+          output: trivy.json
+          scanners: vuln,secret
+          severity: UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL
+          ignore-unfixed: false
+          exit-code: '0'
+      - name: Enforce security policy without hiding advisory findings
+        run: python3 scripts/testing/check-security.py trivy.json
+      - name: Generate SBOMs from the exact candidate
+        env:
+          IMAGE: relay-candidate:${{ matrix.variant }}-${{ matrix.arch }}
         run: |
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "🔧 Normalizing Line Endings and Permissions"
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo ""
+          mkdir sbom
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v "$PWD/sbom:/reports" anchore/syft:v1.54.1 \
+            "docker:$IMAGE" -o spdx-json=/reports/sbom.spdx.json -o cyclonedx-json=/reports/sbom.cdx.json
+      - name: Export validated candidate and evidence
+        env:
+          IMAGE: relay-candidate:${{ matrix.variant }}-${{ matrix.arch }}
+        run: |
+          docker image inspect "$IMAGE" > image.json
+          docker save "$IMAGE" -o image.tar
+          sha256sum image.tar > image.tar.sha256
+      - uses: actions/upload-artifact@v7.0.2
+        with:
+          name: candidate-${{ matrix.variant }}-${{ matrix.arch }}
+          path: |
+            image.tar
+            image.tar.sha256
+            image.json
+            trivy.json
+            sbom/*.json
+          retention-days: 7
 
-          sudo apt-get update -qq && sudo apt-get install -y dos2unix
-
-          echo "📄 Processing main scripts..."
-          for script in docker-entrypoint.sh healthcheck.sh Dockerfile Dockerfile.edge; do
-            if [ -f "$script" ]; then
-              dos2unix "$script" 2>/dev/null || true
-              echo "   ✅ Normalized: $script"
-            fi
-          done
-
-          echo ""
-          echo "📁 Processing tools/*..."
-          if [ -d "tools" ]; then
-            find tools -type f -exec dos2unix {} \; 2>/dev/null || true
-            TOOL_COUNT=$(find tools -type f | wc -l)
-            echo "   ✅ Normalized: $TOOL_COUNT tool scripts"
-          fi
-
-          echo ""
-          echo "🔐 Setting execute permissions..."
-          chmod +x docker-entrypoint.sh healthcheck.sh 2>/dev/null || true
-          if [ -d "tools" ]; then
-            chmod +x tools/* 2>/dev/null || true
-          fi
-
-          echo "   ✅ Permissions verified"
-          echo ""
-          echo "🎉 Normalization complete"
-
-      - name: 🐳 Login to Docker Hub
-        if: steps.should_build.outputs.should_build == 'true' && matrix.variant.push_dockerhub == 'true'
-        uses: docker/login-action@v4
+  publish:
+    needs: [source, candidate]
+    if: needs.source.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/download-artifact@v8.0.2
+        with:
+          pattern: candidate-*
+          path: candidates
+      - uses: docker/setup-buildx-action@v4.4.1
+      - uses: docker/login-action@v4.6.0
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: 📦 Login to GitHub Container Registry
-        if: steps.should_build.outputs.should_build == 'true'
-        uses: docker/login-action@v4
+      - uses: docker/login-action@v4.6.0
         with:
-          registry: ${{ env.GHCR_REGISTRY }}
+          registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: 🖥️ Set up QEMU
-        if: steps.should_build.outputs.should_build == 'true'
-        uses: docker/setup-qemu-action@v4
-        with:
-          platforms: arm64,amd64
-
-      - name: 🔨 Set up Docker Buildx
-        if: steps.should_build.outputs.should_build == 'true'
-        uses: docker/setup-buildx-action@v4
-
-      - name: 🏷️ Generate Docker Tags
-        if: steps.should_build.outputs.should_build == 'true'
-        id: tags
-        run: |
-          VERSION="${{ needs.determine-version.outputs.version }}"
-          BUILD_TYPE="${{ needs.determine-version.outputs.build_type }}"
-          VARIANT_NAME="${{ matrix.variant.name }}"
-          SUFFIX="${{ matrix.variant.suffix }}"
-          IS_LATEST="${{ matrix.variant.is_latest }}"
-          PUSH_DOCKERHUB="${{ matrix.variant.push_dockerhub }}"
-
-          echo "🏷️ Generating tags for variant: ${VARIANT_NAME}"
-          echo "   Version: ${VERSION}${SUFFIX}"
-          echo "   Build Type: ${BUILD_TYPE}"
-          echo "   Is Latest: ${IS_LATEST}"
-          echo "   Push to Docker Hub: ${PUSH_DOCKERHUB}"
-          echo ""
-
-          TAGS=()
-
-          TAGS+=("${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION}${SUFFIX}")
-
-          if [ "$BUILD_TYPE" = "release" ]; then
-            if [ "$IS_LATEST" = "true" ]; then
-              TAGS+=("${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:latest")
-            else
-              TAGS+=("${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:edge")
-            fi
-
-            if [ "$PUSH_DOCKERHUB" = "true" ]; then
-              if [ "$IS_LATEST" = "true" ]; then
-                TAGS+=("${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}")
-                TAGS+=("${{ env.DOCKERHUB_IMAGE_NAME }}:latest")
-              else
-                TAGS+=("${{ env.DOCKERHUB_IMAGE_NAME }}:edge")
-              fi
-            fi
-          elif [ "$BUILD_TYPE" = "weekly" ] || [ "$BUILD_TYPE" = "manual-rebuild" ] || [ "$BUILD_TYPE" = "edge-rebuild" ]; then
-            if [ "$IS_LATEST" = "true" ]; then
-              TAGS+=("${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:latest")
-            else
-              TAGS+=("${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:edge")
-            fi
-
-            if [ "$PUSH_DOCKERHUB" = "true" ]; then
-              if [ "$IS_LATEST" = "true" ]; then
-                TAGS+=("${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}")
-                TAGS+=("${{ env.DOCKERHUB_IMAGE_NAME }}:latest")
-              else
-                TAGS+=("${{ env.DOCKERHUB_IMAGE_NAME }}:edge")
-              fi
-            fi
-          else
-            if [ "$PUSH_DOCKERHUB" = "true" ]; then
-              if [ "$IS_LATEST" = "true" ]; then
-                TAGS+=("${{ env.DOCKERHUB_IMAGE_NAME }}:${VERSION}")
-              else
-                TAGS+=("${{ env.DOCKERHUB_IMAGE_NAME }}:edge")
-              fi
-            fi
-          fi
-
-          TAGS_STR=$(IFS=','; echo "${TAGS[*]}")
-          echo "tags=${TAGS_STR}" >> "$GITHUB_OUTPUT"
-
-          echo "📋 Generated tags:"
-          for tag in "${TAGS[@]}"; do
-            echo "   - ${tag}"
-          done
-
-      - name: 🚀 Build and Push Multi-Arch Image
-        if: steps.should_build.outputs.should_build == 'true'
-        uses: docker/build-push-action@v7
-        with:
-          context: .
-          file: ./${{ matrix.variant.dockerfile }}
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: ${{ steps.tags.outputs.tags }}
-          build-args: |
-            BUILD_DATE=${{ needs.determine-version.outputs.build_date }}
-            BUILD_VERSION=${{ needs.determine-version.outputs.version }}
-          cache-from: type=gha,scope=${{ matrix.variant.name }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.variant.name }}
-          labels: |
-            org.opencontainers.image.title=Tor Guard Relay (${{ matrix.variant.name }})
-            org.opencontainers.image.description=Hardened Tor Guard Relay (${{ matrix.variant.base }})
-            org.opencontainers.image.version=${{ needs.determine-version.outputs.version }}${{ matrix.variant.suffix }}
-            org.opencontainers.image.created=${{ needs.determine-version.outputs.build_date }}
-            org.opencontainers.image.revision=${{ needs.determine-version.outputs.source_ref }}
-            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
-          sbom: true
-          provenance: true
-
-      - name: 📥 Install Verified Syft
-        if: steps.should_build.outputs.should_build == 'true' && needs.determine-version.outputs.is_release == 'true'
+      - name: Promote validated images without rebuilding
         env:
-          SYFT_VERSION: '1.44.0'
-          SYFT_SHA256: '0e91737aee2b5baf1d255b959630194a302335d848ff97bb07921eb6205b5f5a'
+          VERSION: ${{ needs.source.outputs.version }}
+          SOURCE: ${{ needs.source.outputs.sha }}
+          OWNER: ${{ github.repository_owner }}
         run: |
           set -euo pipefail
-          ARCHIVE="syft_${SYFT_VERSION}_linux_amd64.tar.gz"
-          DOWNLOAD_URL="https://github.com/anchore/syft/releases/download/v${SYFT_VERSION}/${ARCHIVE}"
-
-          curl --proto '=https' --tlsv1.2 -fsSLo "${RUNNER_TEMP}/${ARCHIVE}" "${DOWNLOAD_URL}"
-          echo "${SYFT_SHA256}  ${RUNNER_TEMP}/${ARCHIVE}" | sha256sum --check -
-          tar -xzf "${RUNNER_TEMP}/${ARCHIVE}" -C "${RUNNER_TEMP}" syft
-          sudo install -m 0755 "${RUNNER_TEMP}/syft" /usr/local/bin/syft
-          syft version
-
-      - name: 📋 Generate SBOM (CycloneDX & SPDX)
-        if: steps.should_build.outputs.should_build == 'true' && needs.determine-version.outputs.is_release == 'true'
-        run: |
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "📋 Generating Software Bill of Materials (SBOM)"
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo ""
-
-          VERSION="${{ needs.determine-version.outputs.version }}"
-          SUFFIX="${{ matrix.variant.suffix }}"
-          VARIANT="${{ matrix.variant.name }}"
-          IMAGE="${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}:${VERSION}${SUFFIX}"
-
-          echo "📦 Generating SBOM for ${VARIANT} variant"
-          echo "   Image: ${IMAGE}"
-          echo ""
-
-          echo "📄 Generating CycloneDX JSON format..."
-          syft "${IMAGE}" -o cyclonedx-json > "sbom-${VARIANT}-cyclonedx-v${VERSION}.json"
-          echo "   ✅ sbom-${VARIANT}-cyclonedx-v${VERSION}.json"
-
-          echo "📄 Generating CycloneDX XML format..."
-          syft "${IMAGE}" -o cyclonedx-xml > "sbom-${VARIANT}-cyclonedx-v${VERSION}.xml"
-          echo "   ✅ sbom-${VARIANT}-cyclonedx-v${VERSION}.xml"
-
-          echo "📄 Generating SPDX JSON format..."
-          syft "${IMAGE}" -o spdx-json > "sbom-${VARIANT}-spdx-v${VERSION}.json"
-          echo "   ✅ sbom-${VARIANT}-spdx-v${VERSION}.json"
-
-          echo "📄 Generating SPDX tag-value format..."
-          syft "${IMAGE}" -o spdx-tag-value > "sbom-${VARIANT}-spdx-v${VERSION}.spdx"
-          echo "   ✅ sbom-${VARIANT}-spdx-v${VERSION}.spdx"
-
-          echo "📄 Generating human-readable table..."
-          syft "${IMAGE}" -o table > "sbom-${VARIANT}-table-v${VERSION}.txt"
-          echo "   ✅ sbom-${VARIANT}-table-v${VERSION}.txt"
-
-          echo ""
-          echo "✅ SBOM generation complete for ${VARIANT} variant"
-          echo ""
-          echo "📊 Package Statistics:"
-          jq '.components | length' "sbom-${VARIANT}-cyclonedx-v${VERSION}.json" | xargs echo "   Total packages:"
-
-      - name: 📤 Upload SBOM Artifacts
-        if: steps.should_build.outputs.should_build == 'true' && needs.determine-version.outputs.is_release == 'true'
-        uses: actions/upload-artifact@v7
+          for variant in stable edge; do
+            suffix=""
+            alias=latest
+            if [ "$variant" = edge ]; then suffix=-edge; alias=edge; fi
+            for registry in "r3bo0tbx1/onion-relay" "ghcr.io/$OWNER/onion-relay"; do
+              references=()
+              for arch in amd64 arm64; do
+                directory="candidates/candidate-$variant-$arch"
+                (cd "$directory" && sha256sum -c image.tar.sha256)
+                docker load -i "$directory/image.tar"
+                local_image="relay-candidate:$variant-$arch"
+                expected=$(jq -r '.[0].Id' "$directory/image.json")
+                test "$(docker image inspect "$local_image" --format '{{.Id}}')" = "$expected"
+                stage="$registry:validated-${SOURCE:0:12}-$GITHUB_RUN_ID-$variant-$arch"
+                docker tag "$local_image" "$stage"
+                docker push "$stage"
+                digest=$(docker image inspect "$stage" --format '{{join .RepoDigests "\n"}}' | grep "^$registry@" | tail -n 1)
+                test -n "$digest"
+                references+=("$digest")
+              done
+              docker buildx imagetools create -t "$registry:$VERSION$suffix" -t "$registry:$alias" "${references[@]}"
+              docker buildx imagetools inspect "$registry:$VERSION$suffix" > "published-$variant-$(echo "$registry" | tr / _).txt"
+            done
+          done
+      - uses: actions/upload-artifact@v7.0.2
         with:
-          name: sbom-${{ matrix.variant.name }}-v${{ needs.determine-version.outputs.version }}
-          path: |
-            sbom-${{ matrix.variant.name }}-*.json
-            sbom-${{ matrix.variant.name }}-*.xml
-            sbom-${{ matrix.variant.name }}-*.spdx
-            sbom-${{ matrix.variant.name }}-*.txt
-          retention-days: 7
+          name: published-manifests
+          path: published-*.txt
 
-  release-notes:
-    name: 📝 Generate Release Notes
+  notes:
+    needs: [source, publish]
+    if: needs.source.outputs.release == 'true'
     runs-on: ubuntu-latest
-    needs: [determine-version, build-and-push]
     permissions:
       contents: write
-    if: needs.determine-version.outputs.is_release == 'true'
-
     steps:
-      - name: 📥 Checkout Repository
-        uses: actions/checkout@v7
+      - uses: actions/checkout@v7.0.1
         with:
-          ref: ${{ needs.determine-version.outputs.source_ref }}
+          ref: ${{ needs.source.outputs.sha }}
           fetch-depth: 0
-
-      - name: 🏷️ Fetch All Tags
-        run: git fetch --tags --force
-
-      - name: 📝 Generate Notes
-        run: |
-          VERSION="${{ needs.determine-version.outputs.version }}"
-          GHCR_IMAGE="${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE_NAME }}"
-          DOCKERHUB_IMAGE="${{ env.DOCKERHUB_IMAGE_NAME }}"
-
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "📝 Generating Release Notes for v${VERSION}"
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo ""
-
-          CHANGELOG_FOUND=0
-
-          if [ -f CHANGELOG.md ]; then
-            echo "🔍 Checking CHANGELOG.md for v${VERSION}..."
-
-            awk -v version="${VERSION}" '
-              $0 ~ "^##[[:space:]]*(\\[v?" version "\\]|v" version ")([[:space:]]*-.*)?$" {p=1; next}
-              p && /^##[[:space:]]*\[/ && !($0 ~ version) {p=0}
-              p
-            ' CHANGELOG.md > tmp_notes.txt
-
-            if [ -s tmp_notes.txt ]; then
-              while [ -s tmp_notes.txt ]; do
-                LAST_LINE=$(tail -1 tmp_notes.txt)
-                case "$(printf '%s' "$LAST_LINE" | tr -d '[:space:]')" in
-                  ""|"---") sed -i '$ d' tmp_notes.txt ;;
-                  *) break ;;
-                esac
-              done
-
-              echo "✅ Found changelog section for v${VERSION} in CHANGELOG.md"
-              CHANGELOG_FOUND=1
-
-              cat tmp_notes.txt > release_notes.md
-            else
-              echo "⚠️ No changelog section found for v${VERSION} in CHANGELOG.md"
-            fi
-          else
-            echo "⚠️ CHANGELOG.md not found"
-          fi
-
-          if [ "$CHANGELOG_FOUND" = "0" ]; then
-            echo "📋 Auto-generating release notes from commits..."
-
-            if [ -x scripts/release/generate-release-notes.sh ]; then
-              chmod +x scripts/release/generate-release-notes.sh
-              ./scripts/release/generate-release-notes.sh --format github "${VERSION}" > tmp_auto_notes.md
-              sed '/^## 🧅/d; /^\*\*Full Changelog\*\*/d' tmp_auto_notes.md > release_notes.md
-              while [ -s release_notes.md ]; do
-                LAST_LINE=$(tail -1 release_notes.md)
-                case "$(printf '%s' "$LAST_LINE" | tr -d '[:space:]')" in
-                  ""|"---") sed -i '$ d' release_notes.md ;;
-                  *) break ;;
-                esac
-              done
-              echo "✅ Auto-generated release notes from conventional commits"
-            else
-              PREV_TAG=$(git tag --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | grep -v "^v${VERSION}$" | head -1)
-              [ -z "$PREV_TAG" ] && PREV_TAG=$(git rev-list --max-parents=0 HEAD)
-              {
-                echo "### Changes"
-                echo ""
-                git log --pretty=format:"- %s (\`%h\`) by %an" "${PREV_TAG}..HEAD" || echo "- Initial release"
-                echo ""
-                echo "⚠️ **Note:** Release notes were auto-generated from commit history."
-                echo "For detailed changes, see the commit history below."
-              } > release_notes.md
-              echo "✅ Generated basic release notes from commit history"
-            fi
-          fi
-
-          ALPINE_VERSION=$(grep -oP '^FROM alpine:\K[0-9.]+' Dockerfile 2>/dev/null || echo "latest")
-          PREV_TAG=$(git tag --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | grep -v "^v${VERSION}$" | head -1)
-          [ -z "$PREV_TAG" ] && PREV_TAG="v1.0.0"
-          {
-            echo ""
-            echo "---"
-            echo ""
-            echo "### 🐳 Docker Images"
-            echo ""
-            echo "**Stable Variant (Recommended for Production)**"
-            echo ""
-            echo "- Base: Alpine ${ALPINE_VERSION}"
-            echo "- Proven stability with weekly security updates"
-            echo ""
-            echo "\`\`\`bash"
-            echo "# From GitHub Container Registry (GHCR)"
-            echo "docker pull ${GHCR_IMAGE}:${VERSION}"
-            echo "docker pull ${GHCR_IMAGE}:latest"
-            echo ""
-            echo "# From Docker Hub"
-            echo "docker pull ${DOCKERHUB_IMAGE}:${VERSION}"
-            echo "docker pull ${DOCKERHUB_IMAGE}:latest"
-            echo "\`\`\`"
-            echo ""
-            echo "**Edge Variant (Testing Only)**"
-            echo ""
-            echo "- Base: Alpine edge (bleeding edge)"
-            echo "- ⚠️ **NOT recommended for production** - faster updates, less stable"
-            echo ""
-            echo "\`\`\`bash"
-            echo "# From GitHub Container Registry (GHCR) - versioned + simple tags"
-            echo "docker pull ${GHCR_IMAGE}:${VERSION}-edge"
-            echo "docker pull ${GHCR_IMAGE}:edge"
-            echo ""
-            echo "# From Docker Hub - simple tag only"
-            echo "docker pull ${DOCKERHUB_IMAGE}:edge"
-            echo "\`\`\`"
-            echo ""
-            echo "### 📋 Software Bill of Materials (SBOM)"
-            echo ""
-            echo "This release includes comprehensive SBOM files for **both variants** for supply chain security:"
-            echo ""
-            echo "- **CycloneDX**: JSON and XML formats (stable + edge)"
-            echo "- **SPDX**: JSON and tag-value formats (stable + edge)"
-            echo "- **Human-readable**: Table format (stable + edge)"
-            echo ""
-            echo "Download SBOM files from the release assets below (prefixed with \`stable-\` or \`edge-\`)."
-            echo ""
-            echo "---"
-            echo ""
-            echo "**Full Changelog**: https://github.com/${{ github.repository }}/compare/${PREV_TAG}...v${VERSION}"
-          } >> release_notes.md
-
-          echo ""
-          echo "✅ Release notes generation complete"
-
-      - name: 📦 Download SBOM Artifacts (Stable)
-        uses: actions/download-artifact@v8
-        with:
-          name: sbom-stable-v${{ needs.determine-version.outputs.version }}
-          path: ./sbom
-
-      - name: 📦 Download SBOM Artifacts (Edge)
-        uses: actions/download-artifact@v8
-        with:
-          name: sbom-edge-v${{ needs.determine-version.outputs.version }}
-          path: ./sbom
-
-      - name: 🏷️ Create GitHub Release
-        uses: softprops/action-gh-release@v3
-        with:
-          tag_name: v${{ needs.determine-version.outputs.version }}
-          name: "🧅 Tor Guard Relay v${{ needs.determine-version.outputs.version }}"
-          body_path: release_notes.md
-          files: |
-            sbom/*.json
-            sbom/*.xml
-            sbom/*.spdx
-            sbom/*.txt
+      - name: Select curated release notes
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ needs.source.outputs.version }}
+        run: |
+          test -s "docs/releases/v$VERSION.md"
+          cp "docs/releases/v$VERSION.md" release-notes.md
+      - uses: actions/download-artifact@v8.0.2
+        with:
+          pattern: candidate-*
+          path: evidence
+      - name: Package component and security evidence
+        run: |
+          tar -czf release-evidence.tar.gz --exclude=image.tar --exclude=image.tar.sha256 -C evidence .
+      - uses: softprops/action-gh-release@v3.0.3
+        with:
+          body_path: release-notes.md
+          tag_name: v${{ needs.source.outputs.version }}
+          files: release-evidence.tar.gz
