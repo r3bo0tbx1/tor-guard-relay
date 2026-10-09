@@ -1,8 +1,16 @@
-# 🚀 Release Preparation
+# Release Automation Scripts
 
-[Project](../../README.md) · [Documentation](../../docs/README.md) · [v2.2.0 notes](../../docs/releases/v2.2.0.md)
+This directory contains automation scripts for managing releases, version updates, and release notes generation.
 
-Keep preparation local until the maintainer publishes the reviewed commit and tag. The source branch, curated release notes, generated artifacts and article should agree on the implemented behavior.
+## Overview
+
+The release automation includes three main components:
+
+1. **Auto-generate release notes** from conventional commits
+2. **Auto-update version** numbers across all documentation
+3. **SBOM generation** (CycloneDX & SPDX) integrated into CI/CD
+
+## Scripts
 
 ## 🛠️ Local commands
 
@@ -17,6 +25,15 @@ sh scripts/release/generate-release-notes.sh 2.2.0 v2.1.0 --output /tmp/release-
 The version checker discovers tracked and nonignored documentation, scripts and workflows, synchronizing current Alpine references from the stable Dockerfile. `--write` applies changes; `--version X.Y.Z` also updates managed current project references. Historical changelog entries and historical migration release semantics are retained.
 
 The notes generator handles leading gitmoji, conventional scopes and multiline breaking-change bodies, and keeps emoji headings by default. Use `--no-emoji` or `--format plain` only when you want plain output. Its output is a review draft. The release workflow publishes the curated file at `docs/releases/vVERSION.md`.
+
+
+### 📝 Curated notes and version markers
+
+Use the notes generator for a local review draft; the hosted release publishes `docs/releases/vVERSION.md`. The version synchronizer updates explicit current markers and validates examples against the stable Dockerfile, leaving historical changelog entries intact. No helper commits, pushes, signs or publishes automatically.
+
+---
+
+## CI/CD Integration
 
 ## 🏗️ Candidate pipeline
 
@@ -62,8 +79,266 @@ The read-only `🔒🧅 Security watch` workflow runs on relevant main changes, 
 
 The published-image lane performs package/secret assessment; source reachability is reported for the current checkout, which may differ from a published release. GitHub schedules and advisory ingestion can be delayed. Monitoring never publishes images, changes a live relay, opens issues or sends third-party messages.
 
+---
+
+## Release Workflow
+
+### 🧭 Maintainer publication order
+
+1. Review the local branch, curated notes, compatibility changes and candidate evidence.
+2. Push the branch yourself and open a PR; wait for all required checks on its latest revision.
+3. Merge through the repository's review and linear-history policy.
+4. Create and push the reviewed release tag yourself. Observe all four candidate gates before promotion.
+5. Verify both architectures and exact published digests in Docker Hub and GHCR; retain evidence and rollback references.
+6. Upgrade the real relay deliberately after encrypted recovery rehearsal, then check fingerprint continuity, fresh bootstrap and public reachability.
+
+The release workflow uses immutable candidate evidence and promotes the same images. A main push does not publish a version; manual dispatch defaults to validation. Current reviewed policy is separate from tagged source. Source-executing jobs have no shared Actions-cache access and retain no checkout credentials.
+
 ## 🛡️ Evidence and rollback
 
 Retain source and security-policy SHAs, architecture, image ID/digest, Tor version, Alpine/OpenSSL packages, Lyrebird revision/Go dependency graph, Go reachability report, SBOM and the full vulnerability/secret report. Promotion blocks secrets, all HIGH/CRITICAL image findings, and reachable Go vulnerabilities regardless of a fixed version or severity label. Unfixed and lower-severity findings remain in the report for assessment. Scanner failures and malformed/incomplete reports fail closed. Never call a candidate published based only on a local build.
 
 Preserve the previous validated image digest, deployment and encrypted backup before upgrading. Do not rewrite historical release descriptions when updating current examples.
+
+---
+
+## SBOM (Software Bill of Materials)
+
+### What is SBOM?
+
+SBOM provides transparency about software components and dependencies:
+
+- **Security**: Identify vulnerable packages quickly
+- **Compliance**: Meet regulatory requirements (NTIA, EO 14028)
+- **Supply chain**: Track third-party components
+- **Auditing**: Know exactly what's in your container
+
+### SBOM Formats
+
+**CycloneDX** (OWASP standard)
+- JSON: Machine-readable, API-friendly
+- XML: Enterprise tooling compatibility
+
+**SPDX** (Linux Foundation standard)
+- JSON: Modern, developer-friendly
+- Tag-value: Traditional, widely supported
+
+**Table** (Human-readable)
+- Plain text listing of all packages
+- Quick manual inspection
+
+### Using SBOM Files
+
+**Check for vulnerabilities:**
+
+```bash
+# After the maintainer publishes v2.2.0, download its evidence archive.
+# Until then, use the retained candidate artifacts from the validation run.
+curl --fail --location --output release-evidence.tar.gz \
+  https://github.com/r3bo0tbx1/tor-guard-relay/releases/download/v2.2.0/release-evidence.tar.gz
+mkdir release-evidence
+tar -xzf release-evidence.tar.gz -C release-evidence
+# Select one candidate's SBOM; the archive retains all four variants.
+cp release-evidence/candidate-stable-amd64/sbom/sbom.cdx.json sbom.cdx.json
+
+# Scan with Grype
+grype sbom:sbom.cdx.json
+
+# Scan with Trivy
+trivy sbom sbom.cdx.json
+```
+
+**Integrate with security tools:**
+
+```bash
+# Import into Dependency-Track
+curl -X POST "https://dtrack.example.com/api/v1/bom" \
+  -H "X-Api-Key: $API_KEY" \
+  -F "bom=@sbom.cdx.json"
+
+# Analyze with Syft
+syft sbom.cdx.json
+
+# View package list
+jq '.components[] | {name, version, type}' sbom.cdx.json
+```
+
+**Example SBOM Content:**
+
+```json
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.4",
+  "version": 1,
+  "metadata": {
+    "component": {
+      "type": "container",
+      "name": "onion-relay",
+      "version": "1.1.2"
+    }
+  },
+  "components": [
+    {
+      "type": "library",
+      "name": "alpine-baselayout",
+      "version": "3.4.3-r2",
+      "purl": "pkg:apk/alpine/alpine-baselayout@3.4.3-r2"
+    },
+    {
+      "type": "library",
+      "name": "tor",
+      "version": "0.4.8.10-r0",
+      "purl": "pkg:apk/alpine/tor@0.4.8.10-r0"
+    }
+  ]
+}
+```
+
+## Best Practices
+
+### Conventional Commits
+
+Follow the [Conventional Commits](https://www.conventionalcommits.org/) specification:
+
+```
+<type>[optional scope]: <description>
+
+[optional body]
+
+[optional footer(s)]
+```
+
+**Benefits:**
+- Automated changelog generation
+- Semantic versioning hints
+- Better commit history readability
+- Easier rollback and debugging
+
+### Version Numbering
+
+Follow [Semantic Versioning](https://semver.org/) (SemVer):
+
+- **MAJOR** (1.0.0 → 2.0.0): Breaking changes
+- **MINOR** (1.1.0 → 1.2.0): New features (backward compatible)
+- **PATCH** (1.1.1 → 1.1.2): Bug fixes (backward compatible)
+
+**Examples:**
+- `feat!: remove old ENV variables` → MAJOR bump
+- `feat: add migration script` → MINOR bump
+- `fix: resolve parsing error` → PATCH bump
+
+### CHANGELOG.md Format
+
+Use [Keep a Changelog](https://keepachangelog.com/) format:
+
+```markdown
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+## [Unreleased]
+
+## [v1.2.0] - 2025-01-14
+
+### Added
+- Migration assistant script for official Tor bridge image migration
+- SBOM generation in CI/CD workflow
+- Auto-generated release notes from conventional commits
+
+### Changed
+- Updated release workflow with SBOM integration
+- Improved release notes generation with fallback mechanism
+
+### Fixed
+- OBFS4V parsing issue with values containing spaces
+- Mermaid diagram rendering on GitHub
+
+## [v1.1.1] - 2025-01-10
+
+### Fixed
+- Busybox compatibility in OBFS4V validation
+- Numeric sanitization in diagnostic tools
+```
+
+## Troubleshooting
+
+### Release Notes Not Generating
+
+**Problem**: Auto-generation finds no commits
+
+**Solution:**
+```bash
+# Check git history
+git log --oneline
+
+# Verify previous tag exists
+git describe --tags --abbrev=0
+
+# Specify previous version explicitly
+sh scripts/release/generate-release-notes.sh 2.2.0 v2.1.0 --output /tmp/release-draft.md
+```
+
+### Version Update Missing Files
+
+**Problem**: Not all files were updated
+
+**Solution:**
+```bash
+# Check what current version was detected
+sh scripts/release/update-version.sh 2.2.0 --dry-run
+
+# Search for old version manually
+rg "RELAY_VERSION|Alpine|onion-relay:" README.md docs templates
+
+# Verify managed fields without rewriting historical releases.
+python3 scripts/release/check-versions.py
+```
+
+### SBOM Generation Fails
+
+**Problem**: Syft can't access image
+
+**Solution:**
+```bash
+# Ensure image exists locally or in registry
+docker pull ghcr.io/r3bo0tbx1/onion-relay:2.2.0
+
+# Generate SBOM locally for testing
+docker run --rm \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  anchore/syft:latest \
+  ghcr.io/r3bo0tbx1/onion-relay:2.2.0 \
+  -o cyclonedx-json
+```
+
+### Workflow Permission Errors
+
+**Problem**: `Resource not accessible by integration`
+
+**Solution:** Ensure workflow has correct permissions:
+
+```yaml
+permissions:
+  contents: write      # Create releases
+  packages: write      # Push to GHCR
+  security-events: write  # Upload SARIF
+```
+
+## Additional Resources
+
+- **Conventional Commits**: https://www.conventionalcommits.org/
+- **Semantic Versioning**: https://semver.org/
+- **Keep a Changelog**: https://keepachangelog.com/
+- **CycloneDX**: https://cyclonedx.org/
+- **SPDX**: https://spdx.dev/
+- **NTIA SBOM**: https://www.ntia.gov/sbom
+
+## Contributing
+
+When adding new release automation features:
+
+1. Update this README with usage examples
+2. Add tests for new functionality
+3. Update `.github/workflows/release.yml` if needed
+4. Follow existing script patterns (POSIX sh, color output, error handling)
+5. Document all environment variables and options

@@ -31,6 +31,22 @@ Complete deployment instructions for guard, exit, and bridge relays across vario
 
 ---
 
+<a id="bind-mount-ownership"></a>
+
+## 📁 Bind mount ownership
+
+On Linux, the runtime uses UID **100** and GID **101**. Named volumes and bind mounts must allow that identity to read configuration and write the effective DataDirectory. Keep private keys and state together across image upgrades.
+
+```bash
+# Inspect the exact directory selected in your deployment; do not print private files.
+ls -ldn /srv/tor/data /srv/tor/logs
+docker inspect tor-relay --format '{{json .Mounts}}'
+```
+
+For a new deployment, create its directories with the required ownership and restrictive permissions. Before changing ownership on existing relay storage, stop every writer, make and verify an [encrypted backup](BACKUP.md), and rehearse recovery. Never erase keys or restore over live storage to solve a permission error.
+
+Docker Desktop on Windows does not provide the same Unix permission guarantees for Windows bind paths. Use Linux storage in WSL for permission-sensitive recovery work, and validate your actual mounts before activation.
+
 ## Table of Contents
 
 - [Prerequisites](#prerequisites)
@@ -429,7 +445,7 @@ docker run -d \
   r3bo0tbx1/onion-relay:latest
 
 # Get bridge line for sharing
-docker exec tor-bridge bridge-line
+docker exec tor-bridge bridge-line --address 203.0.113.42
 ```
 
 **Templates:**
@@ -554,7 +570,7 @@ docker exec tor-relay refresh
 docker exec tor-relay fingerprint
 
 # Get bridge line (bridge mode only)
-docker exec tor-relay bridge-line
+docker exec tor-relay bridge-line --address 203.0.113.42
 ```
 
 **Expected output from `status`:**
@@ -826,7 +842,7 @@ Choose providers with <1% consensus weight for better network health.
 - **TekSavvy** (Canada): Server-friendly, supports Tor
 - **MonkeyBrains** (US): Allows Tor but colocation only
 
-**Recommendation**: 
+**Recommendation**:
 - ✅ **Bridges**: Safe for home networks (won't be publicly listed)
 - ⚠️ **Guard/Middle relays**: Check ISP TOS first, use VPS if uncertain
 - ❌ **Exit nodes**: Never on residential - use VPS with clear exit policy
@@ -997,7 +1013,7 @@ After successful deployment:
 ## Support
 
 - 📖 [Main README](../README.md)
-- 🔧 [Tools Documentation](TOOLS.md) - Complete guide to the 7 built-in tools
+- 🔧 [Tools Documentation](TOOLS.md) - Complete guide to the 9 built-in tools
 - 📊 [Monitoring Guide](MONITORING.md) - External monitoring integration
 - 🐛 [Report Issues](https://github.com/r3bo0tbx1/tor-guard-relay/issues)
 - 💬 [Tor Project Forum](https://forum.torproject.net/)

@@ -1,50 +1,697 @@
-# ⚡ Performance and Limits
+# ⚡ Performance Tuning & Optimization - Tor Guard Relay
 
-[Documentation](README.md) · [Monitoring](MONITORING.md) · [Deployment](DEPLOYMENT.md)
+Complete guide to optimizing CPU, memory, bandwidth, and network performance for your Tor relay.
 
-Measure your relay before tuning it. Traffic, consensus weight, provider capacity and Tor flags affect utilization; the container cannot promise a throughput or guard-flag timetable.
+---
 
-## 📊 Establish a baseline
+> [!IMPORTANT]
+> 🧅 **v2.2.0 release candidate:** Tor must be **0.4.9.14 or newer**. Current-run health, validated configuration and encrypted recovery are described in the [release notes](releases/v2.2.0.md). Recreate from the validated image to update Tor; changing torrc alone does not upgrade the binary.
+
+## 🆕 Current-run health and fleet metrics
 
 ```sh
-docker stats --no-stream tor-relay
-docker exec tor-relay health
+docker exec tor-relay health | jq '{liveness, config_valid, readiness, fresh, reason, bootstrap, reachable}'
+docker exec tor-relay doctor
 sh scripts/utilities/relay-inventory.sh --json tor-relay
+sh scripts/utilities/relay-inventory.sh --prometheus tor-relay > relay.prom
 ```
 
-Record image identity, current Tor version, CPU/memory usage, bootstrap and reachability evidence. Use an authenticated control-port observer for detailed bandwidth and circuits; host inventory reports health, not traffic counters.
+`status: "up"` reports process liveness, not readiness. Docker health checks process/configuration and deliberately tolerates normal bootstrap delay. Alert separately on sustained missing freshness/readiness. The existing string `reachable` is Tor self-test evidence, not an independent network probe. A stopped container has no live health observation.
 
-## 🧠 CPU and memory
+The host inventory command writes Prometheus text; connect it to an existing textfile collector or scraper. It opens no listener and adds no runtime dependencies. Existing external exporter examples below require a separately installed service; they are not built into the relay image.
 
-Use Docker CPU and memory limits according to measured load and leave room for bootstrap/state growth. `NumCPUs` and `MaxMemInQueues` are Tor settings for advanced mounted configs; syntax validation does not establish that a chosen limit is sufficient. Review Tor notices and host OOM events after changes.
+Resource tables below are planning estimates, not v2.2.0 measurements. Measure your actual traffic and hardware before tuning. The prepared candidate has not been validated on a production relay.
 
-Keep SocksPort disabled for a relay. Do not copy client-only circuit tuning directives into relay configuration expecting throughput improvements.
+---
 
-## 📶 Bandwidth and accounting
+## Table of Contents
 
-`TOR_BANDWIDTH_RATE` and `TOR_BANDWIDTH_BURST` control generated relay bandwidth limits. Monthly accounting can use:
+- [Performance Baseline](#performance-baseline)
+- [CPU Optimization](#cpu-optimization)
+- [Memory Management](#memory-management)
+- [Bandwidth Optimization](#bandwidth-optimization)
+- [Network Tuning](#network-tuning)
+- [Monitoring & Metrics](#monitoring--metrics)
+- [Benchmarking](#benchmarking)
+- [Troubleshooting](#troubleshooting)
 
-```sh
-TOR_ACCOUNTING_MAX="500 GB"
-TOR_ACCOUNTING_START="month 1 00:00"
+---
+
+## Performance Baseline
+
+### System Requirements by Relay Tier
+
+| Tier | CPU | RAM | Bandwidth | Use Case |
+|------|-----|-----|-----------|----------|
+| **Entry** | 1 core | 512 MB | 10–50 Mbps | Home lab, testing |
+| **Standard** | 2 cores | 1–2 GB | 50–500 Mbps | Production guard relay |
+| **High-Capacity** | 4+ cores | 4+ GB | 500+ Mbps | High-traffic relay |
+| **Enterprise** | 8+ cores | 8+ GB | 1 Gbps+ | Multiple relays |
+
+### Expected Resource Usage (Steady State)
+
+| Resource | Entry | Standard | High-Cap | Notes |
+|----------|-------|----------|----------|-------|
+| CPU | 5–15% | 10–25% | 20–40% | Varies by traffic |
+| Memory | 80–150 MB | 200–400 MB | 500+ MB | Increases with connections |
+| Bandwidth | 5–50 Mbps | 50–500 Mbps | 500+ Mbps | Depends on limits |
+| Disk I/O | Light | Moderate | Heavy | Monitor during bootstrap |
+
+---
+
+## CPU Optimization
+
+### 1. Allocate CPU Cores
+
+By default, Tor uses all available cores. Restrict or optimize as needed.
+
+#### Check Current Allocation
+
+```bash
+# View Tor config
+docker exec guard-relay grep -i numcpus /etc/tor/torrc
+
+# View system CPUs
+docker exec guard-relay nproc
 ```
 
-Accounting can cause hibernation when limits are reached. Match provider billing rules and validate the resulting torrc. Preserve the state file and accounting config together through encrypted backup and migration.
+#### Configure CPU Cores in relay.conf
 
-## 🌐 IPv6
+```conf
+# Use specific number of cores (example: 4 cores)
+NumCPUs 4
 
-Set an explicit additional listener with `TOR_ORPORT_IPV6`. `TOR_ADDRESS_DISABLE_IPV6`, `TOR_IPV6_EXIT` and `TOR_EXIT_POLICY_IPV6` cover common policy settings. IPv6 requires working host/provider routing and deliberate firewall access; accepting a config does not prove connectivity.
+# Or auto-detect (default, recommended)
+NumCPUs 0
+```
 
-Use the actual public listener and policy for your role. Test IPv4 and IPv6 independently after recreation. Public bridge-line generation accepts a supplied IPv6 address, but does not test routing.
+#### For Docker Compose
 
-## 🛡️ Safe tuning sequence
+```yaml
+services:
+  tor-guard-relay:
+    # ... other config
+    deploy:
+      resources:
+        limits:
+          cpus: '4.0'  # Limit to 4 cores
+        reservations:
+          cpus: '2.0'  # Reserve 2 cores minimum
+```
 
-1. Record baseline image/config and health.
-2. Create and verify an encrypted recovery set.
-3. Change one measured bottleneck or limit.
-4. Validate the candidate and review values securely.
-5. Reload only directives Tor supports reloading; otherwise recreate.
-6. Compare resource usage, notices and external connectivity.
-7. Keep the previous deployment available for rollback.
+### 2. CPU Prioritization
 
-No host sysctl changes, HTTP exporter or monitoring scheduler is installed automatically.
+Ensure Tor gets fair CPU scheduling.
+
+```bash
+# View current CPU usage
+docker stats guard-relay --no-stream
+
+# Show detailed CPU metrics
+docker exec guard-relay ps aux | grep tor
+```
+
+### 3. Disable Unnecessary Features
+
+```conf
+# Disabled directory service (we're not a DA)
+DirPort 0
+
+# Keep SOCKS disabled (we're a relay, not a client)
+SocksPort 0
+
+# Disable bridge operation (if running guard relay)
+BridgeRelay 0
+```
+
+### 4. Optimize Connection Handling
+
+```conf
+# Maximum simultaneous connections
+# Default usually fine, but can tune:
+# MaxClientCircuitsPending 100
+
+# Connection timeout (default 15 minutes)
+# CircuitIdleTimeout 900
+```
+
+---
+
+## Memory Management
+
+### 1. Monitor Memory Usage
+
+```bash
+# Real-time memory monitoring
+docker stats guard-relay
+
+# View memory trends over 1 hour
+watch -n 60 'docker exec guard-relay ps aux | grep tor | grep -v grep'
+
+# Historical memory usage
+docker exec guard-relay cat /proc/meminfo
+```
+
+### 2. Set Memory Limits in Docker Compose
+
+```yaml
+services:
+  tor-guard-relay:
+    deploy:
+      resources:
+        limits:
+          memory: 2G        # Hard limit
+        reservations:
+          memory: 1G        # Guaranteed allocation
+```
+
+### 3. Configure Tor Memory Settings
+
+```conf
+# MaxMemInQueues - Maximum total memory for circuit queues
+# Default: 512 MB (usually fine)
+MaxMemInQueues 512 MB
+
+# When memory hits threshold, new circuits rejected
+# Prevents OOM (out of memory) crashes
+```
+
+### 4. Handle Memory Leaks
+
+**Monitor for gradual increase:**
+
+```bash
+#!/bin/bash
+# Save as: /usr/local/bin/monitor-memory-growth.sh
+
+CONTAINER="guard-relay"
+INTERVAL=300  # 5 minutes
+
+while true; do
+  MEMORY=$(docker exec "$CONTAINER" ps aux | \
+    grep '[t]or ' | awk '{print $6}' | head -1)
+
+  echo "$(date): Memory = ${MEMORY}KB"
+  sleep $INTERVAL
+done
+```
+
+Run and observe for 24 hours:
+
+```bash
+/usr/local/bin/monitor-memory-growth.sh | tee /tmp/memory-log.txt
+
+# Analyze growth rate
+tail -20 /tmp/memory-log.txt
+```
+
+---
+
+## Bandwidth Optimization
+
+### 1. Understand Bandwidth Limits
+
+```conf
+# Average bandwidth (sustained rate)
+RelayBandwidthRate 100 MBytes
+
+# Burst bandwidth (temporary spikes)
+RelayBandwidthBurst 200 MBytes
+```
+
+### 2. Set Realistic Limits
+
+**Calculate your limits based on ISP:**
+
+```
+Available Bandwidth: 1000 Mbps (ISP plan)
+Usable for Tor: 50% (leave headroom for other services)
+= 500 Mbps
+
+Convert to MBytes/s: 500 Mbps ÷ 8 = 62.5 MBytes/s
+
+Recommended:
+- RelayBandwidthRate 50 MBytes
+- RelayBandwidthBurst 100 MBytes
+```
+
+### 3. Bandwidth Accounting
+
+**Limit total monthly traffic:**
+
+```conf
+# Monthly accounting window
+# Starts on the 1st at UTC midnight
+AccountingStart month 1 00:00
+
+# Maximum data (upload + download combined)
+AccountingMax 1000 GB
+```
+
+### 4. Monitor Actual Bandwidth Usage
+
+```bash
+# Real-time bandwidth stats
+docker exec guard-relay tail -f /var/log/tor/notices.log | grep "bandwidth"
+
+# Historical bandwidth usage
+docker exec guard-relay grep "bandwidth" /var/log/tor/notices.log | tail -20
+```
+
+### 5. Optimize for Your Network
+
+#### For Home Networks
+
+```conf
+# Conservative settings for residential connections
+RelayBandwidthRate 10 MBytes
+RelayBandwidthBurst 20 MBytes
+```
+
+#### For VPS with Unmetered Bandwidth
+
+```conf
+# Maximize contribution
+RelayBandwidthRate 1024 MBytes
+RelayBandwidthBurst 1024 MBytes
+```
+
+#### For Datacenters with Traffic Shaping
+
+```conf
+# Match provider limits
+RelayBandwidthRate 100 MBytes  # ISP limit
+RelayBandwidthBurst 150 MBytes
+```
+
+---
+
+## Network Tuning
+
+### 1. Enable IPv6 (if available)
+
+**In relay.conf:**
+
+```conf
+# Dual-stack support
+ORPort 9001
+ORPort [::]:9001
+
+# Directory port for IPv6
+DirPort 0
+```
+
+**Verify IPv6 is working:**
+
+```bash
+docker exec guard-relay curl -6 -s https://icanhazip.com
+# Should return IPv6 address
+
+docker exec guard-relay curl -4 -s https://icanhazip.com
+# Should return IPv4 address
+```
+
+### 2. Optimize TCP Settings
+
+**On the host system (for Docker host):**
+
+```bash
+# Increase TCP connection backlog
+sudo sysctl -w net.core.somaxconn=65535
+
+# Increase listen queue length
+sudo sysctl -w net.ipv4.tcp_max_syn_backlog=65535
+
+# Enable TCP keepalives
+sudo sysctl -w net.ipv4.tcp_keepalives_intvl=60
+
+# Make permanent
+echo "net.core.somaxconn=65535" | sudo tee -a /etc/sysctl.conf
+echo "net.ipv4.tcp_max_syn_backlog=65535" | sudo tee -a /etc/sysctl.conf
+```
+
+### 3. Firewall Optimization
+
+**Ensure firewall rules don't throttle traffic:**
+
+```bash
+# UFW example
+sudo ufw status
+
+# High performance rules
+sudo iptables -I INPUT -p tcp --dport 9001 -j ACCEPT
+
+# Save rules
+sudo iptables-save > /etc/iptables/rules.v4
+```
+
+### 4. DNS Performance
+
+**Configure Tor to use fast DNS:**
+
+```conf
+# Use Google DNS (example)
+ServerDNSListenAddress 127.0.0.1:53
+ServerDNSResolvConfFile /etc/resolv.conf
+```
+
+Verify DNS resolution is fast:
+
+```bash
+# Test DNS response time
+time docker exec guard-relay tor --resolve example.com
+```
+
+---
+
+## Monitoring & Metrics
+
+>=v1.1.1 uses **external monitoring** with the `health` JSON API for minimal image size and maximum security.
+
+### 1. JSON Health API
+
+Get relay metrics via the `health` tool:
+
+```bash
+# Get full health status (raw JSON)
+docker exec guard-relay health
+
+# Parse with jq (requires jq on host)
+docker exec guard-relay health | jq .
+
+# Check specific metrics
+docker exec guard-relay health | jq .bootstrap      # Bootstrap percentage
+docker exec guard-relay health | jq .reachable      # ORPort reachability
+docker exec guard-relay health | jq .uptime          # Uptime
+```
+
+**Example JSON output:**
+```json
+{
+  "status": "up",
+  "pid": 1,
+  "uptime": "1-00:00:00",
+  "bootstrap": 100,
+  "reachable": "true",
+  "errors": 0,
+  "fingerprint": "1234567890ABCDEF...",
+  "nickname": "MyRelay"
+}
+```
+
+### 2. Prometheus Integration (External)
+
+Use the `health` tool with Prometheus node_exporter textfile collector:
+
+**Create metrics exporter script:**
+
+```bash
+#!/bin/bash
+# /usr/local/bin/tor-metrics-exporter.sh
+# Requires: jq on host (apt install jq / brew install jq)
+
+HEALTH=$(docker exec guard-relay health)
+
+echo "$HEALTH" | jq -r '
+  "tor_bootstrap_percent \(.bootstrap)",
+  "tor_reachable \(if .reachable == "true" then 1 else 0 end)"
+' > /var/lib/node_exporter/textfile_collector/tor.prom
+```
+
+**Run via cron every 5 minutes:**
+```bash
+chmod +x /usr/local/bin/tor-metrics-exporter.sh
+crontab -e
+*/5 * * * * /usr/local/bin/tor-metrics-exporter.sh
+```
+
+### 3. Set Up Prometheus Scraping
+
+**prometheus.yml:**
+
+```yaml
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'node_exporter'  # Scrapes textfile collector
+    static_configs:
+      - targets: ['localhost:9035']
+    metrics_path: '/metrics'
+```
+
+### 4. Create Grafana Dashboard
+
+**Key metrics to track:**
+
+```promql
+# Bandwidth rates
+rate(tor_relay_bytes_read_total[5m])
+rate(tor_relay_bytes_written_total[5m])
+
+# Connection counts
+tor_relay_connections
+
+# CPU usage
+rate(process_cpu_seconds_total[5m])
+
+# Memory usage
+process_resident_memory_bytes / 1024 / 1024
+```
+
+---
+
+## Benchmarking
+
+### Baseline Test (New Relay)
+
+Run after initial bootstrap to establish baseline.
+
+```bash
+#!/bin/bash
+# Save as: /usr/local/bin/benchmark-relay.sh
+
+CONTAINER="guard-relay"
+DURATION=300  # 5 minutes
+
+echo "=== Tor Relay Benchmark ==="
+echo "Duration: $DURATION seconds"
+echo ""
+
+# Capture initial state
+MEM_START=$(docker exec $CONTAINER ps aux | grep '[t]or ' | awk '{print $6}')
+CPU_START=$(docker exec $CONTAINER ps aux | grep '[t]or ' | awk '{print $3}')
+
+echo "Starting metrics..."
+echo "Initial Memory: ${MEM_START}KB"
+echo "Initial CPU: ${CPU_START}%"
+echo ""
+
+# Run for duration
+sleep $DURATION
+
+# Capture final state
+MEM_END=$(docker exec $CONTAINER ps aux | grep '[t]or ' | awk '{print $6}')
+CPU_END=$(docker exec $CONTAINER ps aux | grep '[t]or ' | awk '{print $3}')
+
+# Bandwidth
+BW_READ=$(docker exec $CONTAINER grep "bandwidth" /var/log/tor/notices.log | tail -1)
+BW_WRITE=$(docker logs $CONTAINER 2>&1 | grep "bandwidth" | tail -1)
+
+echo "=== Results ==="
+echo "Memory Delta: $(( MEM_END - MEM_START ))KB"
+echo "CPU Usage: ${CPU_END}%"
+echo "Last Bandwidth Report:"
+echo "  Read: $BW_READ"
+echo "  Write: $BW_WRITE"
+echo ""
+echo "Timestamp: $(date)"
+```
+
+Run benchmark:
+
+```bash
+chmod +x /usr/local/bin/benchmark-relay.sh
+/usr/local/bin/benchmark-relay.sh
+```
+
+### Compare Against Benchmarks
+
+| Metric | Entry | Standard | High-Cap |
+|--------|-------|----------|----------|
+| **5-min avg CPU** | <15% | 10–25% | 20–40% |
+| **5-min avg MEM** | <200 MB | 200–500 MB | 500+ MB |
+| **Active Connections** | <100 | 100–500 | 500–2000 |
+| **Bootstrap Time** | 10–30 min | 10–30 min | 10–30 min |
+
+---
+
+## Troubleshooting
+
+### High CPU Usage
+
+**Symptoms:** CPU consistently >50%
+
+**Diagnosis:**
+
+```bash
+# Check if relay is under heavy load
+docker stats guard-relay --no-stream
+
+# View top processes inside container
+docker exec guard-relay ps aux --sort=-%cpu
+
+# Check Tor config for tuning issues
+docker exec guard-relay grep -E "NumCPUs|MaxClientCircuitsPending" /etc/tor/torrc
+```
+
+**Solutions:**
+
+```conf
+# Limit CPU cores
+NumCPUs 2  # Instead of auto
+
+# Reduce allowed circuits
+MaxClientCircuitsPending 50  # Default is usually 100
+```
+
+### High Memory Usage
+
+**Symptoms:** Memory >75% of limit, or constantly increasing
+
+**Diagnosis:**
+
+```bash
+# Check memory trend
+docker exec guard-relay free -h
+
+# Look for memory leak signs in logs
+docker logs guard-relay 2>&1 | grep -i "memory\|oom"
+
+# Check MaxMemInQueues setting
+docker exec guard-relay grep MaxMemInQueues /etc/tor/torrc
+```
+
+**Solutions:**
+
+```conf
+# Reduce max in-flight data
+MaxMemInQueues 256 MB  # More conservative
+
+# Or increase if system has capacity
+MaxMemInQueues 1024 MB  # If you have 8+ GB RAM
+```
+
+### Low Bandwidth Usage
+
+**Symptoms:** Bandwidth well below configured limits
+
+**Diagnosis:**
+
+```bash
+# Check configured limits
+docker exec guard-relay grep "RelayBandwidth" /etc/tor/torrc
+
+# Check actual usage
+docker logs guard-relay 2>&1 | grep "Average"
+
+# Verify ORPort is reachable
+docker exec guard-relay status | grep "reachable"
+# Or use JSON health check
+docker exec guard-relay health | jq .reachable
+```
+
+**Solutions:**
+
+- Give relay time to build reputation (2–8 weeks for full capacity)
+- Increase bandwidth limits if you have capacity
+- Check firewall isn't limiting traffic
+- Verify network connectivity is stable
+
+### Connection Pool Exhaustion
+
+**Symptoms:** "Too many open files" errors
+
+**Diagnosis:**
+
+```bash
+# Check file descriptor usage
+docker exec guard-relay cat /proc/sys/fs/file-max
+docker exec guard-relay ulimit -n
+```
+
+**Solutions:**
+
+```bash
+# Increase container file descriptor limit
+docker run -d \
+  --ulimit nofile=65535:65535 \
+  # ... other options
+  r3bo0tbx1/onion-relay:latest
+```
+
+---
+
+## Best Practices
+
+### ✅ DO
+
+- ✅ **Monitor metrics continuously** - Use Prometheus + Grafana
+- ✅ **Start conservative, scale gradually** - Begin with lower bandwidth limits
+- ✅ **Test configuration changes** - Benchmark before/after
+- ✅ **Keep logs rotating** - Prevent disk fill
+- ✅ **Plan for peak load** - Size hardware for bursts, not average
+- ✅ **Document your settings** - Know why you tuned each parameter
+
+### ❌ DON'T
+
+- ❌ **Don't max out bandwidth day 1** - New relays need reputation first
+- ❌ **Don't ignore resource limits** - OOM kills are hard to debug
+- ❌ **Don't tune blindly** - Always measure, then adjust
+- ❌ **Don't forget IPv6** - Half the network could be IPv6
+
+---
+
+## Reference
+
+**Key Configuration Parameters:**
+
+```conf
+# CPU
+NumCPUs 4
+
+# Memory
+MaxMemInQueues 512 MB
+
+# Bandwidth
+RelayBandwidthRate 100 MBytes
+RelayBandwidthBurst 200 MBytes
+
+# Connections
+MaxClientCircuitsPending 100
+
+# Network
+ORPort 9001
+ORPort [::]:9001
+DirPort 0
+```
+
+**Quick Performance Checklist:**
+
+- [ ] CPU allocation set appropriately
+- [ ] Memory limits configured
+- [ ] Bandwidth limits realistic
+- [ ] IPv6 enabled (if available)
+- [ ] Metrics enabled for monitoring
+- [ ] Prometheus scraping configured
+- [ ] Alerts set for resource thresholds
+- [ ] Baseline benchmarks recorded
+
+---
+
+## Support
+
+- 📖 [Backup Guide](./BACKUP.md)
+- 🚀 [Deployment Guide](./DEPLOYMENT.md)
+- 🐛 [Report Issues](https://github.com/r3bo0tbx1/tor-guard-relay/issues)
+- 💬 [Tor Performance Forum](https://forum.torproject.org/c/relay-operators)

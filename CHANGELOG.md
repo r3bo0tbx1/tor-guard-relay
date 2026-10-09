@@ -13,13 +13,16 @@ Current source: <!-- RELAY_VERSION -->v2.2.0<!-- /RELAY_VERSION -->. Historical 
 - Track Lyrebird source-pin updates through reviewed Renovate PRs independently of Go dependency security fixes; add source/metadata pin consistency checks, candidate-matched Go reachability analysis and six-hour read-only published-image monitoring. Block unfixed HIGH/CRITICAL image findings and reachable Go vulnerabilities; apply current reviewed security policy when rebuilding released source.
 - Update the independently maintained Go lock to `klauspost/compress` 1.18.7 for GO-2026-5841; retain module/reachability evidence separately from severity labels.
 - Validate all architecture/variant candidates before promotion and retain SBOM and scan evidence.
+- Verify full source and policy commit ancestry from trusted main before preparing separate release worktrees; retain no checkout credentials.
 
 ### 🛠️ Operator changes
 
 - Add current-run readiness/freshness, doctor reason codes, precise reload and bounded shutdown.
 - Add validated atomic config handling, redacted directive diff, accounting and IPv6 ENV options.
 - Add host-only encrypted backup, full verification, staged offline restore and fleet metrics.
-- Reorganize README and guides, preserve historical migration context, and curate operator release notes.
+- Preserve the README's branding, badges and screenshot gallery; restore detailed guides and 15 rendered Mermaid architecture diagrams, including recovery and security-update flows.
+- Restore emoji workflow labels and add job outcome summaries while preserving required PR check names and blocking gates.
+- Handle missing startup metadata as a retryable recovery-fixture error without bypassing archive validation.
 
 See [v2.2.0 release notes](docs/releases/v2.2.0.md) for migration and validation limits.
 

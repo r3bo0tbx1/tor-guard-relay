@@ -1,55 +1,592 @@
-# ❓ Frequently Asked Questions
+# ❓ Frequently Asked Questions (FAQ)
 
-[Documentation](README.md) · [Tools](TOOLS.md) · [Deployment](DEPLOYMENT.md)
+Common questions about Tor Guard Relay deployment, configuration, and troubleshooting.
 
-## Which image should I use?
+---
 
-Stable is the normal deployment choice; edge follows Alpine's rolling packages. This checkout prepares v2.2.0. Use a locally built candidate before publication, and check the published release before choosing a remote version tag.
+> [!IMPORTANT]
+> 🧅 **v2.2.0 release candidate:** Tor must be **0.4.9.14 or newer**. Current-run health, validated configuration and encrypted recovery are described in the [release notes](releases/v2.2.0.md). Recreate from the validated image to update Tor; changing torrc alone does not upgrade the binary.
 
-## Why update Tor immediately?
+## 🆕 v2.2.0 operator questions
 
-Tor 0.4.9.14 fixes high-severity issues affecting relays and other Tor components. The Tor Project recommends updating as soon as possible. This source requires at least that version in both variants. See the [upstream announcement](https://forum.torproject.org/t/security-release-0-4-9-14/22241).
+### Why does Docker say healthy while the relay is still bootstrapping?
 
-## Does healthy mean my relay is ready?
+Docker health covers process liveness and config validity. Read `readiness`, `fresh` and `reason` from `health`, or run `doctor`, for current-run bootstrap evidence. Public reachability remains a separate check.
 
-Docker health means one Tor process and valid active configuration. JSON readiness requires a current-run 100% bootstrap observation. Public reachability, consensus membership and a guard flag are separate checks. Use `doctor --json` for the local reason and next action.
+### Will changing the pinned Lyrebird source automatically patch my relay?
 
-## Why is readiness unknown after log rotation?
+Renovate proposes a reviewed pin update. Go fixes can update the independent lock without waiting for upstream. Merge, publish a new reviewed tag and recreate the container from the validated image; monitoring and bot configuration do not mutate a running relay.
 
-Observation freshness is tied to the current Tor process and original log inode/offset. Restart through the entrypoint to establish a new boundary. Do not reuse old successful bootstrap lines as current proof.
+### How do I back up config, includes and keys safely?
 
-## Why did my ENV change not affect mounted torrc?
+Use the host [encrypted backup command](BACKUP.md), verify the full archive and rehearse restore into a new staging directory. Keep age private identities separately from ciphertext and preserve external master keys through their own encrypted custody procedure.
 
-A mounted configuration is authoritative. Edit its host source and validate before reload. Generated configurations are regenerated from ENV on restart. `config apply` changes a generated file atomically, but does not update deployment ENV.
+---
 
-## Why is the config diff empty?
+## 📋 Table of Contents
 
-The diff shows directive changes and redacts every value, including unknown directives. Value-only changes are deliberately hidden. Review sensitive candidates privately.
+- [General](#-general)
+- [Deployment & Configuration](#-deployment--configuration)
+- [Relay Operation](#-relay-operation)
+- [Troubleshooting](#-troubleshooting)
+- [Migration](#-migration)
+- [Security & Legal](#-security--legal)
 
-## Does bridge-line require a 24–48 hour wait?
+---
 
-No fixed wait is required. It needs local obfs4 transport state, a fingerprint and your explicit reachable public address. It does not prove external connectivity or distribution by BridgeDB.
+## 🌐 General
 
-## How do I preserve identity?
+### What is this project?
 
-Persist the complete DataDirectory and use [encrypted backup and recovery](BACKUP.md). Keys, family material and pt_state belong in the same recovery set. Keep offline/external master keys separately. Never start the same restored identity twice.
+**Tor Guard Relay** is a production-ready Docker container for running Tor relays. It supports three relay types:
+- **Guard/Middle relay** - First hop in Tor circuits (default)
+- **Exit relay** - Last hop (requires legal preparation)
+- **Bridge relay** - Helps users bypass censorship (obfs4 support)
 
-## Can I use Docker Desktop and WSL?
+Built on Alpine Linux 3.24.2 with a minimal 20MB image size, busybox-only tools, and weekly automated security rebuilds.
 
-Yes for local testing and host recovery. The scripts prefer docker.exe from WSL when present. Production host-network examples target Linux. A local offline test does not validate Windows port forwarding or public relay routing.
+### What makes this different from the official Tor images?
 
-## Are updates fully automatic?
+| Feature | This Project | Official Images |
+|---------|--------------|-----------------|
+| **Image size** | ~variant-dependent image size | ~100+ MB |
+| **Base** | Alpine 3.24.2 | Debian |
+| **Built-in tools** | 7 busybox tools + JSON API and safe torrc reloads | None |
+| **Multi-mode** | Guard/Exit/Bridge in one image | Separate images |
+| **Weekly rebuilds** | ✅ Automated | ❌ Manual |
+| **ENV configuration** | ✅ Full support | Limited |
+| **Official bridge naming** | ✅ Drop-in compatible | N/A |
 
-Scheduled jobs rebuild the latest released tag, validate candidates and then promote. They cannot publish new main-branch features under an old release. Pinned base and source updates require a reviewed source release. Operators still need to recreate running containers to use new images.
+### Is this production-ready?
 
-## Does the image expose a monitoring port?
+**Yes.** Current version is v1.1.3 (Active/Stable). Used in production with:
+- ✅ Security-hardened (32 vulnerabilities fixed in >=v1.1.1)
+- ✅ Non-root execution (tor user, UID 100)
+- ✅ Weekly automated rebuilds with latest Tor + Alpine patches
+- ✅ Multi-architecture support (AMD64, ARM64)
+- ✅ Comprehensive documentation (11 guides)
 
-No. Use JSON tools or host fleet metrics. A control port or external exporter is an explicit deployment choice; authenticate and restrict it.
+---
 
-## Will a relay immediately become a guard?
+## 🚀 Deployment & Configuration
 
-Tor authorities determine flags over time. The container's guard mode prepares a non-exit relay; it does not grant a flag or guarantee a timetable.
+### How do I choose between ENV variables and mounted config file?
 
-## Where should I report a problem?
+**Use ENV variables if:**
+- ✅ Simple guard/middle/bridge setup
+- ✅ Standard port configuration
+- ✅ Basic bandwidth limits
+- ✅ Quick deployment is priority
 
-Use the project's issue tracker with image identity, mode and redacted diagnostic output. Follow [Security](../SECURITY.md) for vulnerabilities and [Legal considerations](LEGAL.md) before operating an exit.
+**Use mounted config file if:**
+- ✅ Complex exit policies
+- ✅ Advanced Tor options not in OBFS4V_* whitelist
+- ✅ Multiple ORPort addresses (IPv4 + IPv6)
+- ✅ Production deployment requiring full control
+
+**Example ENV-based deployment:**
+```bash
+docker run -d \
+  --name tor-relay \
+  --network host \
+  -e TOR_RELAY_MODE=guard \
+  -e TOR_NICKNAME=MyGuardRelay \
+  -e TOR_CONTACT_INFO="email:admin[]example.com url:https://example.com proof:uri-familyid-ed25519 ciissversion:3" \
+  -e TOR_ORPORT=9001 \
+  -e TOR_DIRPORT=0 \
+  -v tor-data:/var/lib/tor \
+  ghcr.io/r3bo0tbx1/onion-relay:latest
+```
+
+**Example mounted config:**
+```bash
+docker run -d \
+  --name tor-relay \
+  --network host \
+  -v /path/to/relay.conf:/etc/tor/torrc:ro \
+  -v tor-data:/var/lib/tor \
+  ghcr.io/r3bo0tbx1/onion-relay:latest
+```
+
+### What is the ContactInfo Information Sharing Specification (CIISS)?
+
+The [CIISS v3](https://nusenu.github.io/ContactInfo-Information-Sharing-Specification/) is a machine-readable format for the Tor relay `ContactInfo` field. Instead of a plain email, it uses structured `key:value` pairs that tools can parse and verify automatically.
+
+**Format:**
+```
+email:your-email[]example.com url:https://example.com proof:uri-familyid-ed25519 ciissversion:3
+```
+
+**Key fields:**
+| Field | Purpose | Example |
+|-------|---------|---------|
+| `email:` | Contact email (`@` → `[]`) | `email:tor[]example.com` |
+| `url:` | Operator website | `url:https://example.com` |
+| `proof:` | URL ownership verification | `proof:uri-familyid-ed25519` |
+| `pgp:` | 40-char PGP fingerprint | `pgp:EF6E286DDA85EA2A4BA7DE684E2C6E8793298290` |
+| `abuse:` | Abuse contact (exits) | `abuse:abuse[]example.com` |
+| `hoster:` | Hosting provider domain | `hoster:www.example-hoster.com` |
+| `uplinkbw:` | Uplink bandwidth (Mbit/s) | `uplinkbw:1000` |
+| `ciissversion:` | Spec version (**mandatory**) | `ciissversion:3` |
+
+**Why use it?**
+- Tools like [Tor Metrics](https://metrics.torproject.org/) can parse your info automatically
+- `proof:uri-familyid-ed25519` lets anyone verify you own the URL (place your Happy Family ID at `https://your-domain/.well-known/tor-relay/ed25519-family-id.txt`)
+- Helps detect impersonation - operators can't fake verified URLs
+- Improves trust and visibility in the Tor network
+
+**Generate your string:** Use the [CIISS Generator](https://torcontactinfogenerator.netlify.app/) - fill in the fields and copy the result into your `ContactInfo` line or `TOR_CONTACT_INFO` env var.
+
+> 📖 **Full spec:** [nusenu.github.io/ContactInfo-Information-Sharing-Specification](https://nusenu.github.io/ContactInfo-Information-Sharing-Specification/)
+
+### What's the difference between TOR_* and official bridge naming?
+
+Both work identically - we support two naming conventions for compatibility:
+
+**TOR_* Naming (Our Standard):**
+```bash
+TOR_RELAY_MODE=bridge
+TOR_NICKNAME=MyBridge
+TOR_CONTACT_INFO=email:admin[]example.com url:https://example.com proof:uri-familyid-ed25519 ciissversion:3
+TOR_ORPORT=9001
+TOR_OBFS4_PORT=9002
+```
+
+**Official Tor Project Naming (Drop-in Compatible):**
+```bash
+NICKNAME=MyBridge
+EMAIL=email:admin[]example.com ciissversion:3
+OR_PORT=9001
+PT_PORT=9002  # Auto-detects bridge mode!
+```
+
+**Key difference:** Setting `PT_PORT` automatically enables bridge mode (no need for `TOR_RELAY_MODE=bridge`).
+
+### What's the difference between RelayBandwidthRate and BandwidthRate?
+
+**RelayBandwidthRate/Burst (Recommended):**
+- Limits **relay traffic only** (connections between Tor nodes)
+- Directory requests and other Tor infrastructure traffic NOT limited
+- Best for relays to avoid degrading directory service
+
+**BandwidthRate/Burst (Global):**
+- Limits **ALL Tor traffic** (relay + directory + everything)
+- Can slow down your relay's ability to serve directory information
+- Use only if you need strict total bandwidth control
+
+**ENV variables always use RelayBandwidthRate:**
+```bash
+TOR_BANDWIDTH_RATE="50 MBytes"    # → RelayBandwidthRate in torrc
+TOR_BANDWIDTH_BURST="100 MBytes"  # → RelayBandwidthBurst in torrc
+```
+
+**In mounted config, you choose:**
+```conf
+# Option 1 (recommended):
+RelayBandwidthRate 50 MBytes
+RelayBandwidthBurst 100 MBytes
+
+# Option 2 (global limit):
+BandwidthRate 50 MBytes
+BandwidthBurst 100 MBytes
+```
+
+### Can I use OBFS4V_* variables with spaces (like "1024 MB")?
+
+**Yes**, as of v1.1.1! The busybox compatibility issue is recorded in the historical changelog; current validation lives in `lib/config.sh`.
+
+**This now works:**
+```bash
+OBFS4_ENABLE_ADDITIONAL_VARIABLES=1
+OBFS4V_MaxMemInQueues="1024 MB"
+OBFS4V_AddressDisableIPv6=0
+OBFS4V_NumCPUs=4
+```
+
+**Prior to v1.1.1**, spaces caused "dangerous characters" errors. Update to v1.1.1+ if experiencing this issue.
+
+### What ports need to be publicly accessible?
+
+**Guard/Middle Relay:**
+- `TOR_ORPORT` (default: 9001) - **PUBLIC 🌐**
+- `TOR_DIRPORT` (default: 0) - **PUBLIC 🌐** (optional, disabled by default)
+
+**Exit Relay:**
+- `TOR_ORPORT` (default: 9001) - **PUBLIC 🌐**
+- `TOR_DIRPORT` (default: 0) - **PUBLIC 🌐** (optional, disabled by default)
+
+**Bridge Relay:**
+- `TOR_ORPORT` (default: 9001) - **PUBLIC 🌐**
+- `TOR_OBFS4_PORT` (default: 9002) - **PUBLIC 🌐**
+
+**No monitoring ports exposed** - all diagnostics via `docker exec` only (security by design).
+
+**Firewall example (UFW):**
+```bash
+# Guard relay
+sudo ufw allow 9001/tcp
+
+# Bridge relay
+sudo ufw allow 9001/tcp
+sudo ufw allow 9002/tcp
+```
+
+---
+
+## 🧅 Relay Operation
+
+### Why is my relay not appearing on Tor Metrics?
+
+**Expected timeline:**
+| Milestone | Time | What to Check |
+|-----------|------|---------------|
+| Bootstrap complete | 10-30 min | `docker exec tor-relay status` shows 100% |
+| Appears on metrics | 1-2 hours | Search https://metrics.torproject.org/rs.html |
+| First statistics | 24-48 hours | Bandwidth graphs appear |
+| Guard flag | 8+ days | Relay trusted for entry connections |
+
+> 🗳️ **Directory Authority Voting:** Tor has **9 Directory Authorities** that vote hourly on relay flags. A relay only earns a flag (Guard, Stable, Fast, HSDir, etc.) when **at least 5 of 9** authorities agree in the consensus. This is why flags aren't instant - your relay must prove itself to a majority of independent authorities.
+
+**Troubleshooting:**
+1. **Check bootstrap:** `docker exec tor-relay status`
+   - Must show "Bootstrapped 100%"
+2. **Check reachability:** Logs should show "Self-testing indicates your ORPort is reachable"
+3. **Verify firewall:** Ports must be accessible from outside your network
+4. **Check logs:** `docker logs tor-relay | grep -i error`
+5. **Verify fingerprint exists:** `docker exec tor-relay fingerprint`
+
+**Still not showing?**
+- Wait 24-48 hours (Tor network consensus updates slowly)
+- Ensure ExitRelay is 0 for guard relays (not publishing as exit)
+- Check `PublishServerDescriptor 1` in config
+
+### How do I get my bridge line?
+
+**After 24-48 hours**, run:
+```bash
+docker exec tor-bridge bridge-line --address 203.0.113.42
+```
+
+**Output format:**
+```
+Bridge obfs4 <IP>:<PORT> <FINGERPRINT> cert=<CERT> iat-mode=0
+```
+
+**Alternative methods:**
+```bash
+# Read directly from file
+docker exec tor-bridge cat /var/lib/tor/pt_state/obfs4_bridgeline.txt
+
+# Search logs
+docker logs tor-bridge | grep "bridge line"
+```
+
+**Share your bridge:**
+- ✅ Share with people you trust
+- ❌ **DO NOT** publish publicly (defeats censorship circumvention)
+- Users can also get bridges from https://bridges.torproject.org/
+
+### Why is my relay using very little bandwidth?
+
+**This is normal for new relays!** Tor network builds trust slowly.
+
+**Typical bandwidth progression:**
+- **Week 1-2:** Almost no traffic (building reputation)
+- **Week 3-4:** Gradual increase as directory consensus includes you
+- **Week 5-8:** Significant traffic increase
+- **8+ days:** May receive Guard flag (massive traffic increase)
+
+**Factors affecting bandwidth:**
+1. **Relay age** - New relays are untrusted
+2. **Uptime percentage** - Must maintain 99%+ for Guard flag
+3. **Relay flags** - Guard, Fast, Stable flags increase usage (assigned by directory authority consensus - at least 5 of 9 authorities must vote for each flag)
+4. **Configured bandwidth** - Tor won't exceed your limits
+5. **Exit policy** - Exit relays typically get more traffic
+
+**Not a bug** - be patient and maintain high uptime!
+
+---
+
+## 🔧 Troubleshooting
+
+### Container won't start - "Permission denied" errors
+
+**Problem:** `Directory /var/lib/tor cannot be read: Permission denied`
+
+**Cause:** Volume ownership mismatch (usually when migrating from Debian-based images)
+
+**Fix:**
+```bash
+# Alpine uses UID 100 (tor user)
+docker run --rm -v tor-data:/data alpine:3.24.2 chown -R 100:101 /data
+
+# Verify fix
+docker run --rm -v tor-data:/data alpine:3.24.2 ls -ldn /data
+# Should show: drwx------ X 100 101 ...
+```
+
+**Prevent in future:** Always use same image consistently (don't switch between official and this image without migration).
+
+### "OBFS4V_MaxMemInQueues: dangerous characters" error
+
+**Problem:** Bridge configuration rejected with this error (values with spaces)
+
+**Cause:** Bug in v1.1.0 and earlier - busybox regex incompatibility
+
+**Fix:** **Update to v1.1.1+**
+```bash
+docker pull ghcr.io/r3bo0tbx1/onion-relay:latest
+docker stop tor-bridge
+docker rm tor-bridge
+docker run ...  # Recreate with new image
+```
+
+**Verify fix:**
+```bash
+docker exec tor-bridge cat /build-info.txt
+# Should show: Version: 1.1.1 or later
+
+# Verify OBFS4V variables work
+docker exec tor-bridge cat /etc/tor/torrc | grep MaxMemInQueues
+# Should show: MaxMemInQueues 1024 MB (if variable was set)
+```
+
+### Why does TOR_RELAY_MODE say "guard" when I set PT_PORT?
+
+**Problem:** Log shows guard mode but you expected bridge mode
+
+**Cause:** Running old image (< v1.1.1) without PT_PORT auto-detection
+
+**Fix:** Update to v1.1.1+ where PT_PORT automatically enables bridge mode:
+```bash
+# v1.1.1+ auto-detects bridge mode from PT_PORT
+docker run -d \
+  --name tor-bridge \
+  --network host \
+  -e PT_PORT=9002 \  # Auto-enables bridge mode!
+  -e NICKNAME=MyBridge \
+  -e EMAIL=admin@example.com \
+  -v tor-data:/var/lib/tor \
+  ghcr.io/r3bo0tbx1/onion-relay:latest
+```
+
+**Verify:**
+```bash
+docker logs tor-bridge | grep "Relay mode"
+# Should show: 🎯 Relay mode: bridge
+```
+
+### How do I restart vs recreate a container?
+
+**CRITICAL:** Many issues arise from restarting old containers instead of recreating with new image.
+
+**Wrong (uses old image):**
+```bash
+docker stop tor-relay
+docker pull ghcr.io/r3bo0tbx1/onion-relay:latest  # Downloads new image
+docker start tor-relay  # ❌ Still uses OLD image!
+```
+
+**Correct (uses new image):**
+```bash
+docker stop tor-relay
+docker rm tor-relay  # Remove old container
+docker pull ghcr.io/r3bo0tbx1/onion-relay:latest  # Download new image
+docker run -d --name tor-relay ...  # ✅ New container with new image
+```
+
+**Verify which image container is using:**
+```bash
+# Get container's image ID
+docker inspect tor-relay --format='{{.Image}}'
+
+# Get current image ID
+docker images ghcr.io/r3bo0tbx1/onion-relay:latest --format='{{.ID}}'
+
+# IDs must match!
+```
+
+---
+
+## 🔄 Migration
+
+### How do I migrate from thetorproject/obfs4-bridge?
+
+# 🔄 Migration Guide
+
+[Documentation](README.md) · [Encrypted recovery](BACKUP.md) · [Deployment](DEPLOYMENT.md)
+
+Preserve identity and transport state before changing image, ownership or storage. The v2.2.0 candidate upgrades Tor and the runtime without intentionally rotating relay identity.
+
+## 📋 Prepare
+
+Record source image digest, deployment, fingerprint, public listeners and mount layout. Identify the active torrc, all include files and the effective DataDirectory. Preserve family key material and obfs4 pt_state with identity keys.
+
+Create and verify an [encrypted backup](BACKUP.md), then rehearse restore into a new staging directory using a compatible local image. Keep the original data untouched until recovery and fingerprint checks pass.
+
+## 🚀 Upgrade an existing deployment
+
+1. Review ENV versus mounted config ownership. Persist lasting changes in the deployment.
+2. Validate torrc and Compose/template syntax.
+3. Stop the old relay and confirm no other writer shares the data.
+4. Recreate with the validated image, retaining the original data and include mounts.
+5. Confirm Tor 0.4.9.14 or newer and the original fingerprint.
+6. Check fresh bootstrap evidence and public listeners independently.
+7. Keep the previous image/deployment and backup until the new relay is verified.
+
+Avoid volume deletion commands. Do not remove keys or pt_state to fix configuration errors.
+
+## 🌉 Official bridge ownership
+
+Earlier Debian-based bridge deployments commonly used UID 101; this image uses UID 100/GID 101. Inspect actual ownership before changing it. Apply ownership fixes only to the intended stopped relay data, after verified recovery. Retain the original owner information for rollback.
+
+The interactive [migration assistant](../scripts/migration/README.md) now requires encrypted backup creation and verification before mutation. Unsupported source layouts fail instead of silently falling back to a plaintext archive. Manual staged recovery is preferable for layouts the assistant cannot identify.
+
+## 👨‍👩‍👧 Happy Family and accounting
+
+Preserve family keys and FamilyId settings. Accounting state is part of DataDirectory, so keep it with the configuration defining AccountingMax and AccountingStart. IPv6 listener/policy changes also require provider and firewall checks; syntax validity does not prove connectivity.
+
+## ↩️ Rollback
+
+Stop the new relay before bringing back the old image with the old deployment. Preserve the current data for investigation. If restoring is necessary, restore into a new directory, validate offline, compare the original fingerprint, and activate explicitly. Never run both copies of the identity.
+
+## 📜 Historical references
+
+The [v1.1.x record](MIGRATION-V1.1.X.md) and [bridge troubleshooting record](TROUBLESHOOTING-BRIDGE-MIGRATION.md) describe older ownership/configuration problems. Their plaintext backup and automatic-cleanup procedures have been retired in favor of the current staged recovery workflow.
+
+
+See [migration](MIGRATION.md) and [encrypted backup](BACKUP.md) for the full procedure.
+
+---
+
+### How do I upgrade from v1.1.0 to >=v1.1.1?
+
+**Guard/Exit relays (no changes required):**
+```bash
+docker pull ghcr.io/r3bo0tbx1/onion-relay:latest
+docker stop tor-relay
+docker rm tor-relay
+docker run -d --name tor-relay ...  # Same config
+```
+
+**Bridge relays (OBFS4V fix applies):**
+- Same process as above
+- OBFS4V_* variables with spaces now work correctly
+- No config changes needed
+
+**Verify upgrade:**
+```bash
+docker exec tor-relay cat /build-info.txt
+# Should show: Version: 2.1.0
+
+docker exec tor-relay fingerprint
+# Verify fingerprint unchanged
+```
+
+---
+
+## 🔒 Security & Legal
+
+### Is it legal to run a Tor relay?
+
+**Generally yes**, but depends on jurisdiction and relay type:
+
+**Guard/Middle Relay:**
+- ✅ Legal in most countries
+- ✅ Traffic is encrypted (you can't see content)
+- ✅ You're NOT the exit point
+- ⚠️ Inform your ISP (recommended)
+
+**Exit Relay:**
+- ⚠️ **Legal but complex** - requires preparation
+- ⚠️ Your IP associated with exit traffic
+- ⚠️ You WILL receive abuse complaints
+- ⚠️ Read [docs/LEGAL.md](LEGAL.md) **BEFORE** running exit relay
+
+**Bridge Relay:**
+- ✅ Legal in most countries
+- ✅ Helps censored users
+- ✅ Not published in main directory
+- ⚠️ Check local laws on censorship circumvention tools
+
+**Resources:**
+- [EFF Tor Legal FAQ](https://community.torproject.org/relay/community-resources/eff-tor-legal-faq/)
+- [Tor Project Legal Resources](https://community.torproject.org/relay/community-resources/)
+- This project's [LEGAL.md](LEGAL.md)
+
+### How secure is this container?
+
+**Security features:**
+- ✅ Non-root execution (tor user, UID 100, GID 101)
+- ✅ Ultra-minimal image (~variant-dependent image size, Alpine 3.24.2)
+- ✅ Busybox-only (no bash, python, or unnecessary binaries)
+- ✅ No exposed monitoring ports (diagnostics via `docker exec` only)
+- ✅ Weekly automated security rebuilds (Sundays 18:30 UTC)
+- ✅ Tini init for proper signal handling
+- ✅ Security-first template configurations (no-new-privileges, minimal caps)
+- ✅ Comprehensive security audit (32 vulnerabilities fixed in v1.1.1)
+
+**Security updates:**
+- **Weekly rebuilds** pull latest Alpine + Tor patches
+- **Same version tag** overwritten with updated packages (e.g., :1.1.1)
+- **No package pinning** - always latest stable Tor from Alpine edge
+
+**Verify security:**
+```bash
+# Check build info
+docker exec tor-relay cat /build-info.txt
+
+# Run security validation
+./scripts/utilities/security-validation-tests.sh
+```
+
+### What data does the relay store?
+
+**Persistent data in `/var/lib/tor`:**
+- **Identity keys** - Your relay's cryptographic identity (CRITICAL - don't lose!)
+- **State file** - Tor's runtime state
+- **Cached directory** - Tor network consensus
+- **Bridge credentials** - obfs4 state (bridge mode only)
+
+**Logs in `/var/log/tor`:**
+- **notices.log** - Tor operational logs
+- **Rotated automatically** - No unbounded growth
+
+**Container does NOT store:**
+- ❌ User traffic content (encrypted)
+- ❌ Websites visited through relay
+- ❌ User IP addresses
+- ❌ Browsing history
+
+**Backup requirements:**
+- **MUST backup:** `/var/lib/tor` (contains identity keys)
+- **Optional:** Logs (for debugging only)
+
+**See:** [BACKUP.md](BACKUP.md) for backup strategies
+
+---
+
+## 💡 Additional Resources
+
+### Where can I find more help?
+
+- **Documentation:** [docs/](../)
+- **GitHub Issues:** https://github.com/r3bo0tbx1/tor-guard-relay/issues
+- **GitHub Discussions:** https://github.com/r3bo0tbx1/tor-guard-relay/discussions
+- **Tor Project Relay Guide:** https://community.torproject.org/relay/
+- **Tor Metrics:** https://metrics.torproject.org/
+
+### How can I contribute?
+
+- 🧅 **Run a relay** - Strengthen the Tor network
+- 🐛 **Report bugs** - Open issues on GitHub
+- 📖 **Improve docs** - Fix typos, add examples, translate
+- 💻 **Submit code** - Bug fixes, features, optimizations
+- ⭐ **Star the repo** - Show support!
+
+See [CONTRIBUTING.md](../CONTRIBUTING.md) for guidelines.
+
+---
+
+**Last Updated:** July 2026 (v2.1.0)
+**Maintained by:** [@r3bo0tbx1](https://github.com/r3bo0tbx1)
