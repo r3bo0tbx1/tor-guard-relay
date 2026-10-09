@@ -15,6 +15,8 @@ Current source: <!-- RELAY_VERSION -->v2.2.0<!-- /RELAY_VERSION -->. Historical 
 - Validate all architecture/variant candidates before promotion and retain SBOM and scan evidence.
 - Verify full source and policy commit ancestry from trusted main before preparing separate release worktrees; retain no checkout credentials.
 - Authenticate the complete Go module graph before read-only transport builds so reviewed Renovate updates with partial checksums can build. Reject changes to the reviewed go.mod and disable automatic toolchain switching.
+- Consolidate 39 Go module requirement updates into one reviewed graph, including Snowflake 2.15.1 and `klauspost/compress` 1.20.1; document the Pion transport-v4 compatibility selection and retain the STUN security floor.
+- Group routine Go dependency proposals, including indirect modules, into one Renovate PR. Keep major/source updates separate and vulnerability alerts immediate.
 
 ### 🛠️ Operator changes
 
@@ -25,6 +27,7 @@ Current source: <!-- RELAY_VERSION -->v2.2.0<!-- /RELAY_VERSION -->. Historical 
 - Restore emoji workflow labels and add job outcome summaries while preserving required PR check names and blocking gates.
 - Handle missing startup metadata as a retryable recovery-fixture error without bypassing archive validation.
 - Show the published version, exact scanned image, blocking advisories and reported fixes in Security watch summaries; keep alerts failing until affected published images are replaced or findings are otherwise resolved.
+- Check source on main changes and audit published images every six hours, on manual dispatch and after a successful release workflow. Clearly label source-only merge results while retaining blocking published-image and candidate security checks.
 
 ### 💥 Compatibility and migration
 

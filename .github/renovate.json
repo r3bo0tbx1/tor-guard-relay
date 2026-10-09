@@ -8,6 +8,7 @@
   ],
   "labels": ["dependencies"],
   "commitMessagePrefix": "⬆️ build(deps):",
+  "commitMessageAction": "update",
   "rebaseWhen": "behind-base-branch",
   "assignees": ["r3bo0tbx1"],
   "reviewers": ["r3bo0tbx1"],
@@ -86,6 +87,16 @@
       "labels": ["dependencies", "github-actions"],
       "schedule": ["before 3am on monday"],
       "automerge": true
+    },
+    {
+      "description": "Review the independently maintained Go graph as one update batch",
+      "matchManagers": ["gomod"],
+      "matchUpdateTypes": ["minor", "patch", "digest", "pin"],
+      "groupName": "🧅 Lyrebird Go dependencies",
+      "groupSlug": "lyrebird-go-dependencies",
+      "groupSingleUpdates": true,
+      "automerge": false,
+      "prBodyNotes": ["Review the combined Go graph against the pinned Lyrebird source and its documented Pion compatibility limits. If the readonly build requests go.mod updates, regenerate the lock in the actual pinned source, then run the full candidate matrix. Do not run go mod tidy in the lock-only directory."]
     }
   ],
   "vulnerabilityAlerts": {
