@@ -17,6 +17,8 @@ Current source: <!-- RELAY_VERSION -->v2.2.0<!-- /RELAY_VERSION -->. Historical 
 - Authenticate the complete Go module graph before read-only transport builds so reviewed Renovate updates with partial checksums can build. Reject changes to the reviewed go.mod and disable automatic toolchain switching.
 - Consolidate 39 Go module requirement updates into one reviewed graph, including Snowflake 2.15.1 and `klauspost/compress` 1.20.1; document the Pion transport-v4 compatibility selection and retain the STUN security floor.
 - Group routine Go dependency proposals, including indirect modules, into one Renovate PR. Keep major/source updates separate and vulnerability alerts immediate.
+- Apply five reviewed Pion compatibility limits to routine Renovate proposals and defer indirect major import-path migrations to their upstream consumers. Preserve immediate security-fix review beyond these restrictions and verify routing with 15 real-engine behavior checks before candidate builds.
+- Include the compatible `golang.org/x/net` 0.61.0 update; regenerate and authenticate the complete lock against the actual pinned Lyrebird source.
 
 ### 🛠️ Operator changes
 
