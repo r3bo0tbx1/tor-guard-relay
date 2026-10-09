@@ -63,6 +63,8 @@ Docker/toolchain, source and Go proposals can be created on any Renovate run wit
 
 Indirect Go updates are explicitly enabled. Renovate's OSV security PR coverage is limited to direct dependencies; Go source analysis and image scans cover additional findings that need maintainer triage. Do not assume the bot can automatically remediate every transitive vulnerability.
 
+Routine Go minor, patch, digest and pin updates share one `🧅 Lyrebird Go dependencies` PR, including indirect modules. Review and validate the combined graph once per revision rather than merging individual dependencies and rebasing every remaining branch. Major and source-pin proposals retain separate review boundaries; vulnerability alerts stay immediate. The [dependency lock guide](../../build/lyrebird/README.md#-pion-compatibility-boundary) records the current Pion interface limits. Grouping does not make every newer version compatible or bypass any gate.
+
 The `build/lyrebird` directory contains the reviewed Go graph, while the Docker builder fetches the pinned Lyrebird source. Renovate can propose a version with only its go.mod checksum. Both builders download the complete selected graph, authenticate module content through Go's checksum verification, verify the module cache, and require go.mod to remain unchanged before read-only compilation. Automatic toolchain switching is disabled: review and update the pinned builder when a dependency requires a newer Go version. Do not run `go mod tidy` in the lock-only directory; it needs the actual Lyrebird source to preserve the required packages.
 
 After a Docker base version proposal, run `python3 scripts/release/check-versions.py --write` and review the synchronized examples and OCI base label. The consistency gate deliberately rejects unsynchronized documentation.
@@ -77,7 +79,9 @@ If no fix exists, assess exposure and mitigate it, for example by disabling an a
 
 ### 🔎 Continuous security watch
 
-The read-only `🔒🧅 Security watch` workflow runs on relevant main changes, manual dispatch and every six hours. It analyzes current pinned source/Go locks for both architectures and independently scans the exact published stable/edge architecture digests from Docker Hub and GHCR using current advisory data. It records manifests, image IDs and complete reports, including failure diagnostics, for 30 days. Failures appear in Actions; configure your GitHub Actions notifications to receive them.
+The read-only `🔒🧅 Security watch` workflow checks current pinned source/Go locks for both architectures on relevant main changes. Full published-image audits run every six hours, on manual dispatch, and after the `🚀✨` release workflow completes successfully. They independently scan the exact published stable/edge architecture digests from Docker Hub and GHCR using current advisory data, retaining manifests, image IDs and complete reports, including failure diagnostics, for 30 days. Failures appear in Actions; configure your GitHub Actions notifications to receive them.
+
+This separates merge validation from audits of registry images that the merge has not replaced. A main-triggered source check can pass while the most recent published-image audit remains blocked. Its summary identifies that scope; it is not evidence that published findings are fixed. Scheduled, manual and post-release audits still fail on HIGH/CRITICAL findings or secrets. Candidate image security remains blocking in the main/PR validation pipeline.
 
 The published-image lane performs package/secret assessment; source reachability is reported for the current checkout, which may differ from a published release. GitHub schedules and advisory ingestion can be delayed. Monitoring never publishes images, changes a live relay, opens issues or sends third-party messages.
 

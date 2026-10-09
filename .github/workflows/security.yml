@@ -1,6 +1,9 @@
 name: 🔒🧅 Security watch
 on:
   workflow_dispatch:
+  workflow_run:
+    workflows: ['🚀✨']
+    types: [completed]
   schedule:
     - cron: '23 */6 * * *'
   push:
@@ -20,6 +23,7 @@ concurrency:
 jobs:
   source:
     name: 🛡️ Go source (${{ matrix.arch }})
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
@@ -50,6 +54,7 @@ jobs:
           JOB_STATUS: ${{ job.status }}
           JOB_NAME: ${{ github.job }}
           SOURCE_REVISION: ${{ github.sha }}
+          EVENT_NAME: ${{ github.event_name }}
         run: |
           {
             printf '## 🧅 Relay workflow evidence\n\n'
@@ -58,10 +63,16 @@ jobs:
             printf '| Outcome | **%s** |\n' "$JOB_STATUS"
             printf '| Workflow revision | <code>%s</code> |\n' "$SOURCE_REVISION"
             printf '\n📎 Consult the retained artifacts and preceding gate results for detailed evidence.\n'
+            if [ "$EVENT_NAME" = push ]; then
+              printf '\n🔎 This main update checks current source. Published images are audited every six hours, on manual dispatch, and after a successful release workflow. Existing published-image findings remain unresolved until replacement digests pass that audit.\n'
+            fi
           } >> "$GITHUB_STEP_SUMMARY"
 
   published:
     name: 🐋 Published ${{ matrix.registry }} / ${{ matrix.variant }} / ${{ matrix.arch }}
+    if: >-
+      github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
     runs-on: ubuntu-latest
     timeout-minutes: 20
     strategy:
