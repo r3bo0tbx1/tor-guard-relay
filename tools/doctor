@@ -1,0 +1,17 @@
+#!/bin/sh
+set -eu
+. "${RELAY_LIB:-/usr/local/lib/relay}/runtime.sh"
+case "${1:-}" in ''|--json) ;; -h|--help) echo 'Usage: doctor [--json]'; exit 0 ;; *) exit 2 ;; esac
+inspect_health
+case "$REASON" in
+  ready) remedy='Inspect external reachability and consensus separately.' ;;
+  process_missing) remedy='Inspect container startup/exit status and run config validate.' ;;
+  process_ambiguous) remedy='Run exactly one Tor process in this container.' ;;
+  config_invalid) remedy='Run config validate; check mounted paths and permissions.' ;;
+  observation_stale|observation_missing) remedy='Inspect logging and restart through the entrypoint to establish a current-run boundary.' ;;
+  *) remedy='Inspect current notices, host firewall, DNS and upstream connectivity.' ;;
+esac
+if [ "${1:-}" = --json ]; then
+  printf '{"health":'; health_json; printf ',"remedy":'; json_string "$remedy"; printf '}\n'
+else printf 'Tor relay doctor\nReason: %s\nAction: %s\n' "$REASON" "$remedy"; fi
+[ "$READY" = true ]

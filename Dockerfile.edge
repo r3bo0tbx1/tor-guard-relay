@@ -1,25 +1,24 @@
-# syntax=docker/dockerfile:1.27
-FROM golang:1.27-alpine AS builder
-
-RUN apk add --no-cache git
-
+# syntax=docker/dockerfile:1.28.0
+FROM --platform=$BUILDPLATFORM golang:1.27.2-alpine3.24@sha256:85dc1069ac644ea3c527b177303a406eb3358192816cd7f9e5848eb658851673 AS builder
+RUN sed -i 's/http:/https:/g' /etc/apk/repositories && apk add --no-cache git
 WORKDIR /go/src/lyrebird
-RUN git clone https://gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/lyrebird.git .  \
- && go get golang.org/x/crypto@latest \
- && go get golang.org/x/net@latest \
- && go get filippo.io/edwards25519@latest \
- && go get github.com/pion/dtls/v3@latest \
- && go get github.com/pion/stun/v3@latest \
- && go get github.com/pion/interceptor@latest \
- && go get github.com/cloudflare/circl@latest \
- && go mod tidy \
- && CGO_ENABLED=0 go build -ldflags="-s -w" -o /usr/bin/lyrebird ./cmd/lyrebird
+ARG LYREBIRD_REVISION=362a60bb4e3fa434130ef81a9990d83d6d8eaea5
+RUN git init . && git remote add origin https://gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/lyrebird.git \
+ && git fetch --depth 1 origin "$LYREBIRD_REVISION" && git checkout --detach FETCH_HEAD
+COPY build/lyrebird/go.mod build/lyrebird/go.sum ./
+ARG TARGETOS
+ARG TARGETARCH
+RUN go mod download && go mod verify \
+ && CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -mod=readonly -trimpath -ldflags="-s -w" -o /usr/bin/lyrebird ./cmd/lyrebird
 
 FROM alpine:edge
 
 ARG BUILD_DATE
 ARG BUILD_VERSION
 ARG TARGETARCH
+ARG SOURCE_REVISION=unknown
+ARG LYREBIRD_REVISION=362a60bb4e3fa434130ef81a9990d83d6d8eaea5
+ARG TOR_MIN_VERSION=0.4.9.14
 
 LABEL maintainer="rE-Bo0t.bx1 <r3bo0tbx1@brokenbotnet.com>" \
       org.opencontainers.image.title="Tor Guard Relay (Edge)" \
@@ -33,17 +32,19 @@ LABEL maintainer="rE-Bo0t.bx1 <r3bo0tbx1@brokenbotnet.com>" \
       org.opencontainers.image.authors="rE-Bo0t.bx1 <r3bo0tbx1@brokenbotnet.com>" \
       org.opencontainers.image.url="https://github.com/r3bo0tbx1/tor-guard-relay" \
       org.opencontainers.image.base.name="docker.io/library/alpine:edge" \
-      org.opencontainers.image.revision="${TARGETARCH}"
+      org.torproject.lyrebird.revision="${LYREBIRD_REVISION}" \
+      org.opencontainers.image.revision="${SOURCE_REVISION}"
 
 SHELL ["/bin/ash", "-eo", "pipefail", "-c"]
 
 RUN set -eux \
- && deluser klogd || true \
+ && sed -i 's/http:/https:/g' /etc/apk/repositories \
+ && { deluser klogd || true; } \
  && addgroup -g 101 -S tor \
  && adduser -u 100 -S -D -H -h /var/lib/tor -G tor -s /sbin/nologin tor \
  && apk upgrade --no-cache \
  && apk add --no-cache \
-    tor \
+    "tor>=${TOR_MIN_VERSION}" \
     tini \
  && mkdir -p /var/lib/tor /var/log/tor /run/tor /etc/tor \
  && chown -R tor:tor /var/lib/tor /var/log/tor /run/tor /etc/tor \
@@ -56,6 +57,8 @@ RUN set -eux \
 
 COPY --from=builder /usr/bin/lyrebird /usr/bin/lyrebird
 
+COPY lib/ /usr/local/lib/relay/
+COPY tools/doctor tools/config /usr/local/bin/
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 COPY healthcheck.sh /usr/local/bin/healthcheck.sh
 COPY tools/status /usr/local/bin/status
@@ -67,7 +70,7 @@ COPY tools/gen-auth /usr/local/bin/gen-auth
 COPY tools/gen-family /usr/local/bin/gen-family
 
 RUN set -eux \
- && chmod +x /usr/local/bin/docker-entrypoint.sh \
+ && chmod +x /usr/local/bin/doctor /usr/local/bin/config /usr/local/bin/docker-entrypoint.sh \
               /usr/local/bin/healthcheck.sh \
               /usr/local/bin/status \
               /usr/local/bin/health \

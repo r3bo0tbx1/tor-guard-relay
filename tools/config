@@ -1,0 +1,45 @@
+#!/bin/sh
+set -eu
+. "${RELAY_LIB:-/usr/local/lib/relay}/runtime.sh"
+. "${RELAY_LIB:-/usr/local/lib/relay}/config.sh"
+inspect_process || true
+command=${1:-help}; shift || true
+case "$command" in
+  validate)
+    [ "$#" -le 1 ] || die 'Usage: config validate [candidate]'
+    [ "$#" -eq 0 ] || TOR_CONFIG=$1
+    config_valid || die 'Configuration invalid or unreadable'
+    echo 'Configuration is valid'
+    ;;
+  diff)
+    [ "$#" -eq 1 ] || die 'Usage: config diff candidate'
+    [ -r "$1" ] && [ -r "$TOR_CONFIG" ] || die 'Config unreadable'
+    directory=$(mktemp -d /tmp/relay-diff.XXXXXX)
+    trap 'rm -rf "$directory"' 0
+    # Values are never displayed, including unknown/custom sensitive options.
+    awk '!/^#/ && NF {print $1, "<redacted>"}' "$TOR_CONFIG" > "$directory/active"
+    awk '!/^#/ && NF {print $1, "<redacted>"}' "$1" > "$directory/candidate"
+    echo 'Directive-only diff; values are redacted (value-only changes are hidden).'
+    code=0; diff -u "$directory/active" "$directory/candidate" || code=$?
+    [ "$code" -le 1 ]
+    ;;
+  apply)
+    [ "$#" -ge 1 ] && [ "$#" -le 2 ] || die 'Usage: config apply candidate [--reload]'
+    candidate=$1; reload=${2:-}
+    [ -z "$reload" ] || [ "$reload" = --reload ] || die 'Unknown option'
+    config_source
+    [ "$CONFIG_SOURCE" = environment ] || die 'Mounted config is authoritative; edit its host source'
+    [ ! -L "$TOR_CONFIG" ] || die 'Refusing symlink config'
+    umask 077
+    staged=$(mktemp "$(dirname "$TOR_CONFIG")/.torrc.XXXXXX")
+    trap 'rm -f "$staged"' 0
+    printf '# Generated Tor configuration (operator applied)\n' > "$staged"
+    cat "$candidate" >> "$staged"
+    tor --verify-config -f "$staged" >/dev/null 2>&1 || die 'Candidate invalid; active config retained'
+    mv "$staged" "$TOR_CONFIG"
+    echo 'Configuration applied atomically'
+    [ "$reload" != --reload ] || exec /usr/local/bin/refresh
+    ;;
+  -h|--help|help) echo 'Usage: config validate [file] | diff candidate | apply candidate [--reload]' ;;
+  *) die 'Unknown config command' ;;
+esac
