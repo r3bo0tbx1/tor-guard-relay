@@ -28,6 +28,7 @@ Current source: <!-- RELAY_VERSION -->v2.2.0<!-- /RELAY_VERSION -->. Historical 
 - Preserve the README's branding, badges and screenshot gallery; restore detailed guides and 15 rendered Mermaid architecture diagrams, including recovery and security-update flows.
 - Restore emoji workflow labels and add job outcome summaries while preserving required PR check names and blocking gates.
 - Handle missing startup metadata as a retryable recovery-fixture error without bypassing archive validation.
+- Inspect transport metadata with the digest-pinned native Go builder; reuse its local image and bound registry-fetch retries without retrying or bypassing component validation.
 - Show the published version, exact scanned image, blocking advisories and reported fixes in Security watch summaries; keep alerts failing until affected published images are replaced or findings are otherwise resolved.
 - Check source on main changes and audit published images every six hours, on manual dispatch and after a successful release workflow. Clearly label source-only merge results while retaining blocking published-image and candidate security checks.
 
