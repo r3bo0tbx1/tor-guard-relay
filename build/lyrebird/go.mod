@@ -58,7 +58,7 @@ require (
 	github.com/realclientip/realclientip-go v1.0.0 // indirect
 	github.com/theodorsm/covert-dtls v1.5.0 // indirect
 	github.com/tjfoc/gmsm v1.4.1 // indirect
-	github.com/txthinking/runnergroup v0.0.0-20210608031112-152c7c4432bf // indirect
+	github.com/txthinking/runnergroup v0.0.0-20250224021307-5864ffeb65ae // indirect
 	github.com/wlynxg/anet v0.0.5 // indirect
 	github.com/xtaci/kcp-go/v5 v5.6.24 // indirect
 	github.com/xtaci/smux v1.5.56 // indirect
