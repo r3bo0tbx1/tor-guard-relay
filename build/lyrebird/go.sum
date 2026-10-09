@@ -139,6 +139,7 @@ github.com/txthinking/runnergroup v0.0.0-20210608031112-152c7c4432bf/go.mod h1:C
 github.com/txthinking/runnergroup v0.0.0-20250224021307-5864ffeb65ae/go.mod h1:cldYm15/XHcGt7ndItnEWHwFZo7dinU+2QoyjfErhsI=
 github.com/txthinking/socks5 v0.0.0-20251011041537-5c31f201a10e h1:xA7GVlbz6teIF4FdvuqwbX6C4tiqNk2PH7FRPIDerao=
 github.com/txthinking/socks5 v0.0.0-20251011041537-5c31f201a10e/go.mod h1:ntmMHL/xPq1WLeKiw8p/eRATaae6PiVRNipHFJxI8PM=
+github.com/txthinking/socks5 v0.0.0-20260601051520-339b044ab0eb/go.mod h1:ntmMHL/xPq1WLeKiw8p/eRATaae6PiVRNipHFJxI8PM=
 github.com/wlynxg/anet v0.0.5 h1:J3VJGi1gvo0JwZ/P1/Yc/8p63SoW98B5dHkYDmpgvvU=
 github.com/wlynxg/anet v0.0.5/go.mod h1:eay5PRQr7fIVAMbTbchTnO9gG65Hg/uYGdc7mguHxoA=
 github.com/xtaci/kcp-go/v5 v5.6.24 h1:0tZL4NfpoESDrhaScrZfVDnYZ/3LhyVAbN/dQ2b4hbI=

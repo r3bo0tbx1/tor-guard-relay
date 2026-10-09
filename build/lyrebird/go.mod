@@ -4,7 +4,7 @@ require (
 	filippo.io/edwards25519 v1.2.0
 	github.com/dchest/siphash v1.2.3
 	github.com/refraction-networking/utls v1.8.2
-	github.com/txthinking/socks5 v0.0.0-20251011041537-5c31f201a10e
+	github.com/txthinking/socks5 v0.0.0-20260601051520-339b044ab0eb
 	gitlab.com/yawning/edwards25519-extra v0.0.0-20231005122941-2149dcafc266
 	gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/goptlib v1.6.0
 	gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/snowflake/v2 v2.14.1
