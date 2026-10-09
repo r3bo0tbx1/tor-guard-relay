@@ -4,6 +4,14 @@
 .gitignore
 .gitattributes
 .github/
+.release-policy/
+.secrets
+tor-data/
+tor-logs/
+*.age
+*.age.part
+__pycache__/
+*.pyc
 *.md
 CHANGELOG.md
 CONTRIBUTING.md

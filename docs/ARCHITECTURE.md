@@ -47,6 +47,8 @@ The image runs as UID 100/GID 101. Operators prepare persistent-volume ownership
 
 Stable runtime uses Alpine 3.24.2 pinned by digest; edge follows Alpine edge. Both require Tor 0.4.9.14 or newer. Lyrebird source and Go dependency graph are pinned. The native Go builder cross-compiles the requested architecture; the actual target runtime is tested separately.
 
+Source-pin proposals and Go security fixes are independent review paths. Host/CI source reachability analysis verifies matching candidate transport bytes; no scanner enters the runtime. Scheduled publication resolves release source and current reviewed security policy separately. Read-only periodic checks analyze current source and published registry digests, retaining full evidence without altering a running relay.
+
 Release jobs load and validate four candidates before any promotion. Exported image archives, checksums and image IDs carry evidence into promotion, which assembles manifests from the pushed candidate digests without rebuilding. SBOMs and scan results accompany curated notes. Schedules resolve the latest released tag, preserving source identity.
 
 ## 🔐 Host recovery boundary

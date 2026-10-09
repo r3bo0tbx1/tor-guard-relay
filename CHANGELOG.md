@@ -10,6 +10,8 @@ Current source: <!-- RELAY_VERSION -->v2.2.0<!-- /RELAY_VERSION -->. Historical 
 
 - Require Tor 0.4.9.14 or newer in stable and edge images; upstream recommends updating as soon as possible.
 - Update stable Alpine to 3.24.2, pin Go 1.27.2 and the Lyrebird source revision, and lock the dependency graph with Pion STUN 3.1.7.
+- Track Lyrebird source-pin updates through reviewed Renovate PRs independently of Go dependency security fixes; add source/metadata pin consistency checks, candidate-matched Go reachability analysis and six-hour read-only published-image monitoring. Block unfixed HIGH/CRITICAL image findings and reachable Go vulnerabilities; apply current reviewed security policy when rebuilding released source.
+- Update the independently maintained Go lock to `klauspost/compress` 1.18.7 for GO-2026-5841; retain module/reachability evidence separately from severity labels.
 - Validate all architecture/variant candidates before promotion and retain SBOM and scan evidence.
 
 ### 🛠️ Operator changes

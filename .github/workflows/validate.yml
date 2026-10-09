@@ -27,6 +27,7 @@ jobs:
       - name: Source checks and regression tests
         run: |
           python3 scripts/release/check-versions.py
+          python3 scripts/testing/check-dependency-pins.py
           python3 scripts/testing/check-templates.py
           python3 scripts/testing/check-docs.py
           shellcheck -S warning -x docker-entrypoint.sh healthcheck.sh lib/*.sh tools/* scripts/utilities/relay-backup.sh scripts/utilities/relay-inventory.sh
@@ -58,6 +59,8 @@ jobs:
         run: |
           python3 scripts/testing/image-acceptance.py relay-test:local --platform linux/${{ matrix.arch }}
           python3 scripts/testing/check-image.py relay-test:local
+      - name: Check Go vulnerabilities in matching source and transport
+        run: python3 scripts/testing/check-go-vulns.py --arch ${{ matrix.arch }} --image relay-test:local --output govulncheck.json
       - name: Rehearse encrypted recovery
         if: matrix.variant == 'stable' && matrix.arch == 'amd64'
         run: |
@@ -75,6 +78,16 @@ jobs:
           exit-code: '0'
       - name: Enforce security policy
         run: python3 scripts/testing/check-security.py trivy.json
+      - name: Retain security diagnostics on success or failure
+        if: always()
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: validation-security-${{ matrix.variant }}-${{ matrix.arch }}
+          overwrite: true
+          path: |
+            trivy.json
+            govulncheck*.json
+          retention-days: 30
 
   required-checks:
     name: ${{ matrix.check }}

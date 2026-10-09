@@ -22,7 +22,11 @@ Stable Alpine 3.24.2 and Go 1.27.2 are pinned by digest. Lyrebird source is pinn
 
 OpenSSL's installed libssl3 must be at least 3.5.9. Container updates do not patch the host kernel; operators remain responsible for host security updates.
 
-Scans block fixed HIGH/CRITICAL vulnerabilities and secrets. Full reports and SBOMs remain release evidence, including findings outside that blocking policy. The local module scan reports [GO-2026-5932](https://pkg.go.dev/vuln/GO-2026-5932), an unfixed advisory about deprecated x/crypto OpenPGP packages; assess package inclusion instead of calling the whole module clean.
+Scans block all HIGH/CRITICAL image vulnerabilities, including unfixed findings, and secrets. Go source analysis separately blocks known reachable vulnerabilities even without a severity label or fixed version. It uses the same pinned source/lock/toolchain and proves that the analyzed transport matches the candidate bytes. Full reports and SBOMs remain release evidence, including findings outside that blocking policy. The local module scan reports [GO-2026-5932](https://pkg.go.dev/vuln/GO-2026-5932), an unfixed advisory about deprecated x/crypto OpenPGP packages; assess package inclusion instead of calling the whole module clean.
+
+Renovate proposes reviewed Lyrebird source pins and independent Go dependency updates. Compatible dependency fixes need not wait for Lyrebird upstream to update its graph. Base/toolchain/source/Go proposals have no weekly update window; security fixes get expedited review and a patch release after validation. Pins remain explicit, and source updates are not auto-merged.
+
+The read-only security workflow analyzes current source and rescans published architecture digests in both registries every six hours, on relevant main changes and by manual dispatch. Complete results are retained for 30 days. Subscribe to Actions failure notifications; the workflow does not send third-party messages. Scheduling and advisory ingestion are not instantaneous, and scanners cannot guarantee detection of every vulnerability. See the [security response procedure](scripts/release/README.md#expedited-security-response).
 
 ## 🛡️ Runtime boundary
 
@@ -34,7 +38,9 @@ Prepare persistent-volume ownership yourself. Startup cannot silently heal arbit
 
 ## 🚦 Release gates
 
-All stable/edge AMD64/ARM64 candidates must pass behavior, component floors and security checks before promotion. Promotion loads the validated images and checks their identity; it does not rebuild. Scheduled rebuilds use the latest released tag. Pin updates and new features require a reviewed source release.
+All stable/edge AMD64/ARM64 candidates must pass behavior, component floors and security checks before promotion. Promotion loads the validated images and checks their identity; it does not rebuild. Scheduled rebuilds use the latest released tag with current reviewed main security policy. Source and policy SHAs are recorded independently. Pin updates and new features require a reviewed source release.
+
+An available fix for an applicable security issue should proceed through expedited validation and release, without waiting for the routine schedule. An unfixed issue still requires assessment and mitigation; severe image findings or reachable Go findings remain blockers. This checkout contains no automatic security exception mechanism.
 
 Cleanup is manual and separate from validation. Preserve a rollback image, deployment and verified encrypted backup before upgrading.
 

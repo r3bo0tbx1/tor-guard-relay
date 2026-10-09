@@ -1,28 +1,22 @@
 #!/usr/bin/env python3
 """Gate a complete Trivy report without discarding unresolved findings."""
 import json
+import argparse
 from pathlib import Path
 import sys
-
-
-def assess(report):
-    if report.get("SchemaVersion") != 2 or not isinstance(report.get("Results"), list):
-        raise ValueError("Expected a complete Trivy schema-v2 report")
-    vulnerabilities = []
-    secrets = []
-    for result in report["Results"]:
-        vulnerabilities.extend(result.get("Vulnerabilities") or [])
-        secrets.extend(result.get("Secrets") or [])
-    blockers = [finding for finding in vulnerabilities
-                if finding.get("Severity") in ("HIGH", "CRITICAL")
-                and finding.get("FixedVersion")]
-    return {"vulnerability_findings": len(vulnerabilities),
-            "fixable_high_critical": len(blockers), "secret_findings": len(secrets),
-            "blocker_ids": [finding["VulnerabilityID"] for finding in blockers],
-            "passed": not blockers and not secrets}
+from security_policy import assess
 
 
 if __name__ == "__main__":
-    summary = assess(json.loads(Path(sys.argv[1]).read_text()))
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('report', type=Path)
+    parser.add_argument('--image-metadata', type=Path, help='Require the report to match this inspected image ID')
+    args = parser.parse_args()
+    report = json.loads(args.report.read_text())
+    if args.image_metadata:
+        metadata = json.loads(args.image_metadata.read_text())
+        if report.get('Metadata', {}).get('ImageID') != metadata[0]['Id']:
+            raise SystemExit('Security report does not match inspected image identity')
+    summary = assess(report)
     print(json.dumps(summary, indent=2))
     raise SystemExit(0 if summary["passed"] else 1)

@@ -202,6 +202,8 @@ These illustrate earlier releases; see the current tool reference for v2.2.0 out
 
 Only the latest **published** release receives maintenance. Preparing this checkout does not change the current supported release.
 
+Renovate proposes reviewed Lyrebird source-pin and independent Go dependency updates, so compatible security fixes can proceed before upstream changes its lock. Candidate gates block all HIGH/CRITICAL image findings and known reachable Go vulnerabilities, including unfixed issues. A read-only Actions workflow checks current source and published digests every six hours. See the [release and security response procedure](scripts/release/README.md).
+
 Patch the host, protect persistent storage, keep recovery keys separate and rehearse recovery. Read [SECURITY.md](SECURITY.md), [legal considerations](docs/LEGAL.md), [CONTRIBUTING.md](CONTRIBUTING.md) and the [code of conduct](CODE_OF_CONDUCT.md).
 
 [Docker Hub](https://hub.docker.com/r/r3bo0tbx1/onion-relay) · [GHCR](https://github.com/r3bo0tbx1/tor-guard-relay/pkgs/container/onion-relay) · [Support](https://brokenbotnet.com/donate/).

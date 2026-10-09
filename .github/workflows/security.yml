@@ -1,0 +1,111 @@
+name: 🔒🧅 Security watch
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '23 */6 * * *'
+  push:
+    branches: [main]
+    paths:
+      - 'Dockerfile*'
+      - 'build/**'
+      - 'scripts/testing/**'
+      - '.github/renovate.json'
+      - '.github/workflows/security.yml'
+permissions:
+  contents: read
+  packages: read
+concurrency:
+  group: security-watch-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  source:
+    name: Go source (${{ matrix.arch }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [amd64, arm64]
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: docker/setup-buildx-action@v4.4.1
+      - name: Check source and metadata pins
+        run: python3 scripts/testing/check-dependency-pins.py
+      - name: Check current source and independently maintained Go graph
+        run: python3 scripts/testing/check-go-vulns.py --arch ${{ matrix.arch }} --output govulncheck.json
+      - name: Retain source assessment
+        if: always()
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: watched-go-${{ matrix.arch }}
+          overwrite: true
+          path: govulncheck*.json
+          retention-days: 30
+
+  published:
+    name: Published ${{ matrix.registry }} / ${{ matrix.variant }} / ${{ matrix.arch }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        registry: [dockerhub, ghcr]
+        variant: [stable, edge]
+        arch: [amd64, arm64]
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: docker/setup-buildx-action@v4.4.1
+      - uses: docker/login-action@v4.6.0
+        if: matrix.registry == 'ghcr'
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Resolve and retain the exact published architecture digest
+        id: image
+        env:
+          REGISTRY: ${{ matrix.registry }}
+          VARIANT: ${{ matrix.variant }}
+          ARCH: ${{ matrix.arch }}
+          OWNER: ${{ github.repository_owner }}
+        run: |
+          set -euo pipefail
+          repository=r3bo0tbx1/onion-relay
+          if [ "$REGISTRY" = ghcr ]; then repository="ghcr.io/${OWNER,,}/onion-relay"; fi
+          alias=latest
+          if [ "$VARIANT" = edge ]; then alias=edge; fi
+          reference="$repository:$alias"
+          docker buildx imagetools inspect "$reference" --raw > manifest.json
+          digest=$(jq -er --arg arch "$ARCH" '[.manifests[] | select(.platform.os == "linux" and .platform.architecture == $arch) | .digest] | if length == 1 then .[0] else error("Expected one architecture manifest") end' manifest.json)
+          [[ "$digest" =~ ^sha256:[a-f0-9]{64}$ ]]
+          image="$repository@$digest"
+          echo "$image" > image-reference.txt
+          docker pull --platform "linux/$ARCH" "$image"
+          docker image inspect "$image" > image.json
+          echo "reference=$image" >> "$GITHUB_OUTPUT"
+      - name: Scan published digest using current advisory data
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: ${{ steps.image.outputs.reference }}
+          version: v0.75.0
+          format: json
+          output: trivy.json
+          scanners: vuln,secret
+          severity: UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL
+          ignore-unfixed: false
+          exit-code: '0'
+      - name: Assess published image using current policy
+        run: python3 scripts/testing/check-security.py trivy.json --image-metadata image.json
+      - name: Retain published assessment
+        if: always()
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: watched-${{ matrix.registry }}-${{ matrix.variant }}-${{ matrix.arch }}
+          overwrite: true
+          path: |
+            manifest.json
+            image-reference.txt
+            image.json
+            trivy.json
+          retention-days: 30

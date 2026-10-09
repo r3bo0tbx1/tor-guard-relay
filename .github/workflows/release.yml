@@ -25,6 +25,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       sha: ${{ steps.source.outputs.sha }}
+      policy_sha: ${{ steps.source.outputs.policy_sha }}
       version: ${{ steps.source.outputs.version }}
       publish: ${{ steps.source.outputs.publish }}
       release: ${{ steps.source.outputs.release }}
@@ -59,6 +60,7 @@ jobs:
           git merge-base --is-ancestor "$sha" origin/main
           {
             echo "sha=$sha"
+            echo "policy_sha=$(git rev-parse 'origin/main^{commit}')"
             echo "version=${tag#v}"
             echo "publish=$publish"
             echo "release=$release"
@@ -76,6 +78,7 @@ jobs:
       - name: Validate selected release source
         run: |
           python3 scripts/release/check-versions.py
+          python3 scripts/testing/check-dependency-pins.py
           python3 scripts/testing/check-docs.py
           python3 scripts/testing/check-templates.py
           shellcheck -S warning -x docker-entrypoint.sh healthcheck.sh lib/*.sh tools/* scripts/utilities/relay-backup.sh scripts/utilities/relay-inventory.sh
@@ -93,6 +96,12 @@ jobs:
       - uses: actions/checkout@v7.0.1
         with:
           ref: ${{ needs.source.outputs.sha }}
+      - name: Check out current reviewed security policy separately
+        uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ needs.source.outputs.policy_sha }}
+          path: .release-policy
+          persist-credentials: false
       - uses: docker/setup-qemu-action@v4.4.0
       - uses: docker/setup-buildx-action@v4.4.1
       - name: Validate source and templates
@@ -115,7 +124,12 @@ jobs:
       - name: Offline behavioral acceptance
         run: python3 scripts/testing/image-acceptance.py relay-candidate:${{ matrix.variant }}-${{ matrix.arch }} --platform linux/${{ matrix.arch }}
       - name: Enforce component security floors
-        run: python3 scripts/testing/check-image.py relay-candidate:${{ matrix.variant }}-${{ matrix.arch }}
+        run: python3 .release-policy/scripts/testing/check-image.py relay-candidate:${{ matrix.variant }}-${{ matrix.arch }}
+      - name: Check Go reachability with current policy and matching released source
+        run: >-
+          python3 .release-policy/scripts/testing/check-go-vulns.py --source-root .
+          --arch ${{ matrix.arch }} --image relay-candidate:${{ matrix.variant }}-${{ matrix.arch }}
+          --output govulncheck.json
       - name: Rehearse encrypted recovery with both storage layouts
         if: matrix.variant == 'stable' && matrix.arch == 'amd64'
         run: |
@@ -133,7 +147,17 @@ jobs:
           ignore-unfixed: false
           exit-code: '0'
       - name: Enforce security policy without hiding advisory findings
-        run: python3 scripts/testing/check-security.py trivy.json
+        run: python3 .release-policy/scripts/testing/check-security.py trivy.json
+      - name: Retain security diagnostics on success or failure
+        if: always()
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: security-${{ matrix.variant }}-${{ matrix.arch }}
+          overwrite: true
+          path: |
+            trivy.json
+            govulncheck*.json
+          retention-days: 30
       - name: Generate SBOMs from the exact candidate
         env:
           IMAGE: relay-candidate:${{ matrix.variant }}-${{ matrix.arch }}
@@ -157,6 +181,7 @@ jobs:
             image.tar.sha256
             image.json
             trivy.json
+            govulncheck*.json
             sbom/*.json
           retention-days: 7
 
