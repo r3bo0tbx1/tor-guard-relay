@@ -10,6 +10,8 @@ Renovate tracks upstream `main` through a `git-refs` custom manager and proposes
 
 Go dependency fixes can update this lock before Lyrebird upstream changes its own graph. Docker base/toolchain, Go graph, source-pin and scanner-tool proposals have no weekly scheduling restriction. Vulnerability alerts receive expedited handling. The bot must be enabled for the repository; these rules do not guarantee when a hosted run will occur.
 
+Indirect Go dependency updates are explicitly enabled; Renovate otherwise disables them by default. OSV-based automatic security alerts cover direct dependencies only, so retain source/image scans and review indirect findings promptly.
+
 The first source scan retained module-level [GO-2026-5841](https://pkg.go.dev/vuln/GO-2026-5841) for `klauspost/compress` 1.18.0 without a reachable call. The lock nevertheless moves to the available fixed 1.18.7, independently of the Lyrebird source revision. Keep the full analysis rather than inferring exposure from a module name alone.
 
 The host/CI Go checker rebuilds only the native builder stage, verifies that its transport bytes match each candidate, and analyzes the same source/lock/toolchain for Linux AMD64 or ARM64. It uses the scanner version in [security-tools.json](../security-tools.json). Reachable Go findings block publication regardless of severity or fix availability; full module/package findings remain visible. No scanner is added to the runtime image.

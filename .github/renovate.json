@@ -59,6 +59,12 @@
       "prPriority": 5
     },
     {
+      "matchManagers": ["gomod"],
+      "matchDepTypes": ["indirect"],
+      "enabled": true,
+      "automerge": false
+    },
+    {
       "matchDatasources": ["git-refs"],
       "groupName": "🧅 Lyrebird source pin",
       "labels": ["dependencies", "lyrebird"],

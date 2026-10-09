@@ -44,6 +44,8 @@ Renovate proposes Docker base, GitHub Actions, locked Go module, scanner-tool an
 
 Docker/toolchain, source and Go proposals can be created on any Renovate run without a weekly window. Security-alert PRs require review and bypass normal update scheduling. Review upstream changes against the independently maintained lock; patch a vulnerable Go dependency without waiting for a Lyrebird source commit when compatible.
 
+Indirect Go updates are explicitly enabled. Renovate's OSV security PR coverage is limited to direct dependencies; Go source analysis and image scans cover additional findings that need maintainer triage. Do not assume the bot can automatically remediate every transitive vulnerability.
+
 After a Docker base version proposal, run `python3 scripts/release/check-versions.py --write` and review the synchronized examples and OCI base label. The consistency gate deliberately rejects unsynchronized documentation.
 
 <a id="expedited-security-response"></a>
