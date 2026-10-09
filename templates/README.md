@@ -1,5 +1,13 @@
 # Tor Relay Templates Guide
 
+[Documentation](../docs/README.md)
+
+## v2.2.0 template checks
+
+All seven Cosmos JSON templates and five Compose templates are validated locally and in CI. Published aliases follow validated releases; a local candidate does not change them. Build the source locally for prepublication testing.
+
+Mounted torrc examples retain host ownership. ENV examples regenerate validated configuration at each start. Accounting and IPv6 settings can be added using the mappings in [Deployment](../docs/DEPLOYMENT.md#accounting-and-ipv6-env-options). Keep keys persistent and create an [encrypted backup](../docs/BACKUP.md) before changing volumes.
+
 This directory contains deployment templates for running Tor relays in **3 modes**: Guard/Middle, Exit, and Bridge (obfs4).
 
 ## 📁  Template Files Overview
@@ -296,6 +304,6 @@ If you still see this error after updating to the latest version:
 
 ---
 
-**Version:** 1.1.8
+**Version:** <!-- RELAY_VERSION -->v2.2.0<!-- /RELAY_VERSION -->
 **Last Updated:** 2026-03-02
 **Maintainer:** rE-Bo0t.bx1 <r3bo0tbx1@brokenbotnet.com>

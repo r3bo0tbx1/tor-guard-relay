@@ -1,61 +1,17 @@
-## 📋 PR Type
+## Change
 
-- [ ] 🐛 **Bug fix** (non-breaking change that fixes an issue)
-- [ ] ✨ **New feature** (non-breaking change that adds functionality)
-- [ ] 💥 **Breaking change** (fix or feature that would cause existing functionality to change)
-- [ ] 📚 **Documentation** (changes to documentation only)
-- [ ] 🔧 **Configuration** (changes to templates, examples, or deployment configs)
-- [ ] 🛡️ **Security** (security patch or hardening)
-- [ ] 🏗️ **Build/CI** (changes to build process or CI/CD)
+Describe the concrete problem and resulting operator behavior.
 
----
+## Validation
 
-## 🔗 Related Issue
+List source checks, affected image variants and architectures, and relevant recovery evidence. Identify tests skipped or behavior still unverified.
 
-- Fixes #
+## Compatibility
 
----
+Explain config ownership, identity, health JSON or deployment changes. Link updated operator docs and curated notes.
 
-## 📝 Description
-
-### What does this PR do?
-
-
-### Why is this change needed?
-
-
----
-
-## 🧪 Testing Performed
-
-### Test Environment
-
-- **Image Version:**
-- **Deployment Method:**
-- **Architecture:**
-
-### Steps to Test
-
-1. 
-2. 
-3. 
-
----
-
-## 💥 Breaking Changes
-
-- [ ] **No breaking changes**
-
-
----
-
-## ✅ Pre-Submission Checklist
-
-- [ ] I have read the [Contributing Guidelines](../CONTRIBUTING.md)
-- [ ] I have read the [Code of Conduct](../CODE_OF_CONDUCT.md)
-- [ ] My code follows the project's coding standards
-- [ ] I have performed a self-review of my changes
-- [ ] My changes generate no new warnings or errors
-- [ ] I have updated documentation as needed
-- [ ] I have added an entry to CHANGELOG.md (if applicable)
-- [ ] I have removed sensitive information from logs/config examples
+- [ ] Version and documentation checks pass.
+- [ ] Active config and identity are preserved.
+- [ ] Required image tests and security gates pass.
+- [ ] Examples use synthetic data and contain no private keys.
+- [ ] Publication and rollback steps are explicit.

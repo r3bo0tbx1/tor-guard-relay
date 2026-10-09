@@ -1,22 +1,25 @@
-# 📜 Changelog
+# Changelog
 
-All notable changes to this project will be documented in this file.
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-
----
+Current source: <!-- RELAY_VERSION -->v2.2.0<!-- /RELAY_VERSION -->. Historical entries below retain their original release context.
 
 ## [Unreleased]
 
-### 🛡️ Security
+## [v2.2.0] - release candidate
 
-- **Pion STUN dependency:** Updated Lyrebird's linked `github.com/pion/stun/v3` dependency to v3.1.5 or later in stable and edge builds, preventing remote denial of service through malformed `XOR-MAPPED-ADDRESS` attributes (`CVE-2026-54909`).
+### Security
 
-### 🎯 Planned Features
+- Require Tor 0.4.9.14 or newer in stable and edge images; upstream recommends updating as soon as possible.
+- Update stable Alpine to 3.24.2, pin Go 1.27.2 and the Lyrebird source revision, and lock the dependency graph with Pion STUN 3.1.7.
+- Validate all architecture/variant candidates before promotion and retain SBOM and scan evidence.
 
-* 📊 Additional monitoring integrations (Datadog, New Relic)
-* 🔄 Automatic relay configuration updates
-* 🧪 Enhanced integration testing suite
+### Operator changes
+
+- Add current-run readiness/freshness, doctor reason codes, precise reload and bounded shutdown.
+- Add validated atomic config handling, redacted directive diff, accounting and IPv6 ENV options.
+- Add host-only encrypted backup, full verification, staged offline restore and fleet metrics.
+- Reorganize README and guides, preserve historical migration context, and curate operator release notes.
+
+See [v2.2.0 release notes](docs/releases/v2.2.0.md) for migration and validation limits.
 
 ---
 

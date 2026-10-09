@@ -1,5 +1,28 @@
 # 🚀 Deployment Guide - Tor Guard Relay
 
+[Documentation](README.md) · [Release notes](releases/v2.2.0.md)
+
+## Configuration ownership
+
+Generated ENV configuration is validated before atomic publication and regenerated at each start. A mounted torrc is authoritative; ENV does not overwrite it. Set `TOR_CONFIG` for a custom path or pass an explicit `tor -f PATH` command. `TOR_CONFIG_SOURCE=mounted|environment|auto` makes ownership explicit; auto is the default.
+
+Keep data persistent at the effective DataDirectory and arrange UID 100/GID 101 ownership. Never remove keys to repair a configuration error. Use [encrypted recovery](BACKUP.md) before changing mounts, ownership or image.
+
+For local Docker Desktop tests use isolated network-disabled fixtures from [Local testing](LOCAL-TESTING.md). Production host networking examples below target Linux hosts with deliberate public listeners.
+
+## Accounting and IPv6 ENV options
+
+| Variable | Tor directive |
+| --- | --- |
+| `TOR_ACCOUNTING_MAX` | AccountingMax |
+| `TOR_ACCOUNTING_START` | AccountingStart |
+| `TOR_ORPORT_IPV6` | Additional ORPort, including an explicit IPv6 address/listener |
+| `TOR_EXIT_POLICY_IPV6` | Additional ExitPolicy |
+| `TOR_ADDRESS_DISABLE_IPV6` | AddressDisableIPv6 |
+| `TOR_IPV6_EXIT` | IPv6Exit |
+
+Tor validates these values. Defaults retain existing IPv4 behavior. Test listeners, provider IPv6 routing and policy separately. Read [Tools](TOOLS.md) for validate, redacted diff, atomic apply and reload behavior.
+
 Complete deployment instructions for guard, exit, and bridge relays across various hosting environments.
 
 ---
@@ -91,7 +114,7 @@ docker ps | grep tor-relay
 # Check logs and bootstrap progress
 docker logs -f tor-relay
 
-# Run built-in tools (7 available)
+# Run built-in tools (see the Tools guide)
 docker exec tor-relay status         # Full health report with emojis
 docker exec tor-relay health         # JSON health data
 docker exec tor-relay refresh        # Validate and reload torrc without restart
@@ -406,9 +429,9 @@ docker exec tor-bridge bridge-line
 ```
 
 **Templates:**
-- Guard: [docker-compose-guard-env.yml](../templates/docker-compose-guard-env.yml)
-- Exit: [docker-compose-exit.yml](../templates/docker-compose-exit.yml)
-- Bridge: [docker-compose-bridge.yml](../templates/docker-compose-bridge.yml)
+- Guard: [docker-compose-guard-env.yml](../templates/docker-compose/docker-compose-guard-env.yml)
+- Exit: [docker-compose-exit.yml](../templates/docker-compose/docker-compose-exit.yml)
+- Bridge: [docker-compose-bridge.yml](../templates/docker-compose/docker-compose-bridge.yml)
 
 ---
 

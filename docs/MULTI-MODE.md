@@ -1,5 +1,13 @@
 # 🔄 Multi-Mode Relay Guide - Tor Guard Relay
 
+[Documentation](README.md) · [Release notes](releases/v2.2.0.md)
+
+## v2.2.0 operating contract
+
+All three roles share config validation, current-run health and encrypted recovery. Docker health does not establish a guard flag, public reachability or consensus membership. An obfs4 line becomes available when local transport state exists; no fixed 24–48 hour wait is required.
+
+Use `docker exec tor-bridge bridge-line --plain --address YOUR_PUBLIC_ADDRESS` for a distributable line. IPv6 and accounting ENV mappings are listed in [Deployment](DEPLOYMENT.md#accounting-and-ipv6-env-options). See [Tools](TOOLS.md) for the health contract.
+
 Complete guide to running Guard/Middle relays, Exit relays, and obfs4 Bridges.
 
 ---
@@ -214,7 +222,7 @@ By default, uses the **Reduced Exit Policy** (Tor Project recommended):
 
 ### Docker Compose
 
-See [templates/docker-compose-exit.yml](../templates/docker-compose-exit.yml) for complete example.
+See [templates/docker-compose/docker-compose-exit.yml](../templates/docker-compose/docker-compose-exit.yml) for complete example.
 
 ### Handling Abuse Complaints
 
@@ -261,11 +269,11 @@ docker run -d \
 
 ### Docker Compose
 
-See [templates/docker-compose-bridge.yml](../templates/docker-compose-bridge.yml) for complete example.
+See [templates/docker-compose/docker-compose-bridge.yml](../templates/docker-compose/docker-compose-bridge.yml) for complete example.
 
 ### Getting Your Bridge Line
 
-**After 24-48 hours**, your bridge will be registered and you can get the bridge line:
+Once local obfs4 state exists, provide your public address to get the bridge line:
 
 ```bash
 # Method 1: Check pt_state directory

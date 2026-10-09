@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="628" viewBox="0 0 1200 628" role="img" aria-labelledby="title desc">
+<title id="title">Tor Guard Relay v2.2.0 encrypted recovery flow</title><desc id="desc">Stop the source, stream and encrypt, authenticate the complete archive, restore into new staging storage, validate offline, then activate deliberately.</desc>
+<rect width="1200" height="628" fill="#14121c"/><path d="M0 0h1200v8H0z" fill="#b68add"/>
+<g font-family="Segoe UI,Arial,sans-serif" fill="#efebf6">
+<text x="64" y="73" font-size="22" fill="#b68add" letter-spacing="3">TOR GUARD RELAY / V2.2.0</text>
+<text x="64" y="129" font-size="43" font-weight="700">Encrypted recovery, verified before activation</text>
+<text x="64" y="175" font-size="25" fill="#aaa4b5">Preserve config + identity + family + transport state</text>
+<g fill="#211d2d" stroke="#70558a" stroke-width="2"><rect x="64" y="224" width="320" height="140" rx="14"/><rect x="440" y="224" width="320" height="140" rx="14"/><rect x="816" y="224" width="320" height="140" rx="14"/></g>
+<g font-size="28" font-weight="600"><text x="90" y="274">01  Quiesce</text><text x="466" y="274">02  Encrypt</text><text x="842" y="274">03  Authenticate</text></g>
+<g font-size="23" fill="#ccc3da"><text x="90" y="319">Stop the source writers</text><text x="466" y="319">Stream tar → gzip → age</text><text x="842" y="319">Verify every file hash</text></g>
+<g stroke="#b68add" stroke-width="3" fill="none"><path d="M393 295h34m-10-8 10 8-10 8"/><path d="M770 295h34m-10-8 10 8-10 8"/></g>
+<rect x="64" y="416" width="1072" height="144" rx="14" fill="#211d2d" stroke="#70558a" stroke-width="2"/>
+<text x="90" y="464" font-size="28" font-weight="600">04  Restore → validate offline → activate deliberately</text>
+<text x="90" y="509" font-size="24" fill="#ccc3da">New staging directory · unchanged fingerprint · no automatic relay start</text>
+<text x="64" y="598" font-size="21" fill="#aaa4b5">Keep decryption keys separately. External master keys need separate custody.</text>
+</g></svg>

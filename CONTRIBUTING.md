@@ -1,5 +1,13 @@
 # Contributing to Tor Guard Relay 🧅
 
+[Documentation](docs/README.md)
+
+## v2.2.0 validation and documentation
+
+Run the [local source and image checks](docs/LOCAL-TESTING.md) before proposing operator changes. Behavioral tests use synthetic offline identities; record any live or remote behavior that remains unverified.
+
+Keep README concise, put procedures in task-based guides, and curate release notes around operator outcomes, compatibility and evidence. Current Alpine references come from the stable Dockerfile and are checked automatically. Historical release records keep their original version context.
+
 First off, thank you for considering contributing to this project! Every contribution helps make the Tor network stronger and more accessible.
 
 ## 🌟 Ways to Contribute
