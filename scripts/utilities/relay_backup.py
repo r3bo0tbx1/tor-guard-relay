@@ -63,6 +63,10 @@ def read_file(container, path):
         if p.wait() or result is None:
             raise ValueError("Docker could not read required metadata")
         return result
+    except tarfile.TarError as error:
+        # A newly started fixture may not have created its fingerprint yet.
+        # docker cp then emits no tar stream; callers can retry ValueError.
+        raise ValueError("Docker could not read required metadata") from error
     finally:
         p.stdout.close()
         p.stderr.close()

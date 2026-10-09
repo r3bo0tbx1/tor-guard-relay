@@ -22,6 +22,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   source:
+    name: 🧭 Select reviewed release source
     runs-on: ubuntu-latest
     outputs:
       sha: ${{ steps.source.outputs.sha }}
@@ -31,9 +32,12 @@ jobs:
       release: ${{ steps.source.outputs.release }}
       build_date: ${{ steps.source.outputs.build_date }}
     steps:
-      - uses: actions/checkout@v7.0.1
+      - name: 📥 Check out source
+        uses: actions/checkout@v7.0.1
         with:
           fetch-depth: 0
+          ref: main
+          persist-credentials: false
       - id: source
         env:
           EVENT: ${{ github.event_name }}
@@ -67,15 +71,42 @@ jobs:
             echo "build_date=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           } >> "$GITHUB_OUTPUT"
 
+      - name: 📋 Record workflow outcome
+        if: always()
+        env:
+          JOB_STATUS: ${{ job.status }}
+          JOB_NAME: ${{ github.job }}
+          SOURCE_REVISION: ${{ github.sha }}
+        run: |
+          {
+            printf '## 🧅 Relay workflow evidence\n\n'
+            printf '| Detail | Value |\n| --- | --- |\n'
+            printf '| Job | <code>%s</code> |\n' "$JOB_NAME"
+            printf '| Outcome | **%s** |\n' "$JOB_STATUS"
+            printf '| Workflow revision | <code>%s</code> |\n' "$SOURCE_REVISION"
+            printf '\n📎 Consult the retained artifacts and preceding gate results for detailed evidence.\n'
+          } >> "$GITHUB_STEP_SUMMARY"
+
   source-validation:
+    name: 🔍 Validate immutable release source
     needs: source
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7.0.1
+      - name: 📥 Check out source
+        uses: actions/checkout@v7.0.1
         with:
-          ref: ${{ needs.source.outputs.sha }}
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+      # Execute the helper from trusted main before touching selected tag code.
+      - name: 🛡️ Verify reviewed ancestry and prepare immutable worktrees
+        env:
+          SOURCE_SHA: ${{ needs.source.outputs.sha }}
+          POLICY_SHA: ${{ needs.source.outputs.policy_sha }}
+        run: python3 scripts/release/prepare-source.py --source "$SOURCE_SHA" --policy "$POLICY_SHA"
       - run: sudo apt-get update && sudo apt-get install -y age shellcheck
-      - name: Validate selected release source
+      - name: 🔍 Validate selected release source
+        working-directory: .release-source
         run: |
           python3 scripts/release/check-versions.py
           python3 scripts/testing/check-dependency-pins.py
@@ -84,7 +115,24 @@ jobs:
           shellcheck -S warning -x docker-entrypoint.sh healthcheck.sh lib/*.sh tools/* scripts/utilities/relay-backup.sh scripts/utilities/relay-inventory.sh
           python3 -m unittest discover -s tests -v
 
+      - name: 📋 Record workflow outcome
+        if: always()
+        env:
+          JOB_STATUS: ${{ job.status }}
+          JOB_NAME: ${{ github.job }}
+          SOURCE_REVISION: ${{ github.sha }}
+        run: |
+          {
+            printf '## 🧅 Relay workflow evidence\n\n'
+            printf '| Detail | Value |\n| --- | --- |\n'
+            printf '| Job | <code>%s</code> |\n' "$JOB_NAME"
+            printf '| Outcome | **%s** |\n' "$JOB_STATUS"
+            printf '| Workflow revision | <code>%s</code> |\n' "$SOURCE_REVISION"
+            printf '\n📎 Consult the retained artifacts and preceding gate results for detailed evidence.\n'
+          } >> "$GITHUB_STEP_SUMMARY"
+
   candidate:
+    name: 🏗️ Build and verify candidates
     needs: [source, source-validation]
     runs-on: ubuntu-latest
     strategy:
@@ -93,26 +141,32 @@ jobs:
         variant: [stable, edge]
         arch: [amd64, arm64]
     steps:
-      - uses: actions/checkout@v7.0.1
-        with:
-          ref: ${{ needs.source.outputs.sha }}
-      - name: Check out current reviewed security policy separately
+      - name: 📥 Check out source
         uses: actions/checkout@v7.0.1
         with:
-          ref: ${{ needs.source.outputs.policy_sha }}
-          path: .release-policy
+          ref: main
+          fetch-depth: 0
           persist-credentials: false
-      - uses: docker/setup-qemu-action@v4.4.0
-      - uses: docker/setup-buildx-action@v4.4.1
-      - name: Validate source and templates
+      # Execute the helper from trusted main before touching selected tag code.
+      - name: 🛡️ Verify reviewed ancestry and prepare immutable worktrees
+        env:
+          SOURCE_SHA: ${{ needs.source.outputs.sha }}
+          POLICY_SHA: ${{ needs.source.outputs.policy_sha }}
+        run: python3 scripts/release/prepare-source.py --source "$SOURCE_SHA" --policy "$POLICY_SHA"
+      - name: 🌐 Prepare cross-platform emulation
+        uses: docker/setup-qemu-action@v4.4.0
+      - name: 🏗️ Prepare image builder
+        uses: docker/setup-buildx-action@v4.4.1
+      - name: 🔍 Validate source and templates
+        working-directory: .release-source
         run: |
           python3 scripts/release/check-versions.py
           python3 scripts/testing/check-templates.py
-      - name: Build once into local candidate
+      - name: 🏗️ Build once into local candidate
         uses: docker/build-push-action@v7.4.0
         with:
-          context: .
-          file: ${{ matrix.variant == 'edge' && 'Dockerfile.edge' || 'Dockerfile' }}
+          context: .release-source
+          file: ${{ matrix.variant == 'edge' && '.release-source/Dockerfile.edge' || '.release-source/Dockerfile' }}
           platforms: linux/${{ matrix.arch }}
           load: true
           push: false
@@ -121,21 +175,21 @@ jobs:
             BUILD_VERSION=${{ needs.source.outputs.version }}
             BUILD_DATE=${{ needs.source.outputs.build_date }}
             SOURCE_REVISION=${{ needs.source.outputs.sha }}
-      - name: Offline behavioral acceptance
-        run: python3 scripts/testing/image-acceptance.py relay-candidate:${{ matrix.variant }}-${{ matrix.arch }} --platform linux/${{ matrix.arch }}
-      - name: Enforce component security floors
+      - name: 🧪 Offline behavioral acceptance
+        run: python3 .release-source/scripts/testing/image-acceptance.py relay-candidate:${{ matrix.variant }}-${{ matrix.arch }} --platform linux/${{ matrix.arch }}
+      - name: 🛡️ Enforce component security floors
         run: python3 .release-policy/scripts/testing/check-image.py relay-candidate:${{ matrix.variant }}-${{ matrix.arch }}
-      - name: Check Go reachability with current policy and matching released source
+      - name: 🛡️ Check Go reachability with current policy and matching released source
         run: >-
-          python3 .release-policy/scripts/testing/check-go-vulns.py --source-root .
+          python3 .release-policy/scripts/testing/check-go-vulns.py --source-root .release-source
           --arch ${{ matrix.arch }} --image relay-candidate:${{ matrix.variant }}-${{ matrix.arch }}
           --output govulncheck.json
-      - name: Rehearse encrypted recovery with both storage layouts
+      - name: 🔐 Rehearse encrypted recovery with both storage layouts
         if: matrix.variant == 'stable' && matrix.arch == 'amd64'
         run: |
           sudo apt-get update && sudo apt-get install -y age
-          python3 scripts/testing/recovery-rehearsal.py --image relay-candidate:stable-amd64 --bind-parent "$RUNNER_TEMP"
-      - name: Scan exact candidate
+          python3 .release-source/scripts/testing/recovery-rehearsal.py --image relay-candidate:stable-amd64 --bind-parent "$RUNNER_TEMP"
+      - name: ✨ Scan exact candidate
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: relay-candidate:${{ matrix.variant }}-${{ matrix.arch }}
@@ -146,9 +200,9 @@ jobs:
           severity: UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL
           ignore-unfixed: false
           exit-code: '0'
-      - name: Enforce security policy without hiding advisory findings
+      - name: 🛡️ Enforce security policy without hiding advisory findings
         run: python3 .release-policy/scripts/testing/check-security.py trivy.json
-      - name: Retain security diagnostics on success or failure
+      - name: 📎 Retain security diagnostics on success or failure
         if: always()
         uses: actions/upload-artifact@v7.0.2
         with:
@@ -158,21 +212,22 @@ jobs:
             trivy.json
             govulncheck*.json
           retention-days: 30
-      - name: Generate SBOMs from the exact candidate
+      - name: 📑 Generate SBOMs from the exact candidate
         env:
           IMAGE: relay-candidate:${{ matrix.variant }}-${{ matrix.arch }}
         run: |
           mkdir sbom
           docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v "$PWD/sbom:/reports" anchore/syft:v1.54.1 \
             "docker:$IMAGE" -o spdx-json=/reports/sbom.spdx.json -o cyclonedx-json=/reports/sbom.cdx.json
-      - name: Export validated candidate and evidence
+      - name: 📦 Export validated candidate and evidence
         env:
           IMAGE: relay-candidate:${{ matrix.variant }}-${{ matrix.arch }}
         run: |
           docker image inspect "$IMAGE" > image.json
           docker save "$IMAGE" -o image.tar
           sha256sum image.tar > image.tar.sha256
-      - uses: actions/upload-artifact@v7.0.2
+      - name: 📎 Retain build evidence
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: candidate-${{ matrix.variant }}-${{ matrix.arch }}
           overwrite: true
@@ -185,7 +240,24 @@ jobs:
             sbom/*.json
           retention-days: 7
 
+      - name: 📋 Record workflow outcome
+        if: always()
+        env:
+          JOB_STATUS: ${{ job.status }}
+          JOB_NAME: ${{ github.job }}
+          SOURCE_REVISION: ${{ github.sha }}
+        run: |
+          {
+            printf '## 🧅 Relay workflow evidence\n\n'
+            printf '| Detail | Value |\n| --- | --- |\n'
+            printf '| Job | <code>%s</code> |\n' "$JOB_NAME"
+            printf '| Outcome | **%s** |\n' "$JOB_STATUS"
+            printf '| Workflow revision | <code>%s</code> |\n' "$SOURCE_REVISION"
+            printf '\n📎 Consult the retained artifacts and preceding gate results for detailed evidence.\n'
+          } >> "$GITHUB_STEP_SUMMARY"
+
   publish:
+    name: 📦 Promote verified image archives
     needs: [source, candidate]
     if: needs.source.outputs.publish == 'true'
     runs-on: ubuntu-latest
@@ -193,21 +265,25 @@ jobs:
       contents: read
       packages: write
     steps:
-      - uses: actions/download-artifact@v8.0.2
+      - name: 📥 Download verified evidence
+        uses: actions/download-artifact@v8.0.2
         with:
           pattern: candidate-*
           path: candidates
-      - uses: docker/setup-buildx-action@v4.4.1
-      - uses: docker/login-action@v4.6.0
+      - name: 🏗️ Prepare image builder
+        uses: docker/setup-buildx-action@v4.4.1
+      - name: 🔑 Authenticate publishing registry
+        uses: docker/login-action@v4.6.0
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - uses: docker/login-action@v4.6.0
+      - name: 🔑 Authenticate publishing registry
+        uses: docker/login-action@v4.6.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Promote validated images without rebuilding
+      - name: 🚀 Promote validated images without rebuilding
         env:
           VERSION: ${{ needs.source.outputs.version }}
           SOURCE: ${{ needs.source.outputs.sha }}
@@ -238,38 +314,81 @@ jobs:
               docker buildx imagetools inspect "$registry:$VERSION$suffix" > "published-$variant-$(echo "$registry" | tr / _).txt"
             done
           done
-      - uses: actions/upload-artifact@v7.0.2
+      - name: 📎 Retain build evidence
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: published-manifests
           overwrite: true
           path: published-*.txt
 
+      - name: 📋 Record workflow outcome
+        if: always()
+        env:
+          JOB_STATUS: ${{ job.status }}
+          JOB_NAME: ${{ github.job }}
+          SOURCE_REVISION: ${{ github.sha }}
+        run: |
+          {
+            printf '## 🧅 Relay workflow evidence\n\n'
+            printf '| Detail | Value |\n| --- | --- |\n'
+            printf '| Job | <code>%s</code> |\n' "$JOB_NAME"
+            printf '| Outcome | **%s** |\n' "$JOB_STATUS"
+            printf '| Workflow revision | <code>%s</code> |\n' "$SOURCE_REVISION"
+            printf '\n📎 Consult the retained artifacts and preceding gate results for detailed evidence.\n'
+          } >> "$GITHUB_STEP_SUMMARY"
+
   notes:
+    name: 📝 Publish curated release notes
     needs: [source, publish]
     if: needs.source.outputs.release == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v7.0.1
+      - name: 📥 Check out source
+        uses: actions/checkout@v7.0.1
         with:
-          ref: ${{ needs.source.outputs.sha }}
+          ref: main
           fetch-depth: 0
-      - name: Select curated release notes
+          persist-credentials: false
+      # Execute the helper from trusted main before touching selected tag code.
+      - name: 🛡️ Verify reviewed ancestry and prepare immutable worktrees
+        env:
+          SOURCE_SHA: ${{ needs.source.outputs.sha }}
+          POLICY_SHA: ${{ needs.source.outputs.policy_sha }}
+        run: python3 scripts/release/prepare-source.py --source "$SOURCE_SHA" --policy "$POLICY_SHA"
+      - name: 📝 Select curated release notes
         env:
           VERSION: ${{ needs.source.outputs.version }}
         run: |
-          test -s "docs/releases/v$VERSION.md"
-          cp "docs/releases/v$VERSION.md" release-notes.md
-      - uses: actions/download-artifact@v8.0.2
+          test -s ".release-source/docs/releases/v$VERSION.md"
+          cp ".release-source/docs/releases/v$VERSION.md" release-notes.md
+      - name: 📥 Download verified evidence
+        uses: actions/download-artifact@v8.0.2
         with:
           pattern: candidate-*
           path: evidence
-      - name: Package component and security evidence
+      - name: 📦 Package component and security evidence
         run: |
           tar -czf release-evidence.tar.gz --exclude=image.tar --exclude=image.tar.sha256 -C evidence .
-      - uses: softprops/action-gh-release@v3.0.3
+      - name: 🚀 Attach release notes and evidence
+        uses: softprops/action-gh-release@v3.0.3
         with:
           body_path: release-notes.md
           tag_name: v${{ needs.source.outputs.version }}
           files: release-evidence.tar.gz
+      - name: 📋 Record workflow outcome
+        if: always()
+        env:
+          JOB_STATUS: ${{ job.status }}
+          JOB_NAME: ${{ github.job }}
+          SOURCE_REVISION: ${{ github.sha }}
+        run: |
+          {
+            printf '## 🧅 Relay workflow evidence\n\n'
+            printf '| Detail | Value |\n| --- | --- |\n'
+            printf '| Job | <code>%s</code> |\n' "$JOB_NAME"
+            printf '| Outcome | **%s** |\n' "$JOB_STATUS"
+            printf '| Workflow revision | <code>%s</code> |\n' "$SOURCE_REVISION"
+            printf '\n📎 Consult the retained artifacts and preceding gate results for detailed evidence.\n'
+          } >> "$GITHUB_STEP_SUMMARY"

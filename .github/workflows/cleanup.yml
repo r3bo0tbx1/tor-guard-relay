@@ -7,9 +7,10 @@ permissions:
   actions: read
 jobs:
   inventory:
+    name: 🗂️ Review registry retention
     runs-on: ubuntu-latest
     steps:
-      - name: List registry versions for manual retention review
+      - name: 🗂️ List registry versions for manual retention review
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           OWNER: ${{ github.repository_owner }}
@@ -18,9 +19,25 @@ jobs:
           gh api --paginate "users/$OWNER/packages/container/onion-relay/versions" > ghcr-versions.json
           curl --fail --silent --show-error "https://hub.docker.com/v2/repositories/r3bo0tbx1/onion-relay/tags/?page_size=100" > dockerhub-tags.json
           echo "Read-only inventory. Preserve current aliases, version manifests, their architecture digests and the verified rollback set before any manual deletion."
-      - uses: actions/upload-artifact@v7.0.2
+      - name: 📎 Retain build evidence
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: registry-retention-review
           path: |
             ghcr-versions.json
             dockerhub-tags.json
+      - name: 📋 Record workflow outcome
+        if: always()
+        env:
+          JOB_STATUS: ${{ job.status }}
+          JOB_NAME: ${{ github.job }}
+          SOURCE_REVISION: ${{ github.sha }}
+        run: |
+          {
+            printf '## 🧅 Relay workflow evidence\n\n'
+            printf '| Detail | Value |\n| --- | --- |\n'
+            printf '| Job | <code>%s</code> |\n' "$JOB_NAME"
+            printf '| Outcome | **%s** |\n' "$JOB_STATUS"
+            printf '| Workflow revision | <code>%s</code> |\n' "$SOURCE_REVISION"
+            printf '\n📎 Consult the retained artifacts and preceding gate results for detailed evidence.\n'
+          } >> "$GITHUB_STEP_SUMMARY"

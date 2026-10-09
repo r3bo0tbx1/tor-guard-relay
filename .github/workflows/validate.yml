@@ -12,19 +12,23 @@ jobs:
     name: 🔍 Lint and Validate
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7.0.1
-      - uses: raven-actions/actionlint@v2.2.0
-      - uses: hadolint/hadolint-action@v3.5.0
+      - name: 📥 Check out source
+        uses: actions/checkout@v7.0.1
+      - name: 🔍 Lint workflow contracts
+        uses: raven-actions/actionlint@v2.2.0
+      - name: 🐋 Lint Dockerfile
+        uses: hadolint/hadolint-action@v3.5.0
         with:
           dockerfile: Dockerfile
           failure-threshold: error
-      - uses: hadolint/hadolint-action@v3.5.0
+      - name: 🐋 Lint Dockerfile
+        uses: hadolint/hadolint-action@v3.5.0
         with:
           dockerfile: Dockerfile.edge
           failure-threshold: error
-      - name: Install validators
+      - name: 🧰 Install validators
         run: sudo apt-get update && sudo apt-get install -y shellcheck python3-yaml age
-      - name: Source checks and regression tests
+      - name: 🔍 Source checks and regression tests
         run: |
           python3 scripts/release/check-versions.py
           python3 scripts/testing/check-dependency-pins.py
@@ -32,7 +36,24 @@ jobs:
           python3 scripts/testing/check-docs.py
           shellcheck -S warning -x docker-entrypoint.sh healthcheck.sh lib/*.sh tools/* scripts/utilities/relay-backup.sh scripts/utilities/relay-inventory.sh
           python3 -m unittest discover -s tests -v
+      - name: 📋 Record workflow outcome
+        if: always()
+        env:
+          JOB_STATUS: ${{ job.status }}
+          JOB_NAME: ${{ github.job }}
+          SOURCE_REVISION: ${{ github.sha }}
+        run: |
+          {
+            printf '## 🧅 Relay workflow evidence\n\n'
+            printf '| Detail | Value |\n| --- | --- |\n'
+            printf '| Job | <code>%s</code> |\n' "$JOB_NAME"
+            printf '| Outcome | **%s** |\n' "$JOB_STATUS"
+            printf '| Workflow revision | <code>%s</code> |\n' "$SOURCE_REVISION"
+            printf '\n📎 Consult the retained artifacts and preceding gate results for detailed evidence.\n'
+          } >> "$GITHUB_STEP_SUMMARY"
+
   image:
+    name: 🐋 Verify ${{ matrix.variant }} / ${{ matrix.arch }}
     needs: source
     runs-on: ubuntu-latest
     strategy:
@@ -41,10 +62,14 @@ jobs:
         variant: [stable, edge]
         arch: [amd64, arm64]
     steps:
-      - uses: actions/checkout@v7.0.1
-      - uses: docker/setup-qemu-action@v4.4.0
-      - uses: docker/setup-buildx-action@v4.4.1
-      - uses: docker/build-push-action@v7.4.0
+      - name: 📥 Check out source
+        uses: actions/checkout@v7.0.1
+      - name: 🌐 Prepare cross-platform emulation
+        uses: docker/setup-qemu-action@v4.4.0
+      - name: 🏗️ Prepare image builder
+        uses: docker/setup-buildx-action@v4.4.1
+      - name: 🐋 Build local candidate image
+        uses: docker/build-push-action@v7.4.0
         with:
           context: .
           file: ${{ matrix.variant == 'edge' && 'Dockerfile.edge' || 'Dockerfile' }}
@@ -55,18 +80,19 @@ jobs:
           build-args: |
             BUILD_VERSION=2.2.0-candidate
             SOURCE_REVISION=${{ github.sha }}
-      - name: Image acceptance
+      - name: 🧪 Image acceptance
         run: |
           python3 scripts/testing/image-acceptance.py relay-test:local --platform linux/${{ matrix.arch }}
           python3 scripts/testing/check-image.py relay-test:local
-      - name: Check Go vulnerabilities in matching source and transport
+      - name: 🛡️ Check Go vulnerabilities in matching source and transport
         run: python3 scripts/testing/check-go-vulns.py --arch ${{ matrix.arch }} --image relay-test:local --output govulncheck.json
-      - name: Rehearse encrypted recovery
+      - name: 🔐 Rehearse encrypted recovery
         if: matrix.variant == 'stable' && matrix.arch == 'amd64'
         run: |
           sudo apt-get update && sudo apt-get install -y age
           python3 scripts/testing/recovery-rehearsal.py --image relay-test:local --bind-parent "$RUNNER_TEMP"
-      - uses: aquasecurity/trivy-action@v0.36.0
+      - name: 🛡️ Scan candidate vulnerabilities and secrets
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: relay-test:local
           version: v0.75.0
@@ -76,9 +102,9 @@ jobs:
           severity: UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL
           ignore-unfixed: false
           exit-code: '0'
-      - name: Enforce security policy
+      - name: 🛡️ Enforce security policy
         run: python3 scripts/testing/check-security.py trivy.json
-      - name: Retain security diagnostics on success or failure
+      - name: 📎 Retain security diagnostics on success or failure
         if: always()
         uses: actions/upload-artifact@v7.0.2
         with:
@@ -89,6 +115,22 @@ jobs:
             govulncheck*.json
           retention-days: 30
 
+      - name: 📋 Record workflow outcome
+        if: always()
+        env:
+          JOB_STATUS: ${{ job.status }}
+          JOB_NAME: ${{ github.job }}
+          SOURCE_REVISION: ${{ github.sha }}
+        run: |
+          {
+            printf '## 🧅 Relay workflow evidence\n\n'
+            printf '| Detail | Value |\n| --- | --- |\n'
+            printf '| Job | <code>%s</code> |\n' "$JOB_NAME"
+            printf '| Outcome | **%s** |\n' "$JOB_STATUS"
+            printf '| Workflow revision | <code>%s</code> |\n' "$SOURCE_REVISION"
+            printf '\n📎 Consult the retained artifacts and preceding gate results for detailed evidence.\n'
+          } >> "$GITHUB_STEP_SUMMARY"
+
   required-checks:
     name: ${{ matrix.check }}
     needs: [source, image]
@@ -98,10 +140,25 @@ jobs:
       matrix:
         check: ['🏗️ Build Docker Image', '🧪 Integration Tests', '🛡️ Security Scan']
     steps:
-      - name: Require every candidate check to succeed
+      - name: 🚦 Require every candidate check to succeed
         env:
           SOURCE_RESULT: ${{ needs.source.result }}
           IMAGE_RESULT: ${{ needs.image.result }}
         run: |
           test "$SOURCE_RESULT" = success
           test "$IMAGE_RESULT" = success
+      - name: 📋 Record workflow outcome
+        if: always()
+        env:
+          JOB_STATUS: ${{ job.status }}
+          JOB_NAME: ${{ github.job }}
+          SOURCE_REVISION: ${{ github.sha }}
+        run: |
+          {
+            printf '## 🧅 Relay workflow evidence\n\n'
+            printf '| Detail | Value |\n| --- | --- |\n'
+            printf '| Job | <code>%s</code> |\n' "$JOB_NAME"
+            printf '| Outcome | **%s** |\n' "$JOB_STATUS"
+            printf '| Workflow revision | <code>%s</code> |\n' "$SOURCE_REVISION"
+            printf '\n📎 Consult the retained artifacts and preceding gate results for detailed evidence.\n'
+          } >> "$GITHUB_STEP_SUMMARY"

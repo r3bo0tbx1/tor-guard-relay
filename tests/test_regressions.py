@@ -10,10 +10,28 @@ import subprocess as sp
 import tarfile
 import tempfile
 import unittest
+from unittest.mock import Mock, patch
 
 ROOT=Path(__file__).resolve().parents[1]
 spec=importlib.util.spec_from_file_location("backup",ROOT/"scripts/utilities/relay_backup.py")
 backup=importlib.util.module_from_spec(spec); spec.loader.exec_module(backup)
+
+class DockerMetadataTests(unittest.TestCase):
+    def test_missing_startup_file_is_a_retryable_value_error(self):
+        process=Mock(stdout=io.BytesIO(b''),stderr=io.BytesIO(b'file not found'))
+        process.poll.return_value=1
+        with patch.object(backup,'docker_pipe',return_value=process):
+            with self.assertRaisesRegex(ValueError,'Docker could not read required metadata'):
+                backup.read_file('synthetic-fixture','/var/lib/tor/fingerprint')
+        self.assertTrue(process.stdout.closed)
+        self.assertTrue(process.stderr.closed)
+
+    def test_malformed_docker_metadata_fails_closed(self):
+        process=Mock(stdout=io.BytesIO(b'not a tar archive'),stderr=io.BytesIO())
+        process.poll.return_value=0
+        with patch.object(backup,'docker_pipe',return_value=process):
+            with self.assertRaisesRegex(ValueError,'Docker could not read required metadata'):
+                backup.read_file('synthetic-fixture','/etc/tor/torrc')
 
 class ArchiveTests(unittest.TestCase):
     @classmethod

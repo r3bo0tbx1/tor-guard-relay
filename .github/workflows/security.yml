@@ -19,7 +19,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   source:
-    name: Go source (${{ matrix.arch }})
+    name: 🛡️ Go source (${{ matrix.arch }})
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
@@ -27,13 +27,15 @@ jobs:
       matrix:
         arch: [amd64, arm64]
     steps:
-      - uses: actions/checkout@v7.0.1
-      - uses: docker/setup-buildx-action@v4.4.1
-      - name: Check source and metadata pins
+      - name: 📥 Check out source
+        uses: actions/checkout@v7.0.1
+      - name: 🏗️ Prepare image builder
+        uses: docker/setup-buildx-action@v4.4.1
+      - name: 🔍 Check source and metadata pins
         run: python3 scripts/testing/check-dependency-pins.py
-      - name: Check current source and independently maintained Go graph
+      - name: 🛡️ Check current source and independently maintained Go graph
         run: python3 scripts/testing/check-go-vulns.py --arch ${{ matrix.arch }} --output govulncheck.json
-      - name: Retain source assessment
+      - name: 📎 Retain source assessment
         if: always()
         uses: actions/upload-artifact@v7.0.2
         with:
@@ -42,8 +44,24 @@ jobs:
           path: govulncheck*.json
           retention-days: 30
 
+      - name: 📋 Record workflow outcome
+        if: always()
+        env:
+          JOB_STATUS: ${{ job.status }}
+          JOB_NAME: ${{ github.job }}
+          SOURCE_REVISION: ${{ github.sha }}
+        run: |
+          {
+            printf '## 🧅 Relay workflow evidence\n\n'
+            printf '| Detail | Value |\n| --- | --- |\n'
+            printf '| Job | <code>%s</code> |\n' "$JOB_NAME"
+            printf '| Outcome | **%s** |\n' "$JOB_STATUS"
+            printf '| Workflow revision | <code>%s</code> |\n' "$SOURCE_REVISION"
+            printf '\n📎 Consult the retained artifacts and preceding gate results for detailed evidence.\n'
+          } >> "$GITHUB_STEP_SUMMARY"
+
   published:
-    name: Published ${{ matrix.registry }} / ${{ matrix.variant }} / ${{ matrix.arch }}
+    name: 🐋 Published ${{ matrix.registry }} / ${{ matrix.variant }} / ${{ matrix.arch }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     strategy:
@@ -54,15 +72,18 @@ jobs:
         variant: [stable, edge]
         arch: [amd64, arm64]
     steps:
-      - uses: actions/checkout@v7.0.1
-      - uses: docker/setup-buildx-action@v4.4.1
-      - uses: docker/login-action@v4.6.0
+      - name: 📥 Check out source
+        uses: actions/checkout@v7.0.1
+      - name: 🏗️ Prepare image builder
+        uses: docker/setup-buildx-action@v4.4.1
+      - name: 🔑 Authenticate publishing registry
+        uses: docker/login-action@v4.6.0
         if: matrix.registry == 'ghcr'
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Resolve and retain the exact published architecture digest
+      - name: 🔎 Resolve and retain the exact published architecture digest
         id: image
         env:
           REGISTRY: ${{ matrix.registry }}
@@ -84,7 +105,7 @@ jobs:
           docker pull --platform "linux/$ARCH" "$image"
           docker image inspect "$image" > image.json
           echo "reference=$image" >> "$GITHUB_OUTPUT"
-      - name: Scan published digest using current advisory data
+      - name: ✨ Scan published digest using current advisory data
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ${{ steps.image.outputs.reference }}
@@ -95,9 +116,9 @@ jobs:
           severity: UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL
           ignore-unfixed: false
           exit-code: '0'
-      - name: Assess published image using current policy
+      - name: ✨ Assess published image using current policy
         run: python3 scripts/testing/check-security.py trivy.json --image-metadata image.json
-      - name: Retain published assessment
+      - name: 📎 Retain published assessment
         if: always()
         uses: actions/upload-artifact@v7.0.2
         with:
@@ -109,3 +130,18 @@ jobs:
             image.json
             trivy.json
           retention-days: 30
+      - name: 📋 Record workflow outcome
+        if: always()
+        env:
+          JOB_STATUS: ${{ job.status }}
+          JOB_NAME: ${{ github.job }}
+          SOURCE_REVISION: ${{ github.sha }}
+        run: |
+          {
+            printf '## 🧅 Relay workflow evidence\n\n'
+            printf '| Detail | Value |\n| --- | --- |\n'
+            printf '| Job | <code>%s</code> |\n' "$JOB_NAME"
+            printf '| Outcome | **%s** |\n' "$JOB_STATUS"
+            printf '| Workflow revision | <code>%s</code> |\n' "$SOURCE_REVISION"
+            printf '\n📎 Consult the retained artifacts and preceding gate results for detailed evidence.\n'
+          } >> "$GITHUB_STEP_SUMMARY"
