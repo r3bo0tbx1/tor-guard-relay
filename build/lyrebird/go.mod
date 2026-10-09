@@ -10,7 +10,7 @@ require (
 	gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/snowflake/v2 v2.15.1
 	gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/webtunnel v0.0.7
 	golang.org/x/crypto v0.58.0
-	golang.org/x/net v0.60.0
+	golang.org/x/net v0.61.0
 )
 
 require (

@@ -36,6 +36,22 @@ jobs:
           python3 scripts/testing/check-docs.py
           shellcheck -S warning -x docker-entrypoint.sh healthcheck.sh lib/*.sh tools/* scripts/utilities/relay-backup.sh scripts/utilities/relay-inventory.sh
           python3 -m unittest discover -s tests -v
+      - name: 🟢 Prepare supported Node runtime
+        uses: actions/setup-node@v7.1.0
+        with:
+          node-version: '24'
+          check-latest: true
+      - name: 🧩 Validate Renovate schema and dependency policy behavior
+        env:
+          npm_config_engine_strict: 'true'
+        run: |
+          set -euo pipefail
+          version=$(python3 -c 'import json; print(json.load(open("build/security-tools.json"))["renovate"])')
+          tool_root="$RUNNER_TEMP/relay-renovate"
+          npm install --prefix "$tool_root" --ignore-scripts --package-lock=false --no-audit --no-fund "renovate@$version"
+          npm rebuild --prefix "$tool_root" re2
+          node "$tool_root/node_modules/renovate/dist/config-validator.js" --no-global --strict .github/renovate.json
+          node scripts/testing/check-renovate.mjs "$tool_root/node_modules/renovate"
       - name: 📋 Record workflow outcome
         if: always()
         env:

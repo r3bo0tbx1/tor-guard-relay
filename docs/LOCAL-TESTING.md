@@ -19,6 +19,8 @@
 
 Docker Desktop on Windows with WSL works. Run host scripts in Linux/WSL with Python 3.10+, age, ShellCheck and dos2unix. A Linux Docker daemon is also supported. ARM64 testing on an AMD64 machine requires registered QEMU/binfmt support.
 
+On Docker Desktop, finish WSL source/recovery commands before registering ARM64 emulation and running ARM64 fixtures. This environment has reset binfmt registration when WSL sessions changed; running those steps concurrently produced local `exec format error` failures. Re-register with `docker run --privileged --rm tonistiigi/binfmt --install arm64` after the WSL commands finish, then run ARM64 builds and tests sequentially with respect to WSL activity.
+
 ## 🔎 Source checks
 
 ```sh
@@ -31,6 +33,21 @@ git diff --check
 ```
 
 Archive tests require age on PATH. A skipped archive test is not a recovery pass. Check LF line endings with dos2unix before building on Windows.
+
+### 🧩 Renovate behavior checks
+
+PR/main validation also installs the reviewed Renovate version from `build/security-tools.json` with the latest Node 24 patch. Only RE2's native installation script is rebuilt. To run the same checks with a supported Node 24 runtime:
+
+```sh
+version=$(python3 -c 'import json; print(json.load(open("build/security-tools.json"))["renovate"])')
+tool_root=$(mktemp -d)
+npm install --prefix "$tool_root" --ignore-scripts --package-lock=false --no-audit --no-fund "renovate@$version"
+npm rebuild --prefix "$tool_root" re2
+node "$tool_root/node_modules/renovate/dist/config-validator.js" --no-global --strict .github/renovate.json
+node scripts/testing/check-renovate.mjs "$tool_root/node_modules/renovate"
+```
+
+Remove the task-owned temporary tool directory when finished. The checker uses Renovate's real presets, rule engine and version/advisory filters; it makes no repository mutations or live advisory queries. Security fixtures ensure routine compatibility limits and indirect-major deferrals do not suppress fix proposals. Reassess the documented limits when changing the source or Snowflake graph. Do not tidy the lock directory without the actual Lyrebird source.
 
 ## 🏗️ Build and inspect candidates
 

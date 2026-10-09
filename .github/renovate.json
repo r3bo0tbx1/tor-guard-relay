@@ -30,6 +30,13 @@
       "matchStrings": ["\"govulncheck\":\\s*\"(?<currentValue>v[0-9]+\\.[0-9]+\\.[0-9]+)\""],
       "depNameTemplate": "golang.org/x/vuln",
       "datasourceTemplate": "go"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["/^build/security-tools\\.json$/"],
+      "matchStrings": ["\"renovate\":\\s*\"(?<currentValue>[0-9]+\\.[0-9]+\\.[0-9]+)\""],
+      "depNameTemplate": "renovate",
+      "datasourceTemplate": "npm"
     }
   ],
   "packageRules": [
@@ -70,7 +77,7 @@
       "groupName": "🧅 Lyrebird source pin",
       "labels": ["dependencies", "lyrebird"],
       "automerge": false,
-      "prBodyNotes": ["Update both source and metadata pins in both Dockerfiles. Review upstream changes against the independently maintained Go lock. Publication requires a new reviewed release tag after all candidate gates pass."]
+      "prBodyNotes": ["Update both source and metadata pins in both Dockerfiles. Review upstream changes against the independently maintained Go lock and reassess the five routine Pion compatibility limits when Snowflake or its consumers change. Publication requires a new reviewed release tag after all candidate gates pass."]
     },
     {
       "matchManagers": ["github-actions"],
@@ -97,10 +104,58 @@
       "groupSingleUpdates": true,
       "automerge": false,
       "prBodyNotes": ["Review the combined Go graph against the pinned Lyrebird source and its documented Pion compatibility limits. If the readonly build requests go.mod updates, regenerate the lock in the actual pinned source, then run the full candidate matrix. Do not run go mod tidy in the lock-only directory."]
+    },
+    {
+      "description": "Indirect major import-path migrations belong to the upstream consumers",
+      "matchManagers": ["gomod"],
+      "matchDepTypes": ["indirect"],
+      "matchUpdateTypes": ["major"],
+      "enabled": false
+    },
+    {
+      "description": "Snowflake 2.15.1 requires the reviewed transport-v4 Pion interfaces; reassess with source updates",
+      "matchManagers": ["gomod"],
+      "matchPackageNames": ["github.com/pion/webrtc/v4"],
+      "allowedVersions": "<=4.2.20"
+    },
+    {
+      "description": "Reviewed ICE interface limit for the current Snowflake graph",
+      "matchManagers": ["gomod"],
+      "matchPackageNames": ["github.com/pion/ice/v4"],
+      "allowedVersions": "<=4.4.2"
+    },
+    {
+      "description": "Reviewed TURN interface limit for the current Snowflake graph",
+      "matchManagers": ["gomod"],
+      "matchPackageNames": ["github.com/pion/turn/v5"],
+      "allowedVersions": "<=5.1.0"
+    },
+    {
+      "description": "Reviewed mDNS interface limit for the current Snowflake graph",
+      "matchManagers": ["gomod"],
+      "matchPackageNames": ["github.com/pion/mdns/v2"],
+      "allowedVersions": "<=2.2.0"
+    },
+    {
+      "description": "Reviewed SRTP buffer interface limit for the current Snowflake graph",
+      "matchManagers": ["gomod"],
+      "matchPackageNames": ["github.com/pion/srtp/v3"],
+      "allowedVersions": "<=3.0.13"
+    },
+    {
+      "description": "Security fixes cross routine compatibility limits for explicit review; OSV adds its fix range afterward",
+      "matchManagers": ["gomod"],
+      "matchJsonata": ["isVulnerabilityAlert = true"],
+      "enabled": true,
+      "allowedVersions": null,
+      "groupName": null,
+      "groupSlug": null,
+      "automerge": false
     }
   ],
   "vulnerabilityAlerts": {
     "enabled": true,
+    "groupSlug": null,
     "automerge": false,
     "prCreation": "immediate",
     "minimumReleaseAge": "0 days",
