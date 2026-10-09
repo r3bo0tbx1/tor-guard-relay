@@ -1,5 +1,6 @@
 # syntax=docker/dockerfile:1.28.0
 FROM --platform=$BUILDPLATFORM golang:1.27.2-alpine3.24@sha256:85dc1069ac644ea3c527b177303a406eb3358192816cd7f9e5848eb658851673 AS builder
+ENV GOTOOLCHAIN=local
 RUN sed -i 's/http:/https:/g' /etc/apk/repositories && apk add --no-cache git
 WORKDIR /go/src/lyrebird
 ARG LYREBIRD_REVISION=362a60bb4e3fa434130ef81a9990d83d6d8eaea5
@@ -8,7 +9,9 @@ RUN git init . && git remote add origin https://gitlab.torproject.org/tpo/anti-c
 COPY build/lyrebird/go.mod build/lyrebird/go.sum ./
 ARG TARGETOS
 ARG TARGETARCH
-RUN go mod download && go mod verify \
+RUN sha256sum go.mod > /tmp/go.mod.sha256 \
+ && go mod download all && go mod verify \
+ && sha256sum -c /tmp/go.mod.sha256 \
  && CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -mod=readonly -trimpath -ldflags="-s -w" -o /usr/bin/lyrebird ./cmd/lyrebird
 
 FROM alpine:edge

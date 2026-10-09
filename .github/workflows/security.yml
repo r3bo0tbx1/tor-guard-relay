@@ -117,7 +117,7 @@ jobs:
           ignore-unfixed: false
           exit-code: '0'
       - name: ✨ Assess published image using current policy
-        run: python3 scripts/testing/check-security.py trivy.json --image-metadata image.json
+        run: python3 scripts/testing/check-security.py trivy.json --image-metadata image.json --summary "$GITHUB_STEP_SUMMARY"
       - name: 📎 Retain published assessment
         if: always()
         uses: actions/upload-artifact@v7.0.2
