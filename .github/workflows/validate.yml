@@ -9,6 +9,7 @@ permissions:
   contents: read
 jobs:
   source:
+    name: 🔍 Lint and Validate
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7.0.1
@@ -74,3 +75,20 @@ jobs:
           exit-code: '0'
       - name: Enforce security policy
         run: python3 scripts/testing/check-security.py trivy.json
+
+  required-checks:
+    name: ${{ matrix.check }}
+    needs: [source, image]
+    if: always()
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        check: ['🏗️ Build Docker Image', '🧪 Integration Tests', '🛡️ Security Scan']
+    steps:
+      - name: Require every candidate check to succeed
+        env:
+          SOURCE_RESULT: ${{ needs.source.result }}
+          IMAGE_RESULT: ${{ needs.image.result }}
+        run: |
+          test "$SOURCE_RESULT" = success
+          test "$IMAGE_RESULT" = success

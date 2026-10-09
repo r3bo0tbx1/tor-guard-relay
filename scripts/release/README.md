@@ -31,6 +31,20 @@ Schedules rebuild the latest released tag, not unreleased main. A dependency upd
 
 The promotion job needs Docker Hub credentials and GitHub package permissions. Cross-registry promotion must be observed in the first maintainer-triggered run; local testing does not establish remote registry behavior.
 
+### ✅ Required validation checks
+
+The validation workflow preserves the four names required by the main branch ruleset: `🔍 Lint and Validate`, `🏗️ Build Docker Image`, `🧪 Integration Tests` and `🛡️ Security Scan`. The last three aggregate the complete stable/edge and AMD64/ARM64 candidate matrix, including behavioral acceptance and security policy. They run even after a dependency fails and succeed only when source validation and every image job succeed.
+
+Candidate artifacts are replaced on workflow reruns; registry staging tags include both the run ID and attempt so a retry does not reuse an earlier staging tag. Version and alias tags remain mutable for validated scheduled rebuilds.
+
+### 📦 Dependency update boundaries
+
+Renovate currently proposes Docker base, GitHub Actions and locked Go module updates. It does not track `LYREBIRD_REVISION`. An upstream Lyrebird commit does not change the source pin during scheduled rebuilds. Review and update every source-pin occurrence in both Dockerfiles together, check upstream changes against the locked Go graph, and pass the full candidate matrix before tagging a release.
+
+Automatic source-pin proposals would need a Renovate `custom.regex` manager using the `git-refs` datasource for an explicitly selected upstream branch or tag. Keep those proposals subject to review and the same release gates. The repository's Renovate integration must also be enabled; configuration alone does not run the bot.
+
+After a Docker base version proposal, run `python3 scripts/release/check-versions.py --write` and review the synchronized examples and OCI base label. The consistency gate deliberately rejects unsynchronized documentation.
+
 ## 🛡️ Evidence and rollback
 
 Retain source SHA, architecture, image ID/digest, Tor version, Alpine/OpenSSL packages, Lyrebird revision/Go dependency graph, SBOM and the full vulnerability/secret report. Promotion blocks any secret finding or HIGH/CRITICAL vulnerability with an available fix. Unfixed and lower-severity findings remain in the report for assessment. Never call a candidate published based only on a local build.

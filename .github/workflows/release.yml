@@ -50,7 +50,7 @@ jobs:
           else
             tag="$INPUT_TAG"
             if [ -z "$tag" ]; then
-              tag=$(git tag --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -n 1)
+              tag=$(git tag --sort=-v:refname | awk '/^v[0-9]+\.[0-9]+\.[0-9]+$/ && !found {print; found=1}')
             fi
             if [ "$EVENT" = schedule ] || [ "$INPUT_PUBLISH" = true ]; then publish=true; fi
           fi
@@ -151,6 +151,7 @@ jobs:
       - uses: actions/upload-artifact@v7.0.2
         with:
           name: candidate-${{ matrix.variant }}-${{ matrix.arch }}
+          overwrite: true
           path: |
             image.tar
             image.tar.sha256
@@ -201,7 +202,7 @@ jobs:
                 local_image="relay-candidate:$variant-$arch"
                 expected=$(jq -r '.[0].Id' "$directory/image.json")
                 test "$(docker image inspect "$local_image" --format '{{.Id}}')" = "$expected"
-                stage="$registry:validated-${SOURCE:0:12}-$GITHUB_RUN_ID-$variant-$arch"
+                stage="$registry:validated-${SOURCE:0:12}-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT-$variant-$arch"
                 docker tag "$local_image" "$stage"
                 docker push "$stage"
                 digest=$(docker image inspect "$stage" --format '{{join .RepoDigests "\n"}}' | grep "^$registry@" | tail -n 1)
@@ -215,6 +216,7 @@ jobs:
       - uses: actions/upload-artifact@v7.0.2
         with:
           name: published-manifests
+          overwrite: true
           path: published-*.txt
 
   notes:
