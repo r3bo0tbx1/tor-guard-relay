@@ -4,7 +4,7 @@ Current source: <!-- RELAY_VERSION -->v2.2.0<!-- /RELAY_VERSION -->. Historical 
 
 ## [Unreleased]
 
-## [v2.2.0] - release candidate
+## [v2.2.0] - 2026-10-09
 
 ### 🛡️ Security
 
@@ -23,6 +23,13 @@ Current source: <!-- RELAY_VERSION -->v2.2.0<!-- /RELAY_VERSION -->. Historical 
 - Preserve the README's branding, badges and screenshot gallery; restore detailed guides and 15 rendered Mermaid architecture diagrams, including recovery and security-update flows.
 - Restore emoji workflow labels and add job outcome summaries while preserving required PR check names and blocking gates.
 - Handle missing startup metadata as a retryable recovery-fixture error without bypassing archive validation.
+
+### 💥 Compatibility and migration
+
+- ENV-generated torrc files are regenerated on restart. Persist changes in deployment ENV or use a mounted configuration.
+- Readiness requires evidence from the current run; historical bootstrap logs cannot establish readiness after a restart.
+- Retire legacy plaintext-backup and live-volume replacement helpers. Recovery requires host Python 3.10+, age and a verified encrypted archive; restore stages into a new directory.
+- Older release tags without the new validation contract fail closed under the updated release pipeline.
 
 See [v2.2.0 release notes](docs/releases/v2.2.0.md) for migration and validation limits.
 

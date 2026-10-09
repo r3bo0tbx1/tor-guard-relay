@@ -22,7 +22,7 @@
 
 ## 🆕 v2.2.0: safer operations and recovery
 
-Current candidate: <!-- RELAY_VERSION -->v2.2.0<!-- /RELAY_VERSION -->.
+Current source version: <!-- RELAY_VERSION -->v2.2.0<!-- /RELAY_VERSION -->.
 
 > [!IMPORTANT]
 > 🛡️ Tor **0.4.9.14 or newer** is required. This release is locally validated; publication and live-relay verification are separate steps. See the [curated release notes](docs/releases/v2.2.0.md).

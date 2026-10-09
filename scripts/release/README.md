@@ -92,7 +92,7 @@ The published-image lane performs package/secret assessment; source reachability
 5. Verify both architectures and exact published digests in Docker Hub and GHCR; retain evidence and rollback references.
 6. Upgrade the real relay deliberately after encrypted recovery rehearsal, then check fingerprint continuity, fresh bootstrap and public reachability.
 
-The release workflow uses immutable candidate evidence and promotes the same images. A main push does not publish a version; manual dispatch defaults to validation. Current reviewed policy is separate from tagged source. Source-executing jobs have no shared Actions-cache access and retain no checkout credentials.
+The release workflow uses immutable candidate evidence and promotes the same images. A main push does not publish a version; manual dispatch defaults to validation. Current reviewed policy is separate from tagged source. Trusted main verifies the full source and policy commit SHAs against reviewed ancestry before preparing separate immutable worktrees. Checkout credentials are not retained.
 
 ## 🛡️ Evidence and rollback
 

@@ -1,6 +1,6 @@
 # 📚 Documentation
 
-Examples in this checkout describe the v2.2.0 candidate. Published availability is stated in the README and release notes.
+Examples in this checkout describe v2.2.0. Published availability is stated in the README and release notes.
 
 | Task | Guide | Outcome |
 | --- | --- | --- |
