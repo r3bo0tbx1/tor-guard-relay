@@ -2,7 +2,7 @@
 
 [Documentation](README.md) · [Release notes](releases/v2.2.0.md)
 
-## v2.2.0 operating contract
+## 🛡️ v2.2.0 operating contract
 
 All three roles share config validation, current-run health and encrypted recovery. Docker health does not establish a guard flag, public reachability or consensus membership. An obfs4 line becomes available when local transport state exists; no fixed 24–48 hour wait is required.
 

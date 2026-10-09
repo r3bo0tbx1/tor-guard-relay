@@ -1,10 +1,10 @@
-# Architecture
+# 🏗️ Architecture
 
 [Documentation](README.md) · [Deployment](DEPLOYMENT.md) · [Release process](../scripts/release/README.md)
 
 The runtime is Alpine, Tor, Lyrebird, Tini and POSIX shell tools. Backup encryption, fleet collection and release preparation run on the host. No Python, age, HTTP metrics server or scheduler is added to the relay image.
 
-## Runtime flow
+## 🔄 Runtime flow
 
 ```mermaid
 flowchart LR
@@ -20,7 +20,7 @@ Tini handles PID 1 responsibilities. The entrypoint resolves official bridge ali
 
 Shared `lib/config.sh` owns ENV validation/rendering. Shared `lib/runtime.sh` owns exact Tor process discovery, config inspection and health JSON. This keeps healthcheck, status, health, doctor and refresh aligned.
 
-## Process and observations
+## 🔎 Process and observations
 
 Process discovery uses exact `/proc/PID/comm` values rather than substring matches. Ambiguous processes produce a reason code rather than a combined PID. Active configuration comes from the process command; fingerprint lookup uses the effective DataDirectory.
 
@@ -30,7 +30,7 @@ Liveness, configuration validity, readiness and observation freshness are separa
 
 SIGHUP reload validates the active torrc, checks process identity and confirms the same process survives. SIGTERM shutdown has a configurable bounded wait; natural Tor failures retain their exit status. Generated configurations log to the notice file, which the entrypoint streams once to Docker output.
 
-## Paths and ownership
+## 🗂️ Paths and ownership
 
 | Path | Purpose |
 | --- | --- |
@@ -43,18 +43,18 @@ SIGHUP reload validates the active torrc, checks process identity and confirms t
 
 The image runs as UID 100/GID 101. Operators prepare persistent-volume ownership before deployment. Startup does not grant itself host privileges to repair a volume.
 
-## Build and release
+## 📦 Build and release
 
 Stable runtime uses Alpine 3.24.2 pinned by digest; edge follows Alpine edge. Both require Tor 0.4.9.14 or newer. Lyrebird source and Go dependency graph are pinned. The native Go builder cross-compiles the requested architecture; the actual target runtime is tested separately.
 
 Release jobs load and validate four candidates before any promotion. Exported image archives, checksums and image IDs carry evidence into promotion, which assembles manifests from the pushed candidate digests without rebuilding. SBOMs and scan results accompany curated notes. Schedules resolve the latest released tag, preserving source identity.
 
-## Host recovery boundary
+## 🔐 Host recovery boundary
 
 The backup command obtains Docker tar streams from a stopped source, combines configuration and state with an integrity manifest, compresses and encrypts directly into ciphertext. Complete verification happens before staged extraction. Restore uses a network-disabled Tor validation helper and never activates the identity automatically.
 
 [Recovery](BACKUP.md) documents include restrictions, external master-key custody and shared-writer limits. Host inventory uses Docker inspection and JSON health; it adds no public listener.
 
-## Compatibility
+## 🤝 Compatibility
 
 Guard/middle, exit and bridge share the runtime contract. Official bridge ENV aliases and Happy Family configuration remain supported. Advanced directives belong in a mounted torrc. Operators own external networking, firewall policy, control-port authentication and relay activation.

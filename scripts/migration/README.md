@@ -1,10 +1,10 @@
-# Migration assistant
+# 🔄 Migration Assistant
 
 [Current migration](../../docs/MIGRATION.md) · [Encrypted recovery](../../docs/BACKUP.md) · [Documentation](../../docs/README.md)
 
 The interactive assistant helps identify an official bridge deployment, prepare Alpine UID 100/GID 101 ownership, recreate it and compare fingerprints. It is an operator-run mutation tool; local offline testing does not establish a production migration.
 
-## Required recovery setup
+## 🔐 Required recovery setup
 
 Install host Python 3.10+ and age. Prepare public recipient and private recovery identity files as described in the backup guide, then export their paths:
 
@@ -18,7 +18,7 @@ These variables hold file paths, never passphrases. The assistant creates and fu
 
 For a source without a detectable container or a supported config/include layout, follow manual staged recovery in the current migration guide. Do not guess a data path from unrelated volumes.
 
-## Before and after
+## ✅ Before and after
 
 Record image digest, deployment, fingerprint, ownership, family material and bridge transport state. Inspect listener and mount choices before accepting the assistant's prompts.
 

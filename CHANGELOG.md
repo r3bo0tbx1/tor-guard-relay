@@ -1,4 +1,4 @@
-# Changelog
+# 📜 Changelog
 
 Current source: <!-- RELAY_VERSION -->v2.2.0<!-- /RELAY_VERSION -->. Historical entries below retain their original release context.
 
@@ -6,13 +6,13 @@ Current source: <!-- RELAY_VERSION -->v2.2.0<!-- /RELAY_VERSION -->. Historical 
 
 ## [v2.2.0] - release candidate
 
-### Security
+### 🛡️ Security
 
 - Require Tor 0.4.9.14 or newer in stable and edge images; upstream recommends updating as soon as possible.
 - Update stable Alpine to 3.24.2, pin Go 1.27.2 and the Lyrebird source revision, and lock the dependency graph with Pion STUN 3.1.7.
 - Validate all architecture/variant candidates before promotion and retain SBOM and scan evidence.
 
-### Operator changes
+### 🛠️ Operator changes
 
 - Add current-run readiness/freshness, doctor reason codes, precise reload and bounded shutdown.
 - Add validated atomic config handling, redacted directive diff, accounting and IPv6 ENV options.

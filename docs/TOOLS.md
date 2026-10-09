@@ -1,4 +1,4 @@
-# Operator tools
+# 🛠️ Operator Tools Reference
 
 [Documentation](README.md) · [Monitoring](MONITORING.md) · [Encrypted recovery](BACKUP.md)
 
@@ -18,7 +18,7 @@ Run container tools with `docker exec tor-relay COMMAND`. JSON is written to std
 | `gen-auth` | Control-port password/hash helper |
 | `gen-family [--show]` | Family key generation and inspection |
 
-## Health contract
+## 🩺 Health contract
 
 ```sh
 docker exec tor-relay health
@@ -41,7 +41,7 @@ Current-run evidence uses PID, process start time, notice-log inode and byte off
 | `bootstrap_pending` | Inspect current notices, DNS, firewall and connectivity |
 | `ready` | Check external reachability separately |
 
-## Change configuration
+## 🔧 Change configuration
 
 ```sh
 docker cp ./candidate.torrc tor-relay:/tmp/candidate.torrc
@@ -54,7 +54,7 @@ Apply is for generated configurations. A mounted torrc is authoritative: edit an
 
 `refresh` sends SIGHUP only after validation and confirms the process start identity is unchanged. Tor decides which directives can reload; changes requiring restart still need recreation. Neither refresh nor config apply modifies deployment ENV.
 
-## Bridge lines
+## 🌉 Bridge lines
 
 ```sh
 docker exec tor-bridge bridge-line --plain --address 203.0.113.10
@@ -63,7 +63,7 @@ docker exec tor-bridge bridge-line --json --address 2001:db8::10 --port 9002
 
 Use your reachable public address; documentation addresses above are examples. The transport must have written its local obfs4 state and Tor must have a fingerprint. The command reports missing-state/config reasons instead of prescribing a fixed waiting period. Share bridge information only through your intended distribution channel.
 
-## Host commands
+## 💻 Host commands
 
 ```sh
 sh scripts/utilities/relay-inventory.sh tor-relay tor-bridge

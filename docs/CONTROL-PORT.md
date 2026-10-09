@@ -2,7 +2,7 @@
 
 [Documentation](README.md) · [Release notes](releases/v2.2.0.md)
 
-## v2.2.0 operator workflow
+## 🛠️ v2.2.0 operator workflow
 
 The control port remains an explicit, authenticated operator option. It is not required for `health`, `doctor` or host inventory. Validate edited torrc files with `config validate`, then use `refresh` for reloadable directives. Mounted configuration remains authoritative; generated configuration is regenerated from ENV on restart.
 

@@ -1,10 +1,10 @@
-# Encrypted backup and recovery
+# 🔐 Encrypted Backup & Recovery Guide
 
 [Documentation](README.md) · [Deployment](DEPLOYMENT.md) · [Migration](MIGRATION.md)
 
 Keep the relay identity, active torrc and transport state together. The host command streams a compressed tar archive directly into **age encryption**; it never writes a plaintext archive. Python 3.10+ and age are host dependencies, not image dependencies.
 
-## Before you start
+## 📋 Before you start
 
 Run from the repository on Linux or WSL. With Docker Desktop, the command uses `docker.exe` from WSL when available. Set `DOCKER` to override the CLI. Store backups and private age identities in the Linux filesystem with restricted permissions; Windows-mounted directories do not provide the same Unix permission guarantees.
 
@@ -19,7 +19,7 @@ age-keygen -y "$HOME/.config/relay-backup/identity.txt" > "$HOME/.config/relay-b
 
 Use an existing organization recipient file if you already manage recovery keys. Losing every decryption identity makes the backup unrecoverable. External or offline Tor master keys are **not included** and need a separate encrypted recovery procedure.
 
-## Create
+## 📦 Create
 
 Preview coverage first. The source must already have a fingerprint and keys.
 
@@ -47,7 +47,7 @@ A running source requires explicit `--stop`. The command waits for Docker to rep
 
 The command supports exact absolute include files, flat absolute include globs and directories with a trailing slash. Relative includes, unmatched globs, links, special files and conflicting DataDirectory overrides fail closed. Host processes writing bind mounts cannot be detected through Docker; stop those writers yourself. The default total payload limit is 20 GiB, configurable with `--max-bytes`.
 
-## Verify the complete archive
+## ✅ Verify the complete archive
 
 Use the filename printed by create:
 
@@ -58,7 +58,7 @@ sh scripts/utilities/relay-backup.sh verify "$HOME/relay-backups/BACKUP.tar.gz.a
 
 Verification authenticates the complete age stream and reads every archived member, checking hashes against the encrypted manifest. It rejects truncated ciphertext, duplicate members, traversal, links, special files and unsafe permissions. A successful archive verification proves content integrity; rehearse recovery separately to prove operational recovery.
 
-## Restore into a new staging directory
+## 🔄 Restore into a new staging directory
 
 Load a compatible local validation image first. Restore never pulls an image or starts a relay on the Tor network.
 
@@ -81,7 +81,7 @@ The destination must not exist. The command authenticates before extraction, che
 
 Stop the old relay before activating the restored identity. Never run two relays with the same identity. Check ownership, validate the deployment, start deliberately, compare fingerprints, and examine fresh health and external reachability. Do not replace live data as part of verification.
 
-## Recovery checklist
+## 🛡️ Recovery checklist
 
 - Keep more than one encrypted copy, with at least one off-host copy.
 - Protect decryption keys separately and test access to them.

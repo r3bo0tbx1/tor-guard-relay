@@ -35,9 +35,15 @@ for commit in hashes:
     if (match and match[2]) or re.search(r"^BREAKING[ -]CHANGE:", body, re.M):
         groups["Compatibility and breaking changes"].append(entry)
     if not args.breaking_only: groups[types.get(match[1], "Other") if match else "Other"].append(entry)
-lines = [f"# Tor Guard Relay v{version}", "", "Review this generated draft against the implemented behavior and validation evidence.", ""]
+icons = {"Added": "✨", "Fixed": "🐛", "Performance": "⚡", "Documentation": "📚",
+         "Dependencies": "📦", "Release and CI": "🚀", "Internal changes": "♻️",
+         "Validation": "🧪", "Maintenance": "🔧", "Presentation": "🎨", "Reverted": "↩️",
+         "Compatibility and breaking changes": "💥", "Other": "📋"}
+show_emoji = not args.no_emoji and args.format != "plain"
+lines = [f"# {'🧅 ' if show_emoji else ''}Tor Guard Relay v{version}", "", "Review this generated draft against the implemented behavior and validation evidence.", ""]
 for heading in ["Compatibility and breaking changes", *dict.fromkeys(types.values()), "Other"]:
-    if groups[heading]: lines.extend(["## " + heading, "", *groups[heading], ""])
+    icon = icons[heading] + " " if show_emoji else ""
+    if groups[heading]: lines.extend(["## " + icon + heading, "", *groups[heading], ""])
 result = "\n".join(lines) + "\n"
 if args.format == "plain":
     result = re.sub(r"(?m)^#+ ", "", result).replace(chr(96), "")

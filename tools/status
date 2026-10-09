@@ -3,9 +3,13 @@ set -eu
 . "${RELAY_LIB:-/usr/local/lib/relay}/runtime.sh"
 case "${1:-}" in --json) exec "$(dirname "$0")/health" ;; -h|--help) echo 'Usage: status [--json]'; exit 0 ;; '') ;; *) exit 2 ;; esac
 inspect_health
-printf '\nTor Guard Relay · %s\n' "$BUILD_VERSION"
-printf 'Process: %s (PID %s, uptime %s)\nReadiness: %s (%s)\n' "$LIVE" "$TOR_PID" "$UPTIME" "$READY" "$REASON"
-printf 'Bootstrap: %s%% · ORPort: %s (Tor self-test)\n' "$BOOTSTRAP" "$REACHABLE"
-printf 'Config: %s · valid: %s\nPath: %s\n' "$CONFIG_SOURCE" "$CONFIG_VALID" "$TOR_CONFIG"
-printf 'Nickname: %s · mode: %s\nFingerprint: %s\nCurrent-run errors: %s\n\n' "$NICKNAME" "$RELAY_MODE" "$FINGERPRINT" "$ERRORS"
+printf '\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'
+printf '🧅 Tor Relay Status · %s\n' "$BUILD_VERSION"
+printf '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n'
+printf '🚀 Process: %s (PID %s)\n⏱️ Uptime: %s\n🩺 Readiness: %s (%s)\n' "$LIVE" "$TOR_PID" "$UPTIME" "$READY" "$REASON"
+printf '📶 Bootstrap: %s%%\n🌐 ORPort: %s (Tor self-test)\n' "$BOOTSTRAP" "$REACHABLE"
+printf '🧩 Config: %s · valid: %s\n📂 Path: %s\n' "$CONFIG_SOURCE" "$CONFIG_VALID" "$TOR_CONFIG"
+printf '🪪 Nickname: %s · mode: %s\n🔑 Fingerprint: %s\n🛡️ Current-run errors: %s\n' "$NICKNAME" "$RELAY_MODE" "$FINGERPRINT" "$ERRORS"
+printf '\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'
+printf "💡 Tip: Use 'doctor' for next steps and 'docker logs -f <container>' for live logs.\n\n"
 [ "$LIVE" = true ]

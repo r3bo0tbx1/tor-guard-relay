@@ -1,4 +1,4 @@
-# Lyrebird dependency lock
+# 📦 Lyrebird Dependency Lock
 
 The Dockerfiles fetch the reviewed Lyrebird revision, then use this go.mod/go.sum graph with readonly module resolution. Source updates and dependency updates are separate review steps: compare upstream changes, build both architectures, inspect the linked transport metadata, and run candidate security checks before publication.
 

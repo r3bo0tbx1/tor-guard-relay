@@ -1,4 +1,4 @@
-# Documentation
+# 📚 Documentation
 
 Examples in this checkout describe the v2.2.0 candidate. Published availability is stated in the README and release notes.
 
@@ -18,10 +18,10 @@ Examples in this checkout describe the v2.2.0 candidate. Published availability 
 | Release | [Release scripts](../scripts/release/README.md) | Local checks and curated notes |
 | Review v2.2.0 | [Release notes](releases/v2.2.0.md) | Security, changes and upgrade steps |
 
-## Historical records
+## 📜 Historical records
 
 [v1.1.x migration](MIGRATION-V1.1.X.md) and [bridge migration troubleshooting](TROUBLESHOOTING-BRIDGE-MIGRATION.md) preserve earlier behavior. Use the current migration/backup guides for operations today.
 
-## Policies
+## 🛡️ Policies
 
 [Security](../SECURITY.md) · [Contributing](../CONTRIBUTING.md) · [Code of conduct](../CODE_OF_CONDUCT.md) · [Legal considerations](LEGAL.md)

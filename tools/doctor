@@ -13,5 +13,5 @@ case "$REASON" in
 esac
 if [ "${1:-}" = --json ]; then
   printf '{"health":'; health_json; printf ',"remedy":'; json_string "$remedy"; printf '}\n'
-else printf 'Tor relay doctor\nReason: %s\nAction: %s\n' "$REASON" "$remedy"; fi
+else printf '\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n🩺 Tor Relay Doctor\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n🔎 Reason: %s\n💡 Action: %s\n\n' "$REASON" "$remedy"; fi
 [ "$READY" = true ]

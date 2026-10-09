@@ -2,7 +2,9 @@
 
 [Documentation](README.md) · [Release notes](releases/v2.2.0.md)
 
-## Configuration ownership
+<a id="configuration-ownership"></a>
+
+## 🧩 Configuration ownership
 
 Generated ENV configuration is validated before atomic publication and regenerated at each start. A mounted torrc is authoritative; ENV does not overwrite it. Set `TOR_CONFIG` for a custom path or pass an explicit `tor -f PATH` command. `TOR_CONFIG_SOURCE=mounted|environment|auto` makes ownership explicit; auto is the default.
 
@@ -10,7 +12,9 @@ Keep data persistent at the effective DataDirectory and arrange UID 100/GID 101 
 
 For local Docker Desktop tests use isolated network-disabled fixtures from [Local testing](LOCAL-TESTING.md). Production host networking examples below target Linux hosts with deliberate public listeners.
 
-## Accounting and IPv6 ENV options
+<a id="accounting-and-ipv6-env-options"></a>
+
+## 🌐 Accounting and IPv6 ENV options
 
 | Variable | Tor directive |
 | --- | --- |

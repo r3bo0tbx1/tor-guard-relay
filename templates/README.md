@@ -2,7 +2,7 @@
 
 [Documentation](../docs/README.md)
 
-## v2.2.0 template checks
+## 🧪 v2.2.0 template checks
 
 All seven Cosmos JSON templates and five Compose templates are validated locally and in CI. Published aliases follow validated releases; a local candidate does not change them. Build the source locally for prepublication testing.
 

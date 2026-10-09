@@ -1,10 +1,10 @@
-# Monitoring
+# 📊 Monitoring Guide
 
 [Documentation](README.md) · [Tools](TOOLS.md) · [Control port](CONTROL-PORT.md)
 
 Monitor four distinct signals: the Tor process, active configuration, bootstrap readiness, and freshness of the observation. Public reachability and consensus membership require separate external evidence.
 
-## Local checks
+## 🔎 Local checks
 
 ```sh
 docker exec tor-relay status
@@ -18,7 +18,7 @@ A healthy Docker container means the expected process and valid config are prese
 
 The notice log observation starts at the current Tor run. Log rotation produces a stale observation until a new entrypoint boundary is established. If a mounted configuration logs elsewhere, configure notice logging at `TOR_LOG_DIR/notices.log` or use your own control-port observer.
 
-## Fleet inventory and textfile metrics
+## 🛰️ Fleet inventory and textfile metrics
 
 ```sh
 sh scripts/utilities/relay-inventory.sh --json tor-relay tor-bridge
@@ -39,7 +39,7 @@ Without container arguments, inventory selects containers bearing this project's
 
 A host collector can redirect output into a temporary textfile and atomically rename it after a successful invocation. Schedule it with your existing monitoring system. Alert on observation age as well as value; these gauges do not include an HTTP endpoint or scheduler.
 
-## External evidence
+## 🌐 External evidence
 
 Use your relay fingerprint to inspect [Tor Metrics Relay Search](https://metrics.torproject.org/rs.html). Check host firewall and provider port access independently. Bridge lines containing valid local obfs4 state do not prove that users can connect through NAT.
 

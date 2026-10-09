@@ -1,4 +1,4 @@
-# Local testing
+# 🧪 Local Testing
 
 [Documentation](README.md) · [Contributing](../CONTRIBUTING.md) · [Release process](../scripts/release/README.md)
 
@@ -8,7 +8,7 @@ Use isolated containers with synthetic identities. The acceptance suite runs wit
 
 Docker Desktop on Windows with WSL works. Run host scripts in Linux/WSL with Python 3.10+, age, ShellCheck and dos2unix. A Linux Docker daemon is also supported. ARM64 testing on an AMD64 machine requires registered QEMU/binfmt support.
 
-## Source checks
+## 🔎 Source checks
 
 ```sh
 python3 scripts/release/check-versions.py
@@ -21,7 +21,7 @@ git diff --check
 
 Archive tests require age on PATH. A skipped archive test is not a recovery pass. Check LF line endings with dos2unix before building on Windows.
 
-## Build and inspect candidates
+## 🏗️ Build and inspect candidates
 
 ```sh
 docker buildx build --platform linux/amd64 --load \
@@ -34,7 +34,7 @@ Repeat with `Dockerfile.edge` and both `linux/amd64` and `linux/arm64`. Pass the
 
 Acceptance covers guard, exit and bridge generation, custom torrc path, accounting, config validation, PID-preserving reload, fresh restart evidence, bridge transport state and clean shutdown. Injected bootstrap messages test observation logic; they are not proof of live bootstrap.
 
-## Recovery rehearsal
+## 🔐 Recovery rehearsal
 
 Follow [Backup](BACKUP.md) using a synthetic source. Create → verify → restore must preserve the fingerprint and pass offline Tor configuration validation. Rehearse named-volume and bind-mount layouts with includes when those match your deployment.
 
@@ -46,6 +46,6 @@ Run the isolated named-volume and bind-mount rehearsal with a task-owned scratch
 python3 scripts/testing/recovery-rehearsal.py --image tor-relay:2.2.0-local --bind-parent /path/to/scratch
 ```
 
-## Presentation checks
+## 🎨 Presentation checks
 
 Check every local Markdown link and image with the docs checker. Review the README and curated notes rendered on desktop and mobile. Run the separate website's Hugo build, security audit and tests before including an article in a publication handoff.

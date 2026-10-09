@@ -1,4 +1,4 @@
-# Frequently asked questions
+# ❓ Frequently Asked Questions
 
 [Documentation](README.md) · [Tools](TOOLS.md) · [Deployment](DEPLOYMENT.md)
 
