@@ -1,4 +1,4 @@
-name: 🗑️🧹 Registry retention review
+name: 🗑️🧹
 on:
   workflow_dispatch:
 permissions:
