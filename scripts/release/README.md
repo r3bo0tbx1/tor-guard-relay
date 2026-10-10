@@ -75,6 +75,19 @@ The registry client is version/checksum pinned in `build/registry-tools.json`. R
 
 The cleanup helper defaults to planning. With `--apply`, it checks the retained manifest graph before and after each tag removal. It never deletes the original image manifest by digest. If GHCR requires package API deletion, only the unique tag-removal placeholder may be deleted, after validating its marker, digest and sole tag. Referenced untagged architecture versions must remain. The maintenance job needs package admin access for that fallback and Docker Hub tag-deletion/overview permissions; access failures stop the operation and retain the plan.
 
+### 🧹 Retired container versions
+
+The **🗑️🧹** workflow keeps `inventory` as its read-only default. `prune-old-plan` previews retirement of **2.0.0 and 2.1.0**; `prune-old-apply` applies that scoped plan. Both require a completed publication, its later successful full **🔒🧅** audit and matching retained publication evidence. Active release runs block retirement. Publication and cleanup share a registry mutation lock.
+
+The retirement helper plans both registries before changing either. Docker Hub removes retired tags. GHCR also deletes verified retired package versions, including older untagged indexes and their architecture/attestation children. It protects the complete graph of current aliases, other retained tags, all v2.2.0 package versions and unknown images. Shared manifests are preserved; an old tag sharing a retained image is removed by tag only. It rechecks target IDs/digests/tags and current aliases during removal, then verifies retained manifests/configs and GitHub release records/assets afterward. Failures retain the completed deletion evidence.
+
+GitHub releases **v2.0.0, v2.1.0 and v2.2.0**, their notes, source tags and downloadable SBOM/security assets remain available. Retired container tags no longer pull; the release assets are metadata/evidence rather than saved container images. Retained v2.2.0 digests provide rollback builds. Do not bulk-delete untagged versions or the container package itself.
+
+```sh
+gh workflow run cleanup.yml --repo r3bo0tbx1/tor-guard-relay --ref main -f operation=prune-old-plan
+gh workflow run cleanup.yml --repo r3bo0tbx1/tor-guard-relay --ref main -f operation=prune-old-apply
+```
+
 ### 📦 Dependency update boundaries
 
 Renovate proposes Docker base, GitHub Actions, locked Go module, scanner-tool and upstream Lyrebird source-pin updates. Its `custom.regex` manager follows upstream `main` with `git-refs`, keeping all four `LYREBIRD_REVISION` occurrences synchronized. Source and Go updates require review and the full candidate matrix. The bot integration must be enabled separately; configuration does not run the bot.

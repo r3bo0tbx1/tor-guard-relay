@@ -903,6 +903,7 @@ flowchart LR
 - A merged source or Go-lock change can ship through a validated manual main rebuild; subsequent schedules retain that merged fix. A version bump requires a new release tag.
 - Release jobs check out trusted main, validate both full commit SHAs against reviewed main ancestry, then materialize separate immutable source and policy worktrees. Publication credentials exist only in promotion; checkout credentials are not retained.
 - Registry inventory defaults to read-only retention review. Explicit v2.2.0 tag cleanup verifies and preserves released/rollback manifest graphs; referenced untagged architecture versions remain.
+- Explicit retired-version cleanup requires successful publication/audit evidence, protects current and retained v2.2.0 manifest graphs, verifies GitHub release assets remain unchanged, and shares a mutation lock with publication.
 
 **Code Location:** `.github/workflows/release.yml`, `build/lyrebird/`, `scripts/testing/`.
 

@@ -6,6 +6,7 @@ Current source: <!-- RELAY_VERSION -->v2.2.0<!-- /RELAY_VERSION -->. Historical 
 
 ### 🏷️ Publishing fixes
 
+- Add explicit preview/apply retirement of 2.0.0 and 2.1.0 registry images after a successful publication and full audit. Preserve current tags, referenced architecture manifests, retained v2.2.0 builds and every GitHub release asset; serialize retirement with image publication and retain deletion evidence.
 - Restore manual and scheduled rebuilds from the captured immutable `main` commit, including merged dependency and source fixes, without requiring a new release tag. Build and validate both variants and both architectures; retain explicit release-tag rebuilds and the existing registry tag conventions.
 - Restore Docker Hub's stable version/`latest` and simple `edge` tags; retain versioned stable and edge tags on GHCR.
 - Promote verified image archives by digest without leaving visible architecture staging tags; verify imported config identities and final architecture manifests.
