@@ -4,7 +4,7 @@ Current source: <!-- RELAY_VERSION -->v2.2.0<!-- /RELAY_VERSION -->. Historical 
 
 ## [Unreleased]
 
-## [v2.2.0] - 2026-10-09
+## [v2.2.0] - 2026-10-10
 
 ### 🛡️ Security
 
