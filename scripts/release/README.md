@@ -37,15 +37,24 @@ Use the notes generator for a local review draft; the hosted release publishes `
 
 ## 🏗️ Candidate pipeline
 
-1. Resolve the triggering release tag, or the latest stable tag for a scheduled rebuild. Require its commit to be an ancestor of main. Resolve the current reviewed main security-policy SHA separately.
+1. Resolve the triggering release tag, or the selected immutable main commit for manual and scheduled rebuilds. An explicit manual `source_tag` selects the original release source. Require source and release-version ancestry on main. Resolve the current reviewed main security-policy SHA separately.
 2. Build stable and edge candidates for AMD64 and ARM64, without publishing.
 3. Run offline behavior tests and component security floors against each loaded image.
-4. Analyze Go source reachability with the tagged source/lock/toolchain, proving that the transport matches the candidate byte for byte. Generate SBOMs and run blocking vulnerability/secret scans. Use current main security policy and component floors even when rebuilding an older tag.
+4. Analyze Go source reachability with the selected source/lock/toolchain, proving that the transport matches the candidate byte for byte. Generate SBOMs and run blocking vulnerability/secret scans. Use current main security policy and component floors even when rebuilding an older tag.
 5. Save each validated image, checksum, inspect metadata and scan evidence.
 6. Verify those same archives and their config identities, import them into a temporary OCI layout, publish architecture manifests by digest, and assemble version/alias manifests from those digests. No public architecture staging tags are created.
 7. Publish curated release notes and attach security evidence only after promotion succeeds.
 
-Schedules rebuild the latest released tag, not unreleased main. A dependency update on main reaches scheduled rebuilds only after a new reviewed release tag contains it. Publishing helpers come from the immutable reviewed policy commit. Manual release dispatch defaults to validation without publication. The retention workflow defaults to a read-only registry inventory. Its explicit `tidy-v2.2.0` operation removes only the released source's `validated-…` tags and Docker Hub's extra `2.2.0-edge` tag, preserving every other tagged manifest and its child graph before refreshing the overview from [docs/DOCKERHUB.md](../../docs/DOCKERHUB.md).
+Manual rebuilds with an empty `source_tag` use the main commit captured when the workflow is dispatched. Select branch `main` and enable `publish` to publish both stable and edge for AMD64 and ARM64 after all gates pass. The latest released version supplies the image tag namespace; main's managed version marker must still match it. A version bump requires a new release tag. Rebuilds record their actual source SHA in image labels and never move Git tags or create/edit a GitHub release.
+
+```sh
+# Rebuild and publish both variants from the selected main commit.
+gh workflow run release.yml --repo r3bo0tbx1/tor-guard-relay --ref main -f publish=true
+# Explicitly rebuild the original release source instead.
+gh workflow run release.yml --repo r3bo0tbx1/tor-guard-relay --ref main -f source_tag=v2.2.0 -f publish=true
+```
+
+Schedules also rebuild their captured main commit under the latest released version, keeping merged fixes in subsequent rebuilds rather than replacing them with older tagged code. Publishing helpers come from the immutable reviewed policy commit. Manual dispatch defaults to validation without publication. The retention workflow defaults to a read-only registry inventory. Its explicit `tidy-v2.2.0` operation removes only the released source's `validated-…` tags and Docker Hub's extra `2.2.0-edge` tag, preserving every other tagged manifest and its child graph before refreshing the overview from [docs/DOCKERHUB.md](../../docs/DOCKERHUB.md).
 
 The promotion job needs Docker Hub credentials and GitHub package permissions. Cross-registry promotion must be observed in the first maintainer-triggered run; local testing does not establish remote registry behavior.
 
@@ -86,7 +95,7 @@ After a Docker base version proposal, run `python3 scripts/release/check-version
 
 ### 🚨 Expedited security response
 
-Do not wait for a scheduled rebuild or feature release when an applicable security fix is available. Update the affected source pin, Go lock, builder/base or component floor, run the full candidate gates, merge the reviewed change and publish a new patch tag. A merged lock/source update alone cannot change images rebuilt from an older release tag.
+Do not wait for a scheduled rebuild or feature release when an applicable security fix is available. Update the affected source pin, Go lock, builder/base or component floor, run the full candidate gates and merge the reviewed change. Publish a manual main rebuild to refresh current image tags immediately, or publish a new patch tag for a dedicated release. Scheduled main rebuilds retain merged fixes. An explicit older-tag rebuild still uses that tag's source and dependency pins.
 
 If no fix exists, assess exposure and mitigate it, for example by disabling an affected transport or reviewing a backport. HIGH/CRITICAL image findings and reachable Go findings block publication even without a fix. There is no automatic ignore list or severity downgrade. Any policy change for demonstrated non-applicability needs an explicit reviewed change with supporting evidence.
 

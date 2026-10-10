@@ -6,6 +6,7 @@ Current source: <!-- RELAY_VERSION -->v2.2.0<!-- /RELAY_VERSION -->. Historical 
 
 ### 🏷️ Publishing fixes
 
+- Restore manual and scheduled rebuilds from the captured immutable `main` commit, including merged dependency and source fixes, without requiring a new release tag. Build and validate both variants and both architectures; retain explicit release-tag rebuilds and the existing registry tag conventions.
 - Restore Docker Hub's stable version/`latest` and simple `edge` tags; retain versioned stable and edge tags on GHCR.
 - Promote verified image archives by digest without leaving visible architecture staging tags; verify imported config identities and final architecture manifests.
 - Add an explicit v2.2.0 tag-only maintenance operation, preserve referenced release/rollback manifests and refresh the branded Docker Hub overview. Rehearse promotion and cleanup on a local registry in CI.

@@ -896,10 +896,11 @@ flowchart LR
 
 ### 📆 Rebuild and source policy
 
-- Tags select their exact reviewed source commit; schedules select the latest stable release tag.
-- Security policy and scanner come from current reviewed main, separately from tagged source/lock/toolchain.
+- Tags select their exact reviewed source commit; schedules select their captured main commit under the latest released version.
+- Manual dispatch on main with an empty `source_tag` selects the immutable dispatch commit and rebuilds both variants and architectures. Image tags use the latest release version, which must match main's version marker; Git tags and release notes remain unchanged.
+- Security policy and scanner come from current reviewed main, separately from selected source/lock/toolchain.
 - Every candidate must pass before any promotion. Promotion imports those same archives into a temporary OCI layout, verifies config IDs/checksums and publishes by digest; it never rebuilds or creates public staging tags.
-- A source or Go-lock change requires a new reviewed release tag before schedules can ship it.
+- A merged source or Go-lock change can ship through a validated manual main rebuild; subsequent schedules retain that merged fix. A version bump requires a new release tag.
 - Release jobs check out trusted main, validate both full commit SHAs against reviewed main ancestry, then materialize separate immutable source and policy worktrees. Publication credentials exist only in promotion; checkout credentials are not retained.
 - Registry inventory defaults to read-only retention review. Explicit v2.2.0 tag cleanup verifies and preserves released/rollback manifest graphs; referenced untagged architecture versions remain.
 

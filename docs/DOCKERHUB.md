@@ -41,7 +41,7 @@ Current release: <!-- RELAY_VERSION -->v2.2.0<!-- /RELAY_VERSION -->.
 | `2.2.0` | Current stable release series | AMD64 / ARM64 |
 | `edge` | Alpine edge, for testing | AMD64 / ARM64 |
 
-Stable uses **Alpine 3.24.2**. Validated scheduled rebuilds refresh packages within the released source; version tags can receive those rebuilds. Pin an image digest when you need an exact build.
+Stable uses **Alpine 3.24.2**. Validated manual and scheduled rebuilds from main include merged fixes and fresh packages; version tags can receive those rebuilds. Pin an image digest when you need an exact build.
 
 ```bash
 docker pull r3bo0tbx1/onion-relay:latest
