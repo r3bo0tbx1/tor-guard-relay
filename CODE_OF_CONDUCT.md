@@ -1,134 +1,168 @@
-# Contributor Covenant Code of Conduct
+# 🤝 Tor Guard Relay Code of Conduct
 
-## Our Pledge
+Tor Guard Relay welcomes people who want to build, operate and improve privacy
+infrastructure together. This policy explains how we treat one another, protect
+sensitive information and resolve conduct concerns.
 
-We as members, contributors, and leaders pledge to make participation in our
-community a harassment-free experience for everyone, regardless of age, body
-size, visible or invisible disability, ethnicity, sex characteristics, gender
-identity and expression, level of experience, education, socio-economic status,
-nationality, personal appearance, race, religion, or sexual identity
-and orientation.
+**📬 Report a conduct concern privately:**
+[r3bo0tbx1@brokenbotnet.com](mailto:r3bo0tbx1@brokenbotnet.com), with the subject
+`[CONDUCT] Tor Guard Relay – <short summary>`.
+For vulnerabilities, follow the separate [security reporting process](SECURITY.md#-reporting-a-vulnerability).
 
-We pledge to act and interact in ways that contribute to an open, welcoming,
-diverse, inclusive, and healthy community.
+## 🌍 Our pledge
 
-## Our Standards
+We welcome participation regardless of background, experience, language, age,
+disability, neurodiversity, ethnicity, caste, race, nationality, religion,
+socio-economic circumstances, gender identity or expression, sex characteristics
+or sexual orientation. Everyone participating in good faith deserves dignity
+and fair treatment. These expectations apply equally to contributors, operators
+and maintainers.
 
-Examples of behavior that contributes to a positive environment for our
-community include:
+## 💬 Working together
 
-* Demonstrating empathy and kindness toward other people
-* Being respectful of differing opinions, viewpoints, and experiences
-* Giving and gracefully accepting constructive feedback
-* Accepting responsibility and apologizing to those affected by our mistakes,
-  and learning from the experience
-* Focusing on what is best not just for us as individuals, but for the
-  overall community
-* Contributors are expected to follow privacy respecting and security conscious practices when discussing configurations, logs, or network details related to Tor or relay operations.
+- ✅ Discuss the code, evidence and operational impact. Explain what needs fixing
+  and why; strong technical criticism and disagreement are welcome.
+- ✅ Respect different experiences and communication styles. Ask for clarification
+  before assuming intent, and respect clearly stated boundaries.
+- ✅ Give useful feedback, acknowledge mistakes and help repair their impact.
+- ✅ Credit the people and sources behind your contributions.
+- ✅ Share only the information needed to diagnose a problem, with sensitive
+  details removed.
 
-Examples of unacceptable behavior include:
+Disagreement, rejecting a contribution, reporting a bug or questioning a
+maintainer's decision does not by itself violate this policy. Good-faith reports
+and requests for reconsideration must not result in retaliation.
 
-* The use of sexualized language or imagery, and sexual attention or
-  advances of any kind
-* Trolling, insulting or derogatory comments, and personal or political attacks
-* Public or private harassment
-* Publishing others' private information, such as a physical or email
-  address, without their explicit permission
-* Other conduct which could reasonably be considered inappropriate in a
-  professional setting
-* Sharing malicious code, harmful configurations, or techniques intended to compromise systems or violate the privacy of others
+## 🛑 Unacceptable behavior
 
+- ❌ Harassment, repeated unwanted contact or ignoring a clear request to stop.
+- ❌ Personal attacks, discriminatory insults, degrading stereotypes or unwanted
+  sexual attention and sexualized content.
+- ❌ Threats, intimidation, encouragement of violence or deliberate endangerment.
+- ❌ Publishing private information without permission, including doxxing or
+  exposing credentials and confidential reports.
+- ❌ Impersonation, deliberate misrepresentation or evading moderation restrictions
+  through another account.
+- ❌ Retaliation against reporters, witnesses or people involved in moderation.
+- ❌ Promotional spam or intentionally distributing code or instructions to abuse
+  someone else's systems, relay identities or privacy.
 
-## Enforcement Responsibilities
+Good-faith security research, defensive analysis and responsibly shared
+reproductions are welcome. Send sensitive vulnerability details through
+[SECURITY.md](SECURITY.md#-reporting-a-vulnerability); do not publish an exploit
+or confidential evidence in a public conduct report.
 
-Community leaders are responsible for clarifying and enforcing our standards of
-acceptable behavior and will take appropriate and fair corrective action in
-response to any behavior that they deem inappropriate, threatening, offensive,
-or harmful.
+## 🛡️ Privacy and Tor operations
 
-Community leaders have the right and responsibility to remove, edit, or reject
-comments, commits, code, wiki edits, issues, and other contributions that are
-not aligned to this Code of Conduct, and will communicate reasons for moderation
-decisions when appropriate.
+Issues, pull requests and diagnostic attachments can be public and remain
+accessible after editing. Before sharing material:
 
-## Scope
+- 🔐 Remove relay private keys, `age` recovery identities, passwords, API tokens,
+  control-port credentials and other secrets. Never attach a plaintext recovery
+  archive or its decryption identity.
+- 🧅 Do not disclose another operator's private bridge address, unpublished bridge
+  line, private deployment details or identifying information without permission.
+- 🧾 Redact logs, configuration and screenshots. Keep enough context to explain
+  the problem without exposing private data; avoid collecting unrelated records.
+- 🌐 Publicly advertised relay addresses and fingerprints may be discussed for
+  legitimate diagnostics. Their public availability does not justify harassment
+  or publishing additional private information about an operator.
 
-This Code of Conduct applies within all community spaces, and also applies when
-an individual is officially representing the community in public spaces.
-Examples of representing our community include using an official e-mail address,
-posting via an official social media account, or acting as an appointed
-representative at an online or offline event.
+If sensitive material is exposed, report it privately so maintainers can address
+the project content. Removing a post does not revoke a credential or guarantee
+that copies disappear; affected operators should follow the
+[security guidance](SECURITY.md).
 
-## Enforcement
+## 📍 Where this policy applies
 
-Instances of abusive, harassing, or otherwise unacceptable behavior may be
-reported to the community leaders responsible for enforcement at
-r3bo0tbx1@brokenbotnet.com.
+This policy covers this project's issues, pull requests, reviews, Discussions,
+documentation and other project-managed community spaces. It also covers
+project-related direct messages and conduct while officially representing the
+project, such as through a project account or an appointed event role.
 
-All complaints will be reviewed and investigated promptly and fairly.
+It does not give maintainers general authority over unrelated personal activity
+or independent communities. Reports involving project spaces are considered in
+their relevant context.
 
-All community leaders are obligated to respect the privacy and security of the
-reporter of any incident.
+## 📬 Reporting a concern
 
-Encrypted communication [0xB3BD6196E1CFBFB4 🔑](https://keys.openpgp.org/vks/v1/by-fingerprint/33727F5377D296C320AF704AB3BD6196E1CFBFB4) is available upon request for sensitive or high impact reports.
+Email [r3bo0tbx1@brokenbotnet.com](mailto:r3bo0tbx1@brokenbotnet.com) privately using
+the subject `[CONDUCT] Tor Guard Relay – <short summary>`. You may report conduct
+you experienced or witnessed, even if you are unsure whether it violates this
+policy.
 
-## Enforcement Guidelines
+Include what you can safely provide:
 
-Community leaders will follow these Community Impact Guidelines in determining
-the consequences for any action they deem in violation of this Code of Conduct:
+1. What happened and which project space was involved.
+2. Relevant links, approximate dates or timestamps, and minimal redacted evidence.
+3. Any ongoing concern, such as unwanted contact or exposed private information.
+4. How you would prefer to be contacted and any confidentiality concerns.
 
-### 1. Correction
+Do not open a public issue naming the people involved or attach secrets to a
+report. Optional OpenPGP encryption is available using the
+[published public key 🔑](https://brokenbotnet.com/0xB3BD6196E1CFBFB4.asc).
+Its full fingerprint is `3372 7F53 77D2 96C3 20AF 704A B3BD 6196 E1CF BFB4`.
+If you cannot use encryption, begin with a minimal description and ask how to
+share sensitive evidence safely.
 
-**Community Impact**: Use of inappropriate language or other behavior deemed
-unprofessional or unwelcome in the community.
+Maintainers will make reasonable efforts to acknowledge and assess reports
+promptly, taking account of urgency and available capacity. This policy does
+not promise a fixed response time or continuous availability.
 
-**Consequence**: A private, written warning from community leaders, providing
-clarity around the nature of the violation and an explanation of why the
-behavior was inappropriate. A public apology may be requested.
+## ⚖️ Review and enforcement
 
-### 2. Warning
+Maintainers assess the available evidence, context, impact and any repeated
+behavior. Where appropriate and safe, they seek clarification from the people
+involved before deciding. They may remove or edit harmful project content and
+restrict access to project-managed spaces.
 
-**Community Impact**: A violation through a single incident or series
-of actions.
+Reports and evidence are shared only as needed for assessment, safety and
+enforcement. Absolute confidentiality cannot be guaranteed. Maintainers should
+explain necessary sharing where possible and avoid identifying reporters in
+public summaries. Ordinary disagreements and good-faith reports do not warrant
+punishment.
 
-**Consequence**: A warning with consequences for continued behavior. No
-interaction with the people involved, including unsolicited interaction with
-those enforcing the Code of Conduct, for a specified period of time. This
-includes avoiding interactions in community spaces as well as external channels
-like social media. Violating these terms may lead to a temporary or
-permanent ban.
+| Response | When it may be appropriate | What it means |
+| --- | --- | --- |
+| 📝 Written warning | An initial violation that can be addressed through correction | A private explanation of the concern, expected behavior and possible next steps. |
+| ⏸️ Limited participation | Repeated behavior or an incident requiring a cooldown | Specified restrictions on channels or contact, with a stated duration and conditions. |
+| 🚧 Temporary suspension | Serious harm or continued violations | Temporary removal from project spaces, with conditions for return. |
+| ⛔ Permanent ban | Severe harm or persistent violations making safe participation impractical | Removal from project-managed community spaces. |
 
-### 3. Temporary Ban
+These responses are guidelines, not a required sequence. Serious threats,
+doxxing or other immediate risks can justify removal or suspension without a
+prior warning. Decisions should be proportionate and include reasons and any
+conditions for return when safe to communicate. Repair may include acknowledging
+harm, correcting a contribution or a private apology; public apologies are not
+an automatic requirement.
 
-**Community Impact**: A serious violation of community standards, including
-sustained inappropriate behavior.
+### 🔎 Conflicts of interest and reconsideration
 
-**Consequence**: A temporary ban from any sort of interaction or public
-communication with the community for a specified period of time. No public or
-private interaction with the people involved, including unsolicited interaction
-with those enforcing the Code of Conduct, is allowed during this period.
-Violating these terms may lead to a permanent ban.
+Anyone directly involved in an incident should disclose that involvement and,
+where another uninvolved maintainer is available, leave the decision to them.
+This is a small, maintainer-led project; an independent review panel is not
+guaranteed. If no uninvolved reviewer is available, that limitation should be
+made clear to the reporter.
 
-### 4. Permanent Ban
+A person affected by a moderation decision may request reconsideration through
+the same private reporting address, explaining a factual error, relevant context
+or new evidence. A restriction on community participation does not prevent that
+private request. Restrictions remain in effect unless changed; repeated unwanted
+contact, public harassment and ban evasion are not reconsideration requests.
 
-**Community Impact**: Demonstrating a pattern of violation of community
-standards, including sustained inappropriate behavior,  harassment of an
-individual, or aggression toward or disparagement of classes of individuals.
+## 📚 Attribution
 
-**Consequence**: A permanent ban from any sort of public interaction within
-the community.
+This policy is adapted from [Contributor Covenant 3.0](https://www.contributor-covenant.org/version/3/0/code_of_conduct/),
+with Tor-specific privacy guidance, project reporting instructions and a
+maintainer-led enforcement and reconsideration process.
 
-## Attribution
+Contributor Covenant is stewarded by the Organization for Ethical Source. This
+adapted policy is licensed under [Creative Commons Attribution-ShareAlike 4.0 International](https://creativecommons.org/licenses/by-sa/4.0/).
+This applies to this policy document; other project files retain their existing
+licenses. The enforcement guidance also draws on
+[Mozilla's enforcement ladder](https://github.com/mozilla/diversity).
 
-This Code of Conduct is adapted from the [Contributor Covenant][homepage],
-version 2.0, available at
-https://www.contributor-covenant.org/version/2/0/code_of_conduct.html.
-
-Community Impact Guidelines were inspired by [Mozilla's code of conduct
-enforcement ladder](https://github.com/mozilla/diversity).
-
-[homepage]: https://www.contributor-covenant.org
-
-For answers to common questions about this code of conduct, see the FAQ at
-https://www.contributor-covenant.org/faq. Translations are available at
-https://www.contributor-covenant.org/translations.
+See the [Contributor Covenant FAQ](https://www.contributor-covenant.org/faq/)
+and [upstream translations](https://www.contributor-covenant.org/translations/)
+for background. Those translations describe the upstream covenant; the
+project-specific reporting and operational guidance above applies here.
