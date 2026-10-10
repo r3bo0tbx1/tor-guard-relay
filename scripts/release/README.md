@@ -77,15 +77,17 @@ The cleanup helper defaults to planning. With `--apply`, it checks the retained 
 
 ### 🧹 Retired container versions
 
-The **🗑️🧹** workflow keeps `inventory` as its read-only default. `prune-old-plan` previews retirement of **2.0.0 and 2.1.0**; `prune-old-apply` applies that scoped plan. Both require a completed publication, its later successful full **🔒🧅** audit and matching retained publication evidence. Active release runs block retirement. Publication and cleanup share a registry mutation lock.
+For superseded rebuilds of the **same version**, see [🛡️ Registry storage and image protection](../../docs/REGISTRY-RETENTION.md). `rebuild-plan` uses publication evidence instead of a hardcoded release version. `rebuild-apply` requires a fresh complete deployment review and the exact preview SHA256. Weekly maintenance runs preview only; a daily eligibility gate enables automatic cleanup at most every 14 days after the published notice window. Both automatic and manual apply require the notice contract and fresh protection. Exact legacy Hub graphs are recorded in `build/retired-image-builds.json`; unknown content remains protected.
 
-The retirement helper plans both registries before changing either. Docker Hub removes retired tags. GHCR also deletes verified retired package versions, including older untagged indexes and their architecture/attestation children. It protects the complete graph of current aliases, other retained tags, all v2.2.0 package versions and unknown images. Shared manifests are preserved; an old tag sharing a retained image is removed by tag only. It rechecks target IDs/digests/tags and current aliases during removal, then verifies retained manifests/configs and GitHub release records/assets afterward. Failures retain the completed deletion evidence.
+The **🗑️🧹** workflow keeps `inventory` as its read-only default. `prune-old-plan` retains its historical read-only view of **2.0.0 and 2.1.0**. The former `prune-old-apply` operation is retired; actual deletion uses the unified notice-gated `rebuild-apply` or `automatic-run` path. They require a completed publication, its later successful full **🔒🧅** audit and matching retained publication evidence. Active release runs block retirement. Publication and cleanup share a registry mutation lock.
+
+The unified retention helper plans both registries before changing either. Docker Hub removes only unreferenced, recorded rebuild manifests and exact reviewed legacy graphs. GHCR removes eligible untagged package versions. Current aliases, complete architecture graphs, two recent builds, original-release images, deployment/rollback pins and unknown images are preserved. It rechecks identities during removal and verifies retained manifests/configs/layers and GitHub release records/assets afterward. Durable deployment records block blind retries after partial failures or lost runners.
 
 GitHub releases **v2.0.0, v2.1.0 and v2.2.0**, their notes, source tags and downloadable SBOM/security assets remain available. Retired container tags no longer pull; the release assets are metadata/evidence rather than saved container images. Retained v2.2.0 digests provide rollback builds. Do not bulk-delete untagged versions or the container package itself.
 
 ```sh
 gh workflow run cleanup.yml --repo r3bo0tbx1/tor-guard-relay --ref main -f operation=prune-old-plan
-gh workflow run cleanup.yml --repo r3bo0tbx1/tor-guard-relay --ref main -f operation=prune-old-apply
+gh workflow run cleanup.yml --repo r3bo0tbx1/tor-guard-relay --ref main -f operation=automatic-run
 ```
 
 ### 📦 Dependency update boundaries

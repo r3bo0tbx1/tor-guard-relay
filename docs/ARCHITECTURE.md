@@ -904,6 +904,7 @@ flowchart LR
 - Release jobs check out trusted main, validate both full commit SHAs against reviewed main ancestry, then materialize separate immutable source and policy worktrees. Publication credentials exist only in promotion; checkout credentials are not retained.
 - Registry inventory defaults to read-only retention review. Explicit v2.2.0 tag cleanup verifies and preserves released/rollback manifest graphs; referenced untagged architecture versions remain.
 - Explicit retired-version cleanup requires successful publication/audit evidence, protects current and retained v2.2.0 manifest graphs, verifies GitHub release assets remain unchanged, and shares a mutation lock with publication.
+- [Rebuild retention](REGISTRY-RETENTION.md) derives versions from publication evidence and protects current tags, two recent builds, original-release configs, reviewed deployed images and shared children. Weekly runs preview only. A separate daily gate permits automatic cleanup at most every 14 days after the verified public notice window, with fresh fleet coverage, durable cleanup history and an unchanged plan SHA256. Exact reviewed legacy Hub graphs are eligible; unknown manifests are never guessed from repository size.
 
 **Code Location:** `.github/workflows/release.yml`, `build/lyrebird/`, `scripts/testing/`.
 

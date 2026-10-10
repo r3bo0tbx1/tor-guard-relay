@@ -357,7 +357,7 @@ docker exec tor-relay health | jq .
 - ✅ **Weekly security rebuilds** via GitHub Actions
 - ✅ **Docker Compose templates** for single/multi-relay
 - ✅ **Cosmos Cloud support** with one-click deploy
-- ✅ **Registry Maintenance:** Read-only retention review preserves rollback images; explicit tag cleanup preserves released architecture manifests
+- ✅ **Registry Maintenance:** [Evidence-backed retention](docs/REGISTRY-RETENTION.md) preserves current, original-release, rollback and deployed images; automatic cleanup waits 14 days after the published notice and runs at most every 14 days with fresh protection
 
 ### Developer Experience
 - ✅ Comprehensive documentation (8 guides)

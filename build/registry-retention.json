@@ -1,0 +1,20 @@
+{
+  "keep_builds": 2,
+  "grace_days": 14,
+  "deployment_review_complete": true,
+  "deployment_reviewed_at": "2026-10-10T09:03:03Z",
+  "protected_digests": [
+    "sha256:845fd1722a9a3314206680fb476f003e459126420743157eafe56cc74a83f728",
+    "sha256:32f0e13350a6bd693d9ac9b3c5e425c83da1f46fceec8a71bf8d502b153f35cd",
+    "sha256:2d1ae5d615b9075d8588b0db711c44401fcf498161e63552b1ca6c8553650328"
+  ],
+  "protected_image_ids": [
+    "sha256:845fd1722a9a3314206680fb476f003e459126420743157eafe56cc74a83f728"
+  ],
+  "automatic": {
+    "enabled": true,
+    "migration_days": 14,
+    "interval_days": 14,
+    "acknowledged_failed_deployments": []
+  }
+}

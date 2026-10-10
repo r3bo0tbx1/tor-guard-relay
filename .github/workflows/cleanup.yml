@@ -3,15 +3,231 @@ on:
   workflow_dispatch:
     inputs:
       operation:
-        description: 'Inventory, tidy publishing tags, or preview/apply removal of retired 2.0.0 and 2.1.0 images'
+        description: 'Inventory, scoped legacy cleanup, or evidence-backed rebuild retention'
         type: choice
         default: inventory
-        options: [inventory, tidy-v2.2.0, prune-old-plan, prune-old-apply]
+        options: [inventory, tidy-v2.2.0, prune-old-plan, rebuild-plan, rebuild-apply, automatic-run]
+      plan_sha256:
+        description: 'For rebuild-apply only: SHA256 from the reviewed rebuild-plan artifact'
+        type: string
+        default: ''
+  schedule:
+    - cron: '43 5 * * 1'
+    - cron: '17 6 * * *'
 permissions:
   contents: read
   packages: read
   actions: read
 jobs:
+  automatic-gate:
+    name: ⏳ Check the published notice and cleanup interval
+    if: github.event.schedule == '17 6 * * *' || inputs.operation == 'automatic-run'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: read
+      deployments: read
+    outputs:
+      due: ${{ steps.gate.outputs.due }}
+    steps:
+      - name: 📥 Check out trusted retention policy
+        uses: actions/checkout@v7.0.1
+        with:
+          ref: main
+          persist-credentials: false
+      - name: ⏳ Verify notice publication, interval and deployment protection
+        id: gate
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
+          REGISTRY_RETIREMENT_NOTICE_URL: ${{ vars.REGISTRY_RETIREMENT_NOTICE_URL }}
+        run: |
+          python3 scripts/release/automatic-retention.py --repository "$REPOSITORY" \
+            --policy build/registry-retention.json --legacy build/retired-image-builds.json --output automatic-gate.json
+      - name: 📎 Retain the eligibility result
+        if: always()
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: automatic-retention-gate
+          path: automatic-gate.json
+          retention-days: 90
+  automatic-apply:
+    name: 🧹 Automatic retirement after the notice window
+    needs: automatic-gate
+    if: needs.automatic-gate.outputs.due == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    permissions:
+      contents: read
+      actions: read
+      issues: read
+      packages: write
+      deployments: write
+    concurrency:
+      group: registry-publishing
+      cancel-in-progress: false
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      REPOSITORY: ${{ github.repository }}
+      OWNER: ${{ github.repository_owner }}
+      REGISTRY_RETIREMENT_NOTICE_URL: ${{ vars.REGISTRY_RETIREMENT_NOTICE_URL }}
+    steps:
+      - name: 📥 Check out current protection under the publication lock
+        uses: actions/checkout@v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+      - name: ⏳ Recheck eligibility after acquiring the lock
+        id: gate
+        run: |
+          python3 scripts/release/automatic-retention.py --repository "$REPOSITORY" \
+            --policy build/registry-retention.json --legacy build/retired-image-builds.json --output automatic-gate.json
+      - name: 🧰 Install verified registry client
+        if: steps.gate.outputs.due == 'true'
+        run: python3 scripts/release/install-regctl.py
+      - name: 🔑 Authenticate Docker Hub
+        if: steps.gate.outputs.due == 'true'
+        uses: docker/login-action@v4.6.0
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: 🔑 Authenticate GHCR
+        if: steps.gate.outputs.due == 'true'
+        uses: docker/login-action@v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: 🛡️ Require successful publication and its full security audit
+        if: steps.gate.outputs.due == 'true'
+        run: python3 scripts/release/check-retention-ready.py --repository "$REPOSITORY" --output retention-readiness.json
+      - name: 📚 Collect reviewed publication and original-release identities
+        if: steps.gate.outputs.due == 'true'
+        run: |
+          python3 scripts/release/collect-retention-builds.py --repository "$REPOSITORY" \
+            --readiness retention-readiness.json --current retention-publication/published-manifests.json --output retention-builds.json
+      - name: 🔎 Generate the fresh protected deletion plan
+        if: steps.gate.outputs.due == 'true'
+        id: preview
+        run: |
+          python3 scripts/release/prune-rebuilds.py --owner "$OWNER" --catalog retention-builds.json \
+            --policy build/registry-retention.json --legacy build/retired-image-builds.json --output automatic-retention-preview.json
+          python3 -c 'import json,os; p=json.load(open("automatic-retention-preview.json")); open(os.environ["GITHUB_OUTPUT"], "a").write("sha256=" + p["plan_sha256"] + "\n")'
+      - name: 📎 Save the exact intent before any registry deletion
+        if: steps.gate.outputs.due == 'true'
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: automatic-retention-intent
+          path: |
+            automatic-gate.json
+            automatic-retention-preview.json
+          retention-days: 90
+      - name: 🧹 Apply automatic retirement
+        if: steps.gate.outputs.due == 'true'
+        env:
+          PLAN_SHA256: ${{ steps.preview.outputs.sha256 }}
+        run: |
+          python3 scripts/release/prune-rebuilds.py --owner "$OWNER" --catalog retention-builds.json \
+            --policy build/registry-retention.json --legacy build/retired-image-builds.json \
+            --output automatic-retention-result.json --apply --automatic --confirm-plan "$PLAN_SHA256"
+      - name: 📎 Retain the result and preservation evidence
+        if: always()
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: automatic-retention-result
+          path: |
+            automatic-gate.json
+            automatic-retention-preview.json
+            automatic-retention-result.json
+            retention-readiness.json
+            retention-builds.json
+            retention-publication/published-manifests.json
+          retention-days: 90
+  rebuild-retention:
+    name: 🛡️ Preserve deployed images and review old rebuilds
+    if: github.event.schedule == '43 5 * * 1' || inputs.operation == 'rebuild-plan'
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    permissions:
+      contents: read
+      actions: read
+      packages: read
+    concurrency:
+      group: registry-publishing
+      cancel-in-progress: false
+    steps: &rebuild_retention_steps
+      - name: 📥 Check out reviewed retention policy
+        uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ inputs.operation == 'rebuild-apply' && 'main' || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: 🧰 Install verified registry client
+        run: python3 scripts/release/install-regctl.py
+      - name: 🔑 Authenticate Docker Hub
+        uses: docker/login-action@v4.6.0
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: 🔑 Authenticate GHCR
+        uses: docker/login-action@v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: 🛡️ Require completed publication and its successful full audit
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
+        run: python3 scripts/release/check-retention-ready.py --repository "$REPOSITORY" --output retention-readiness.json
+      - name: 📚 Collect reviewed build and original-release identities
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          python3 scripts/release/collect-retention-builds.py --repository "$REPOSITORY" \
+            --readiness retention-readiness.json --current retention-publication/published-manifests.json \
+            --output retention-builds.json
+      - name: 🧹 Preview rebuild retention or apply an unchanged reviewed plan
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OWNER: ${{ github.repository_owner }}
+          OPERATION: ${{ inputs.operation }}
+          PLAN_SHA256: ${{ inputs.plan_sha256 }}
+          REGISTRY_RETIREMENT_NOTICE_URL: ${{ vars.REGISTRY_RETIREMENT_NOTICE_URL }}
+        run: |
+          set -euo pipefail
+          args=()
+          if [ "$OPERATION" = rebuild-apply ]; then args+=(--apply --confirm-plan "$PLAN_SHA256"); fi
+          python3 scripts/release/prune-rebuilds.py --owner "$OWNER" --catalog retention-builds.json \
+            --policy build/registry-retention.json --legacy build/retired-image-builds.json --output rebuild-retention.json "${args[@]}"
+      - name: 📎 Retain protection, preview and deletion evidence
+        if: always()
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: rebuild-retention
+          path: |
+            retention-readiness.json
+            retention-builds.json
+            rebuild-retention.json
+            retention-publication/published-manifests.json
+          retention-days: 90
+  rebuild-apply:
+    name: 🧹 Apply verified rebuild retention
+    if: github.event_name == 'workflow_dispatch' && inputs.operation == 'rebuild-apply'
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    permissions:
+      contents: read
+      actions: read
+      issues: read
+      packages: write
+      deployments: write
+    concurrency:
+      group: registry-publishing
+      cancel-in-progress: false
+    steps: *rebuild_retention_steps
   tidy-release:
     name: 🏷️ Tidy v2.2.0 registry tags
     if: inputs.operation == 'tidy-v2.2.0'
@@ -75,13 +291,13 @@ jobs:
           retention-days: 30
   prune-old:
     name: 🧹 Retire older registry images
-    if: inputs.operation == 'prune-old-plan' || inputs.operation == 'prune-old-apply'
+    if: inputs.operation == 'prune-old-plan'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
       contents: read
       actions: read
-      packages: write
+      packages: read
     concurrency:
       group: registry-publishing
       cancel-in-progress: false
@@ -117,17 +333,10 @@ jobs:
         run: |
           set -euo pipefail
           args=()
-          if [ "$OPERATION" = prune-old-apply ]; then args+=(--apply); fi
           python3 scripts/release/prune-old-images.py --owner "$OWNER" --keep-version 2.2.0 \
             --remove-version 2.0.0 --remove-version 2.1.0 \
             --publication-evidence retention-publication/published-manifests.json \
             --output retention-result.json "${args[@]}"
-      - name: 🧅 Refresh registry overview after retirement
-        if: inputs.operation == 'prune-old-apply'
-        env:
-          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
-        run: python3 scripts/release/sync-dockerhub-overview.py
       - name: 📎 Retain readiness, deletion plan and preservation evidence
         if: always()
         uses: actions/upload-artifact@v7.0.2
@@ -141,6 +350,7 @@ jobs:
           retention-days: 30
   inventory:
     name: 🗂️ Review registry retention
+    if: inputs.operation == 'inventory' || github.event.schedule == '43 5 * * 1'
     runs-on: ubuntu-latest
     steps:
       - name: 🗂️ List registry versions for manual retention review

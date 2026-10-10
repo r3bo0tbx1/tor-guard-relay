@@ -6,6 +6,8 @@ Current source: <!-- RELAY_VERSION -->v2.2.0<!-- /RELAY_VERSION -->. Historical 
 
 ### 🏷️ Publishing fixes
 
+- Add version-independent rebuild retention with two recent builds, a 14-day image grace period, original-release/deployment protection, exact-plan confirmation and real manifest cleanup. Preserve weekly previews and enable a separate daily gate for automatic cleanup at most every 14 days after a verified public notice window. Require fresh fleet coverage, durable cleanup history and exact reviewed legacy graphs; preserve unknown images and GitHub release assets.
+- Resolve both config IDs and containerd manifest/index IDs from deployment inventories; protect both architectures and block unresolved image identities.
 - Add explicit preview/apply retirement of 2.0.0 and 2.1.0 registry images after a successful publication and full audit. Preserve current tags, referenced architecture manifests, retained v2.2.0 builds and every GitHub release asset; serialize retirement with image publication and retain deletion evidence.
 - Restore manual and scheduled rebuilds from the captured immutable `main` commit, including merged dependency and source fixes, without requiring a new release tag. Build and validate both variants and both architectures; retain explicit release-tag rebuilds and the existing registry tag conventions.
 - Restore Docker Hub's stable version/`latest` and simple `edge` tags; retain versioned stable and edge tags on GHCR.
