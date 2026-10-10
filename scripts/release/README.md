@@ -42,10 +42,10 @@ Use the notes generator for a local review draft; the hosted release publishes `
 3. Run offline behavior tests and component security floors against each loaded image.
 4. Analyze Go source reachability with the tagged source/lock/toolchain, proving that the transport matches the candidate byte for byte. Generate SBOMs and run blocking vulnerability/secret scans. Use current main security policy and component floors even when rebuilding an older tag.
 5. Save each validated image, checksum, inspect metadata and scan evidence.
-6. Load those same image archives in promotion, verify image identity, publish unique staging references, and assemble version/alias manifests from their digests.
+6. Verify those same archives and their config identities, import them into a temporary OCI layout, publish architecture manifests by digest, and assemble version/alias manifests from those digests. No public architecture staging tags are created.
 7. Publish curated release notes and attach security evidence only after promotion succeeds.
 
-Schedules rebuild the latest released tag, not unreleased main. A dependency update on main reaches scheduled rebuilds only after a new reviewed release tag contains it. Manual dispatch defaults to validation without publication. The retention workflow produces a read-only registry inventory; it cannot delete rollback images. Review manifests, architecture digests and rollback references before any manual deletion.
+Schedules rebuild the latest released tag, not unreleased main. A dependency update on main reaches scheduled rebuilds only after a new reviewed release tag contains it. Publishing helpers come from the immutable reviewed policy commit. Manual release dispatch defaults to validation without publication. The retention workflow defaults to a read-only registry inventory. Its explicit `tidy-v2.2.0` operation removes only the released source's `validated-…` tags and Docker Hub's extra `2.2.0-edge` tag, preserving every other tagged manifest and its child graph before refreshing the overview from [docs/DOCKERHUB.md](../../docs/DOCKERHUB.md).
 
 The promotion job needs Docker Hub credentials and GitHub package permissions. Cross-registry promotion must be observed in the first maintainer-triggered run; local testing does not establish remote registry behavior.
 
@@ -53,7 +53,18 @@ The promotion job needs Docker Hub credentials and GitHub package permissions. C
 
 The validation workflow preserves the four names required by the main branch ruleset: `🔍 Lint and Validate`, `🏗️ Build Docker Image`, `🧪 Integration Tests` and `🛡️ Security Scan`. The last three aggregate the complete stable/edge and AMD64/ARM64 candidate matrix, including behavioral acceptance and security policy. They run even after a dependency fails and succeed only when source validation and every image job succeed.
 
-Candidate artifacts are replaced on workflow reruns; registry staging tags include both the run ID and attempt so a retry does not reuse an earlier staging tag. Version and alias tags remain mutable for validated scheduled rebuilds.
+Candidate artifacts are replaced on workflow reruns. Architecture images are pushed by digest without staging tags; retained publication evidence records config IDs, architecture digests and index digests. Version and alias tags remain mutable for validated scheduled rebuilds.
+
+### 🏷️ Registry presentation and safe cleanup
+
+| Registry | Stable | Edge |
+| --- | --- | --- |
+| Docker Hub | `VERSION`, `latest` | `edge` |
+| GHCR | `VERSION`, `latest` | `VERSION-edge`, `edge` |
+
+The registry client is version/checksum pinned in `build/registry-tools.json`. Renovate proposes upstream version updates; review the release asset and update its checksum in that PR before merging. A stale checksum fails installation. PR validation rehearses archive import, digest-only publication, multi-platform indexes, tag-only deletion, rollback retention and repeated cleanup against an isolated local registry.
+
+The cleanup helper defaults to planning. With `--apply`, it checks the retained manifest graph before and after each tag removal. It never deletes the original image manifest by digest. If GHCR requires package API deletion, only the unique tag-removal placeholder may be deleted, after validating its marker, digest and sole tag. Referenced untagged architecture versions must remain. The maintenance job needs package admin access for that fallback and Docker Hub tag-deletion/overview permissions; access failures stop the operation and retain the plan.
 
 ### 📦 Dependency update boundaries
 

@@ -25,7 +25,7 @@
 Current source version: <!-- RELAY_VERSION -->v2.2.0<!-- /RELAY_VERSION -->.
 
 > [!IMPORTANT]
-> 🛡️ Tor **0.4.9.14 or newer** is required. This release is locally validated; publication and live-relay verification are separate steps. See the [curated release notes](docs/releases/v2.2.0.md).
+> 🛡️ Tor **0.4.9.14 or newer** is required. **[v2.2.0 is published](https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v2.2.0)** with verified images for both architectures. See the [curated release notes](docs/releases/v2.2.0.md) and verify your own relay after upgrading.
 
 | Improvement | Operator benefit | Guide |
 | --- | --- | --- |
@@ -36,7 +36,7 @@ Current source version: <!-- RELAY_VERSION -->v2.2.0<!-- /RELAY_VERSION -->.
 | 🏗️ Build-once release gates | Validate all four candidates before promoting their exact images | [Release process](scripts/release/README.md) |
 | 🛡️ Independent security updates | Reviewed Lyrebird pins, direct/indirect Go fixes and six-hour read-only scans | [Security policy](SECURITY.md) |
 
-**Stable runtime:** Alpine 3.24.2 pinned by digest. **Builder:** Go 1.27.2. The independent lock includes Pion STUN 3.1.7 and `klauspost/compress` 1.18.7. Both variants enforce the Tor floor.
+**Stable runtime:** Alpine 3.24.2 pinned by digest. **Builder:** Go 1.27.2. The independent lock includes Pion STUN 3.1.7 and `klauspost/compress` 1.20.1. Both variants enforce the Tor floor.
 
 Generated torrc is regenerated from ENV on restart. Persist operator changes in deployment ENV or mount a torrc. Verify an encrypted backup and compare fingerprints before a real upgrade; never activate two copies of one relay identity.
 
@@ -172,6 +172,13 @@ docker logs -f tor-relay
 ## 🎯 Choosing a Variant
 
 We offer **two build variants** to match your risk tolerance and requirements:
+
+| Registry | Stable tags | Edge tags |
+| --- | --- | --- |
+| 🐳 Docker Hub | `latest`, `2.2.0` | `edge` |
+| 📦 GHCR | `latest`, `2.2.0` | `edge`, `2.2.0-edge` |
+
+Each current tag supports AMD64 and ARM64. Older version tags remain available for rollback. Validated package rebuilds can refresh version tags; use a digest to select an exact build. Publishing intermediates are addressed by digest and do not need public tags. The branded [Docker Hub overview](docs/DOCKERHUB.md) is maintained separately from this full guide.
 
 ### Stable Variant (Recommended)
 
@@ -348,7 +355,7 @@ docker exec tor-relay health | jq .
 - ✅ **Weekly security rebuilds** via GitHub Actions
 - ✅ **Docker Compose templates** for single/multi-relay
 - ✅ **Cosmos Cloud support** with one-click deploy
-- ✅ **Automated Maintenance:** Keeps 14 recent GHCR package versions and 14 recent Docker Hub versioned tags
+- ✅ **Registry Maintenance:** Read-only retention review preserves rollback images; explicit tag cleanup preserves released architecture manifests
 
 ### Developer Experience
 - ✅ Comprehensive documentation (8 guides)
@@ -759,7 +766,7 @@ All images auto-published to Docker Hub and GitHub Container Registry
 
 **Current Version:** v2.1.0<br>
 **Image Size:** variant-dependent image size<br>
-**Registry Cleanup:** 14 recent GHCR package versions • 14 recent Docker Hub versioned tags<br>
+**Registry Cleanup:** Retention review • Explicit tag-only maintenance • Rollback manifests preserved<br>
 **Registries:** Docker Hub • GHCR
 
 </div>

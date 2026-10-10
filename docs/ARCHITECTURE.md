@@ -874,7 +874,7 @@ flowchart LR
         Evidence["📦 Image archive, ID, checksum and SBOM"]
     end
     subgraph Promotion["🚀 Publication after all gates"]
-        Load["📥 Load verified candidate archives"]
+        Load["📥 Verify archives and import OCI layout"]
         Push["🐳 Push candidate digests to both registries"]
         Manifest["🏷️ Assemble version and alias manifests"]
         Notes["📝 Curated notes and full evidence"]
@@ -898,10 +898,10 @@ flowchart LR
 
 - Tags select their exact reviewed source commit; schedules select the latest stable release tag.
 - Security policy and scanner come from current reviewed main, separately from tagged source/lock/toolchain.
-- Every candidate must pass before any promotion. Promotion loads those same images and verifies IDs/checksums; it never rebuilds.
+- Every candidate must pass before any promotion. Promotion imports those same archives into a temporary OCI layout, verifies config IDs/checksums and publishes by digest; it never rebuilds or creates public staging tags.
 - A source or Go-lock change requires a new reviewed release tag before schedules can ship it.
 - Release jobs check out trusted main, validate both full commit SHAs against reviewed main ancestry, then materialize separate immutable source and policy worktrees. Publication credentials exist only in promotion; checkout credentials are not retained.
-- Registry inventory is read-only and preserves rollback references for manual retention review.
+- Registry inventory defaults to read-only retention review. Explicit v2.2.0 tag cleanup verifies and preserves released/rollback manifest graphs; referenced untagged architecture versions remain.
 
 **Code Location:** `.github/workflows/release.yml`, `build/lyrebird/`, `scripts/testing/`.
 

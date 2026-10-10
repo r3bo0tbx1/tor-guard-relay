@@ -37,6 +37,13 @@
       "matchStrings": ["\"renovate\":\\s*\"(?<currentValue>[0-9]+\\.[0-9]+\\.[0-9]+)\""],
       "depNameTemplate": "renovate",
       "datasourceTemplate": "npm"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["/^build/registry-tools\\.json$/"],
+      "matchStrings": ["\"regctl\":\\s*\"(?<currentValue>v[0-9]+\\.[0-9]+\\.[0-9]+)\""],
+      "depNameTemplate": "regclient/regclient",
+      "datasourceTemplate": "github-releases"
     }
   ],
   "packageRules": [
@@ -65,6 +72,11 @@
       "schedule": ["at any time"],
       "automerge": false,
       "prPriority": 5
+    },
+    {
+      "matchPackageNames": ["regclient/regclient"],
+      "prBodyNotes": ["Review the regctl release and update linux-amd64-sha256 from its verified release asset before merging. A stale checksum deliberately blocks installation and the registry rehearsal."],
+      "automerge": false
     },
     {
       "matchManagers": ["gomod"],

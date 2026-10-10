@@ -4,6 +4,12 @@ Current source: <!-- RELAY_VERSION -->v2.2.0<!-- /RELAY_VERSION -->. Historical 
 
 ## [Unreleased]
 
+### 🏷️ Publishing fixes
+
+- Restore Docker Hub's stable version/`latest` and simple `edge` tags; retain versioned stable and edge tags on GHCR.
+- Promote verified image archives by digest without leaving visible architecture staging tags; verify imported config identities and final architecture manifests.
+- Add an explicit v2.2.0 tag-only maintenance operation, preserve referenced release/rollback manifests and refresh the branded Docker Hub overview. Rehearse promotion and cleanup on a local registry in CI.
+
 ## [v2.2.0] - 2026-10-10
 
 ### 🛡️ Security

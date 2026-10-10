@@ -1,11 +1,78 @@
 name: 🗑️🧹
 on:
   workflow_dispatch:
+    inputs:
+      operation:
+        description: 'Read-only inventory, or remove the v2.2.0 publishing clutter and refresh its overview'
+        type: choice
+        default: inventory
+        options: [inventory, tidy-v2.2.0]
 permissions:
   contents: read
   packages: read
   actions: read
 jobs:
+  tidy-release:
+    name: 🏷️ Tidy v2.2.0 registry tags
+    if: inputs.operation == 'tidy-v2.2.0'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    concurrency:
+      group: registry-tidy-v2.2.0
+      cancel-in-progress: false
+    steps:
+      - name: 📥 Check out maintenance source
+        uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - name: 🧰 Install verified registry client
+        run: python3 scripts/release/install-regctl.py
+      - name: 🔑 Authenticate Docker Hub
+        uses: docker/login-action@v4.6.0
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: 🔑 Authenticate GHCR
+        uses: docker/login-action@v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: 🛡️ Plan tag-only cleanup before changing either registry
+        env:
+          SOURCE: 4a87b4308bfa5b61922f1b506594819379f77922
+          OWNER: ${{ github.repository_owner }}
+        run: |
+          python3 scripts/release/tidy-release-tags.py --registry r3bo0tbx1/onion-relay \
+            --version 2.2.0 --source "$SOURCE" --output dockerhub-cleanup-plan.json
+          python3 scripts/release/tidy-release-tags.py --registry "ghcr.io/$OWNER/onion-relay" \
+            --version 2.2.0 --source "$SOURCE" --output ghcr-cleanup-plan.json
+      - name: 🧹 Remove unwanted tags and verify retained release manifests
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SOURCE: 4a87b4308bfa5b61922f1b506594819379f77922
+          OWNER: ${{ github.repository_owner }}
+        run: |
+          python3 scripts/release/tidy-release-tags.py --registry r3bo0tbx1/onion-relay \
+            --version 2.2.0 --source "$SOURCE" --output dockerhub-cleanup-result.json --apply
+          python3 scripts/release/tidy-release-tags.py --registry "ghcr.io/$OWNER/onion-relay" \
+            --version 2.2.0 --source "$SOURCE" --output ghcr-cleanup-result.json --apply
+      - name: 🧅 Refresh branded Docker Hub overview
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: python3 scripts/release/sync-dockerhub-overview.py
+      - name: 📎 Retain cleanup plans and verification evidence
+        if: always()
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: registry-tag-cleanup
+          path: |
+            *-cleanup-*.json
+            dockerhub-overview-before.json
+          retention-days: 30
   inventory:
     name: 🗂️ Review registry retention
     runs-on: ubuntu-latest
