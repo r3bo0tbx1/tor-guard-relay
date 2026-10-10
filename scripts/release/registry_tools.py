@@ -5,9 +5,14 @@ import os
 from pathlib import Path
 import re
 import subprocess as sp
+from urllib.parse import urlsplit
 
 ARCHES = ('amd64', 'arm64')
 VARIANTS = ('stable', 'edge')
+
+
+def is_ghcr(registry):
+    return urlsplit('https://' + registry).netloc == 'ghcr.io'
 
 
 class Client:
@@ -34,7 +39,7 @@ def public_tags(registry, version, variant):
         raise ValueError('Expected a release version and supported variant')
     if variant == 'stable':
         return [version, 'latest']
-    return [version + '-edge', 'edge'] if registry.startswith('ghcr.io/') else ['edge']
+    return [version + '-edge', 'edge'] if is_ghcr(registry) else ['edge']
 
 
 def architecture_digests(manifest):

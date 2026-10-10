@@ -8,7 +8,7 @@ from unittest.mock import Mock, patch
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'scripts/release'))
-from registry_tools import architecture_digests, prepare_archive, promote, public_tags
+from registry_tools import architecture_digests, is_ghcr, prepare_archive, promote, public_tags
 
 spec = importlib.util.spec_from_file_location('registry_tidy', ROOT / 'scripts/release/tidy-release-tags.py')
 tidy = importlib.util.module_from_spec(spec)
@@ -16,6 +16,12 @@ spec.loader.exec_module(tidy)
 
 
 class PublicationTests(unittest.TestCase):
+    def test_registry_host_must_match_exactly(self):
+        self.assertTrue(is_ghcr('ghcr.io/owner/onion-relay'))
+        for registry in ('ghcr.io.example/owner/onion-relay', 'example/ghcr.io/onion-relay',
+                         'ghcr.io@example/owner/onion-relay', 'ghcr.io:443/owner/onion-relay'):
+            self.assertFalse(is_ghcr(registry))
+
     def test_registry_specific_tags(self):
         self.assertEqual(public_tags('r3bo0tbx1/onion-relay', '2.2.0', 'stable'), ['2.2.0', 'latest'])
         self.assertEqual(public_tags('r3bo0tbx1/onion-relay', '2.2.0', 'edge'), ['edge'])

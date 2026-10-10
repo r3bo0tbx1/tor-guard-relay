@@ -6,7 +6,7 @@ from pathlib import Path
 import re
 import subprocess as sp
 
-from registry_tools import Client, architecture_digests, public_tags
+from registry_tools import Client, architecture_digests, is_ghcr, public_tags
 
 
 def snapshot(client, registry, tags):
@@ -63,7 +63,7 @@ def tidy(client, registry, version, source, apply, output):
     tags = client.run('tag', 'ls', registry).splitlines()
     pattern = re.compile(r'validated-' + source[:12] + r'-\d+-\d+-(stable|edge)-(amd64|arm64)')
     targets = [tag for tag in tags if pattern.fullmatch(tag)]
-    if not registry.startswith('ghcr.io/') and version + '-edge' in tags:
+    if not is_ghcr(registry) and version + '-edge' in tags:
         targets.append(version + '-edge')
     protected = [tag for tag in tags if tag not in targets]
     before = snapshot(client, registry, protected)
@@ -101,7 +101,7 @@ def tidy(client, registry, version, source, apply, output):
         try:
             client.run('tag', 'delete', registry + ':' + tag)
         except sp.CalledProcessError:
-            if not registry.startswith('ghcr.io/'):
+            if not is_ghcr(registry):
                 raise
             delete_dummy_version(client, registry, tag, original)
         verify_snapshot(client, registry, before)
