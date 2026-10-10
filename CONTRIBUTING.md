@@ -350,7 +350,10 @@ Contributors will be:
 
 ## 📜 License
 
-By contributing, you agree that your contributions will be licensed under the MIT License.
+By contributing, you agree that your contributions will be licensed under the
+project's MIT License, except contributions to the adapted
+[Code of Conduct](CODE_OF_CONDUCT.md#-attribution), which uses Creative Commons
+Attribution-ShareAlike 4.0 International as stated in its attribution section.
 
 ---
 
