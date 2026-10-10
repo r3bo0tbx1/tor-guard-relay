@@ -10,6 +10,7 @@ Examples in this checkout describe v2.2.0. Published availability is stated in t
 | Diagnose | [Tools](TOOLS.md), [FAQ](FAQ.md) | Current evidence and a next action |
 | Monitor | [Monitoring](MONITORING.md) | JSON and host textfile metrics |
 | Preserve identity | [Backup](BACKUP.md) | Encrypted archive, verification and offline restore |
+| Preserve required image pulls | [Registry retention](REGISTRY-RETENTION.md) | Preview and notice-gated automatic cleanup; protect both architecture graphs |
 | Migrate | [Migration](MIGRATION.md) | Config, family and transport continuity |
 | Configure Nyx | [Control Port](CONTROL-PORT.md) | Authenticated local access |
 | Tune | [Performance](PERFORMANCE.md) | Explicit limits and measured behavior |

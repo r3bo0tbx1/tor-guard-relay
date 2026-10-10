@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Exercise archive identity, digest promotion and tag-only cleanup locally."""
 import argparse
+from datetime import datetime, timedelta, timezone
 import hashlib
 import importlib.util
 import io
@@ -24,10 +25,13 @@ spec.loader.exec_module(tidy)
 spec = importlib.util.spec_from_file_location('prune', ROOT / 'scripts/release/prune-old-images.py')
 prune = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(prune)
+spec = importlib.util.spec_from_file_location('rebuild', ROOT / 'scripts/release/prune-rebuilds.py')
+rebuild = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(rebuild)
 SOURCE = '1' * 40
 
 
-def fixture(directory, variant, arch, version='2.2.0'):
+def fixture(directory, variant, arch, version='2.2.0', build=None):
     directory.mkdir()
     layer = io.BytesIO()
     with tarfile.open(fileobj=layer, mode='w') as archive:
@@ -37,6 +41,8 @@ def fixture(directory, variant, arch, version='2.2.0'):
         archive.addfile(item, io.BytesIO(content))
     labels = {'org.opencontainers.image.version': version + ('-edge' if variant == 'edge' else ''),
               'org.opencontainers.image.revision': SOURCE}
+    if build is not None:
+        labels['org.opencontainers.image.created'] = build
     config = json.dumps({'architecture': arch, 'os': 'linux', 'config': {'Labels': labels},
                          'rootfs': {'type': 'layers', 'diff_ids': ['sha256:' + hashlib.sha256(layer.getvalue()).hexdigest()]}}).encode()
     config_id = hashlib.sha256(config).hexdigest()
@@ -151,9 +157,41 @@ def main():
             assert set(client.run('tag', 'ls', registry).splitlines()) == {'2.2.0', 'latest', 'edge'}
             repeated = prune.plan_registry(client, registry, '2.2.0', ['2.1.0'], packages)
             assert not repeated['package_targets'] and not repeated['tag_targets']
+            # Rebuilds share a VERSION label, but have distinct config/manifests.
+            # Publish stale/previous builds only in this loopback fixture registry.
+            now = datetime.now(timezone.utc)
+            history = []
+            for build, days in (('stale', 30), ('previous', 5)):
+                candidates = []
+                for variant in VARIANTS:
+                    for arch in ARCHES:
+                        directory = work / f'{build}-{variant}-{arch}'
+                        fixture(directory, variant, arch, build=build)
+                        candidates.append(prepare_archive(client, directory, variant, arch, '2.2.0', SOURCE))
+                historical = promote(client, candidates, [registry + '-' + build], '2.2.0', work / (build + '.json'))
+                for row in historical:
+                    client.run('image', 'copy', row['registry'] + '@' + row['index_digest'], registry + '@' + row['index_digest'])
+                    row['registry'] = registry
+                history.append({'run_id': days, 'published_at': (now - timedelta(days=days)).isoformat(), 'rows': historical})
+            history.append({'run_id': 1, 'published_at': now.isoformat(), 'rows': rows})
+            catalog = {'current': rows, 'publications': history, 'publication_run': 1,
+                       'original_image_ids': [identity for row in rows for identity in row['image_ids'].values()]}
+            policy = {'keep_builds': 2, 'grace_days': 7, 'deployment_review_complete': False,
+                      'deployment_reviewed_at': None, 'protected_digests': [], 'protected_image_ids': []}
+            plan = rebuild.plan_registry(client, registry, catalog, policy, now)
+            assert len(plan['manifest_targets']) == 6
+            rebuild.apply_registry(client, plan)
+            assert plan['applied'] and len(plan['removed_manifests']) == 6
+            for row in rows + history[1]['rows']:
+                assert client.manifest(registry + '@' + row['index_digest'])
+                for value in row['architectures'].values():
+                    assert client.manifest(registry + '@' + value)
+            repeated = rebuild.plan_registry(client, registry, catalog, policy, now)
+            assert not repeated['manifest_targets']
             print('PASS: four exact archive identities; digest-only publication; three public tags;')
             print('      five tag-only removals; retained architecture/rollback manifests; idempotent cleanup.')
             print('      retired six older manifests; shared/current images preserved; repeated retirement is empty.')
+            print('      retired six superseded same-version manifests; current/previous graphs preserved.')
     finally:
         if not args.registry:
             sp.run(['docker', 'rm', '--force', '--volumes', name], check=False, stdout=sp.DEVNULL)

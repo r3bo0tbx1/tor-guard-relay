@@ -45,6 +45,8 @@ Stable uses **Alpine 3.24.2**. Validated manual and scheduled rebuilds from main
 
 Retired container tags can be removed while [historical GitHub releases and their SBOM/security assets](https://github.com/r3bo0tbx1/tor-guard-relay/releases) remain available. Keep a verified current image digest for rollback.
 
+🛡️ [Registry retention](https://github.com/r3bo0tbx1/tor-guard-relay/blob/main/docs/REGISTRY-RETENTION.md) previews superseded rebuilds while preserving current image indexes and their untagged AMD64/ARM64 children, original-release images and reviewed deployment/rollback digests. Weekly previews continue; automatic cleanup waits 14 days after the published notice and runs at most every 14 days with fresh deployment protection and an unchanged plan.
+
 ```bash
 docker pull r3bo0tbx1/onion-relay:latest
 docker pull r3bo0tbx1/onion-relay:2.2.0

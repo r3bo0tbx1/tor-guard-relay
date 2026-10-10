@@ -287,6 +287,7 @@ jobs:
           name: published-manifests
           overwrite: true
           path: published-manifests.json
+          retention-days: 90
 
       - name: 📋 Record workflow outcome
         if: always()
