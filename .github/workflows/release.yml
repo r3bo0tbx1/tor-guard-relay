@@ -238,6 +238,9 @@ jobs:
 
   publish:
     name: 📦 Promote verified image archives
+    concurrency:
+      group: registry-publishing
+      cancel-in-progress: false
     needs: [source, candidate]
     if: needs.source.outputs.publish == 'true'
     runs-on: ubuntu-latest

@@ -43,6 +43,8 @@ Current release: <!-- RELAY_VERSION -->v2.2.0<!-- /RELAY_VERSION -->.
 
 Stable uses **Alpine 3.24.2**. Validated manual and scheduled rebuilds from main include merged fixes and fresh packages; version tags can receive those rebuilds. Pin an image digest when you need an exact build.
 
+Retired container tags can be removed while [historical GitHub releases and their SBOM/security assets](https://github.com/r3bo0tbx1/tor-guard-relay/releases) remain available. Keep a verified current image digest for rollback.
+
 ```bash
 docker pull r3bo0tbx1/onion-relay:latest
 docker pull r3bo0tbx1/onion-relay:2.2.0

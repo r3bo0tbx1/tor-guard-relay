@@ -3,10 +3,10 @@ on:
   workflow_dispatch:
     inputs:
       operation:
-        description: 'Read-only inventory, or remove the v2.2.0 publishing clutter and refresh its overview'
+        description: 'Inventory, tidy publishing tags, or preview/apply removal of retired 2.0.0 and 2.1.0 images'
         type: choice
         default: inventory
-        options: [inventory, tidy-v2.2.0]
+        options: [inventory, tidy-v2.2.0, prune-old-plan, prune-old-apply]
 permissions:
   contents: read
   packages: read
@@ -20,7 +20,7 @@ jobs:
       contents: read
       packages: write
     concurrency:
-      group: registry-tidy-v2.2.0
+      group: registry-publishing
       cancel-in-progress: false
     steps:
       - name: 📥 Check out maintenance source
@@ -73,6 +73,72 @@ jobs:
             *-cleanup-*.json
             dockerhub-overview-before.json
           retention-days: 30
+  prune-old:
+    name: 🧹 Retire older registry images
+    if: inputs.operation == 'prune-old-plan' || inputs.operation == 'prune-old-apply'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: read
+      packages: write
+    concurrency:
+      group: registry-publishing
+      cancel-in-progress: false
+    steps:
+      - name: 📥 Check out reviewed maintenance source
+        uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: 🧰 Install verified registry client
+        run: python3 scripts/release/install-regctl.py
+      - name: 🔑 Authenticate Docker Hub
+        uses: docker/login-action@v4.6.0
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: 🔑 Authenticate GHCR
+        uses: docker/login-action@v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: 🛡️ Require completed publication and its successful audit
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
+        run: python3 scripts/release/check-retention-ready.py --repository "$REPOSITORY" --output retention-readiness.json
+      - name: 🛡️ Preview retired images or apply verified removal
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OWNER: ${{ github.repository_owner }}
+          OPERATION: ${{ inputs.operation }}
+        run: |
+          set -euo pipefail
+          args=()
+          if [ "$OPERATION" = prune-old-apply ]; then args+=(--apply); fi
+          python3 scripts/release/prune-old-images.py --owner "$OWNER" --keep-version 2.2.0 \
+            --remove-version 2.0.0 --remove-version 2.1.0 \
+            --publication-evidence retention-publication/published-manifests.json \
+            --output retention-result.json "${args[@]}"
+      - name: 🧅 Refresh registry overview after retirement
+        if: inputs.operation == 'prune-old-apply'
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: python3 scripts/release/sync-dockerhub-overview.py
+      - name: 📎 Retain readiness, deletion plan and preservation evidence
+        if: always()
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: registry-retirement
+          path: |
+            retention-readiness.json
+            retention-result.json
+            retention-publication/published-manifests.json
+            dockerhub-overview-before.json
+          retention-days: 30
   inventory:
     name: 🗂️ Review registry retention
     runs-on: ubuntu-latest
@@ -83,7 +149,8 @@ jobs:
           OWNER: ${{ github.repository_owner }}
         run: |
           set -euo pipefail
-          gh api --paginate "users/$OWNER/packages/container/onion-relay/versions" > ghcr-versions.json
+          gh api --paginate --slurp "users/$OWNER/packages/container/onion-relay/versions?per_page=100" \
+            | python3 -c 'import json,sys; json.dump([item for page in json.load(sys.stdin) for item in page], sys.stdout)' > ghcr-versions.json
           curl --fail --silent --show-error "https://hub.docker.com/v2/repositories/r3bo0tbx1/onion-relay/tags/?page_size=100" > dockerhub-tags.json
           echo "Read-only inventory. Preserve current aliases, version manifests, their architecture digests and the verified rollback set before any manual deletion."
       - name: 📎 Retain build evidence

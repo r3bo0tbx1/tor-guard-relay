@@ -178,7 +178,7 @@ We offer **two build variants** to match your risk tolerance and requirements:
 | 🐳 Docker Hub | `latest`, `2.2.0` | `edge` |
 | 📦 GHCR | `latest`, `2.2.0` | `edge`, `2.2.0-edge` |
 
-Each current tag supports AMD64 and ARM64. Older version tags remain available for rollback. Validated package rebuilds can refresh version tags; use a digest to select an exact build. Publishing intermediates are addressed by digest and do not need public tags. The branded [Docker Hub overview](docs/DOCKERHUB.md) is maintained separately from this full guide.
+Each current tag supports AMD64 and ARM64. Retired container versions can be removed while historical GitHub releases and their downloadable assets remain available. Retained v2.2.0 builds can be selected by digest for rollback. Validated package rebuilds can refresh version tags; use a digest to select an exact build. Publishing intermediates are addressed by digest and do not need public tags. The branded [Docker Hub overview](docs/DOCKERHUB.md) is maintained separately from this full guide.
 
 🔄 To rebuild both variants with merged fixes, run **🚀✨** on branch **main**, leave `source_tag` empty and enable **Publish validated candidates**. All four candidates must pass before publishing. An explicit `source_tag` rebuilds that release's original code. See the [rebuild commands and source policy](scripts/release/README.md#-candidate-pipeline).
 
