@@ -36,6 +36,10 @@ jobs:
           python3 scripts/testing/check-docs.py
           shellcheck -S warning -x docker-entrypoint.sh healthcheck.sh lib/*.sh tools/* scripts/utilities/relay-backup.sh scripts/utilities/relay-inventory.sh
           python3 -m unittest discover -s tests -v
+      - name: 🧰 Install verified registry client
+        run: python3 scripts/release/install-regctl.py
+      - name: 📦 Rehearse digest promotion and safe tag removal
+        run: python3 scripts/testing/promotion-rehearsal.py
       - name: 🟢 Prepare supported Node runtime
         uses: actions/setup-node@v7.1.0
         with:

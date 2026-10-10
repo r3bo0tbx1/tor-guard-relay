@@ -265,6 +265,13 @@ jobs:
       contents: read
       packages: write
     steps:
+      - name: 📥 Check out immutable publishing policy
+        uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ needs.source.outputs.policy_sha }}
+          persist-credentials: false
+      - name: 🧰 Install verified registry client
+        run: python3 scripts/release/install-regctl.py
       - name: 📥 Download verified evidence
         uses: actions/download-artifact@v8.0.2
         with:
@@ -289,37 +296,14 @@ jobs:
           SOURCE: ${{ needs.source.outputs.sha }}
           OWNER: ${{ github.repository_owner }}
         run: |
-          set -euo pipefail
-          for variant in stable edge; do
-            suffix=""
-            alias=latest
-            if [ "$variant" = edge ]; then suffix=-edge; alias=edge; fi
-            for registry in "r3bo0tbx1/onion-relay" "ghcr.io/$OWNER/onion-relay"; do
-              references=()
-              for arch in amd64 arm64; do
-                directory="candidates/candidate-$variant-$arch"
-                (cd "$directory" && sha256sum -c image.tar.sha256)
-                docker load -i "$directory/image.tar"
-                local_image="relay-candidate:$variant-$arch"
-                expected=$(jq -r '.[0].Id' "$directory/image.json")
-                test "$(docker image inspect "$local_image" --format '{{.Id}}')" = "$expected"
-                stage="$registry:validated-${SOURCE:0:12}-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT-$variant-$arch"
-                docker tag "$local_image" "$stage"
-                docker push "$stage"
-                digest=$(docker image inspect "$stage" --format '{{join .RepoDigests "\n"}}' | grep "^$registry@" | tail -n 1)
-                test -n "$digest"
-                references+=("$digest")
-              done
-              docker buildx imagetools create -t "$registry:$VERSION$suffix" -t "$registry:$alias" "${references[@]}"
-              docker buildx imagetools inspect "$registry:$VERSION$suffix" > "published-$variant-$(echo "$registry" | tr / _).txt"
-            done
-          done
+          python3 scripts/release/promote-images.py --candidates candidates \
+            --version "$VERSION" --source "$SOURCE" --owner "$OWNER"
       - name: 📎 Retain build evidence
         uses: actions/upload-artifact@v7.0.2
         with:
           name: published-manifests
           overwrite: true
-          path: published-*.txt
+          path: published-manifests.json
 
       - name: 📋 Record workflow outcome
         if: always()
