@@ -314,28 +314,19 @@ When creating issues, use appropriate labels:
 
 ## 🤝 Code of Conduct
 
-### Our Pledge
-We are committed to providing a welcoming and inclusive environment for everyone.
+Please read the [Code of Conduct](CODE_OF_CONDUCT.md) before participating.
+It applies equally to contributors, operators and maintainers.
 
-### Expected Behavior
-- ✅ Be respectful and considerate
-- ✅ Accept constructive criticism gracefully
-- ✅ Focus on what's best for the community
-- ✅ Show empathy toward others
+- ✅ Keep technical feedback direct, constructive and focused on the work.
+- 🛡️ Redact private bridge details, relay keys, credentials and sensitive logs.
+- 🤝 Respect personal boundaries; harassment, discrimination and retaliation are
+  unacceptable.
 
-### Unacceptable Behavior
-- ❌ Harassment or discrimination
-- ❌ Trolling or insulting comments
-- ❌ Public or private harassment
-- ❌ Publishing others' private information
-
-### Enforcement
-Violations may result in:
-1. Warning
-2. Temporary ban
-3. Permanent ban
-
-Report issues to: r3bo0tbx1@brokenbotnet.com
+📬 Report conduct concerns privately to
+[r3bo0tbx1@brokenbotnet.com](mailto:r3bo0tbx1@brokenbotnet.com) with the subject
+`[CONDUCT] Tor Guard Relay – <short summary>`.
+The full policy explains confidential reporting, moderation and reconsideration.
+For vulnerabilities, use the separate [security reporting process](SECURITY.md#-reporting-a-vulnerability).
 
 ---
 

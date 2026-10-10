@@ -306,12 +306,17 @@ Cleanup is manual and separate from validation. Preserve a rollback image, deplo
 
 **Do NOT report security vulnerabilities through public GitHub issues.**
 
+For harassment, privacy violations in community spaces or other conduct concerns,
+use the private [Code of Conduct reporting process](CODE_OF_CONDUCT.md#-reporting-a-concern).
+Use this security process for technical vulnerabilities; if an incident involves
+both, explain that in your private report so it can be assessed together.
+
 ### How to Report
 
 **Email:** r3bo0tbx1@brokenbotnet.com
 **Subject:** `[SECURITY] Tor Guard Relay – <short summary>`
 
-Please use my PGP key [0xB3BD6196E1CFBFB4 🔑](https://keys.openpgp.org/vks/v1/by-fingerprint/33727F5377D296C320AF704AB3BD6196E1CFBFB4) to encrypt if your report contains sensitive technical details.
+Please use my PGP key [0xB3BD6196E1CFBFB4 🔑](https://brokenbotnet.com/0xB3BD6196E1CFBFB4.asc) to encrypt if your report contains sensitive technical details.
 
 ### Information to Include
 
@@ -373,7 +378,7 @@ The following network, disclosure and operator guidance remains part of this pol
 **Email:** r3bo0tbx1@brokenbotnet.com
 **Subject:** `[SECURITY] Tor Guard Relay – <short summary>`
 
-Please use my PGP key [0xB3BD6196E1CFBFB4 🔑](https://keys.openpgp.org/vks/v1/by-fingerprint/33727F5377D296C320AF704AB3BD6196E1CFBFB4) to encrypt if your report contains sensitive technical details.
+Please use my PGP key [0xB3BD6196E1CFBFB4 🔑](https://brokenbotnet.com/0xB3BD6196E1CFBFB4.asc) to encrypt if your report contains sensitive technical details.
 
 ### Information to Include
 
