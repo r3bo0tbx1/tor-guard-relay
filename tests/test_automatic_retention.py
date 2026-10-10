@@ -9,6 +9,7 @@ import sys
 import tempfile
 import unittest
 from unittest import mock
+from urllib.parse import urlsplit
 
 from test_rebuild_retention import Builds, NOW, POLICY, load, rebuild
 from test_registry_retention import digest
@@ -232,11 +233,28 @@ class AutomaticApplyTests(unittest.TestCase):
                           '--output', str(self.directory / 'result.json')]
         hub, ghcr = self.hub, self.ghcr
         class Router:
+            def select(self, reference):
+                parsed = urlsplit('https://' + reference)
+                path = parsed.path.partition('@')[0].partition(':')[0]
+                fixture = {('fixture', '/onion-relay'): hub,
+                           ('ghcr.io', '/fixture/onion-relay'): ghcr}.get((parsed.netloc, path))
+                if fixture is None or parsed.query or parsed.fragment:
+                    raise ValueError('Unexpected fixture registry')
+                return fixture
             def run(self, *args):
-                return (ghcr if args[2].startswith('ghcr.io/') else hub).run(*args)
+                return self.select(args[2]).run(*args)
             def manifest(self, reference):
-                return (ghcr if reference.startswith('ghcr.io/') else hub).manifest(reference)
+                return self.select(reference).manifest(reference)
         self.router = Router()
+
+    def test_router_accepts_only_exact_fixture_registry_and_repository(self):
+        self.assertIs(self.router.select('fixture/onion-relay:latest'), self.hub)
+        self.assertIs(self.router.select('ghcr.io/fixture/onion-relay@' + digest('image')), self.ghcr)
+        for reference in ('ghcr.io.attacker/fixture/onion-relay', 'attacker/ghcr.io/fixture/onion-relay',
+                          'ghcr.io@attacker/fixture/onion-relay', 'ghcr.io/other/onion-relay',
+                          'ghcr.io/fixture/onion-relay?next=attacker', 'ghcr.io/fixture/onion-relay#fragment'):
+            with self.subTest(reference=reference), self.assertRaisesRegex(ValueError, 'Unexpected fixture registry'):
+                self.router.select(reference)
 
     def invoke(self, arguments, automatic=None):
         with mock.patch.object(sys, 'argv', arguments), mock.patch.object(rebuild, 'Client', return_value=self.router), \
