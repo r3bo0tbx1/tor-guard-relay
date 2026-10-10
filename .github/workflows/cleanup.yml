@@ -149,7 +149,8 @@ jobs:
           OWNER: ${{ github.repository_owner }}
         run: |
           set -euo pipefail
-          gh api --paginate --slurp "users/$OWNER/packages/container/onion-relay/versions?per_page=100" --jq 'add' > ghcr-versions.json
+          gh api --paginate --slurp "users/$OWNER/packages/container/onion-relay/versions?per_page=100" \
+            | python3 -c 'import json,sys; json.dump([item for page in json.load(sys.stdin) for item in page], sys.stdout)' > ghcr-versions.json
           curl --fail --silent --show-error "https://hub.docker.com/v2/repositories/r3bo0tbx1/onion-relay/tags/?page_size=100" > dockerhub-tags.json
           echo "Read-only inventory. Preserve current aliases, version manifests, their architecture digests and the verified rollback set before any manual deletion."
       - name: 📎 Retain build evidence
