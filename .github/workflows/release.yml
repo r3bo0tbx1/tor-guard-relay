@@ -173,7 +173,7 @@ jobs:
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: relay-candidate:${{ matrix.variant }}-${{ matrix.arch }}
-          version: v0.75.0
+          version: v0.76.0
           format: json
           output: trivy.json
           scanners: vuln,secret
