@@ -1,5 +1,6 @@
 """Exercise the automatic deletion clock, durable history and exact legacy scope."""
 import copy
+from contextlib import contextmanager
 from datetime import timedelta
 import json
 import os
@@ -18,6 +19,14 @@ auto = load('automatic_retention_tests', 'scripts/release/automatic-retention.py
 REPOSITORY = 'fixture/tor-guard-relay'
 URL = 'https://github.com/' + REPOSITORY + '/issues/1'
 LEGACY = {'registry': 'fixture/onion-relay', 'builds': []}
+
+
+@contextmanager
+def retention_clock():
+    """Keep CLI time aligned with the catalog, notice and review fixtures."""
+    with mock.patch.object(rebuild, 'datetime', wraps=rebuild.datetime) as clock:
+        clock.now.return_value = NOW
+        yield
 
 
 def policy():
@@ -202,16 +211,26 @@ class LegacyScopeTests(unittest.TestCase):
     def test_manual_apply_with_automatic_policy_cannot_bypass_missing_notice(self):
         with tempfile.TemporaryDirectory() as work:
             work = Path(work)
-            for name, data in [('policy', self.policy), ('catalog', self.fixture.catalog), ('legacy', self.legacy)]:
+            for name, data in [('catalog', self.fixture.catalog), ('legacy', self.legacy)]:
                 (work / (name + '.json')).write_text(json.dumps(data))
             arguments = ['retention', '--owner', 'fixture', '--policy', str(work / 'policy.json'),
                          '--catalog', str(work / 'catalog.json'), '--legacy', str(work / 'legacy.json'),
                          '--output', str(work / 'result.json'), '--apply']
-            with mock.patch.object(sys, 'argv', arguments), mock.patch.object(rebuild, 'Client') as client:
-                with mock.patch.dict(os.environ, {'REGISTRY_RETIREMENT_NOTICE_URL': ''}):
-                    with self.assertRaisesRegex(ValueError, 'Publish the notice'):
-                        rebuild.main()
-                client.assert_not_called()
+            cases = [('fresh', timedelta(), 'Publish the notice'),
+                     ('seven-day boundary', timedelta(days=7), 'Publish the notice'),
+                     ('expired', timedelta(days=7, seconds=1), 'seven days'),
+                     ('future', -timedelta(seconds=1), 'seven days')]
+            for name, age, reason in cases:
+                with self.subTest(review=name):
+                    self.policy['deployment_reviewed_at'] = (NOW - age).isoformat()
+                    (work / 'policy.json').write_text(json.dumps(self.policy))
+                    with retention_clock(), mock.patch.object(sys, 'argv', arguments), \
+                            mock.patch.object(rebuild, 'Client') as client:
+                        with mock.patch.dict(os.environ, {'REGISTRY_RETIREMENT_NOTICE_URL': ''}):
+                            with self.assertRaisesRegex(ValueError, reason):
+                                rebuild.main()
+                        client.assert_not_called()
+                    self.assertFalse((work / 'result.json').exists())
 
 
 class AutomaticApplyTests(unittest.TestCase):
@@ -225,7 +244,6 @@ class AutomaticApplyTests(unittest.TestCase):
         for item, other in zip(catalog['publications'], self.ghcr.catalog['publications']):
             item['rows'] += other['rows']
         settings = policy()
-        settings['deployment_reviewed_at'] = rebuild.datetime.now(rebuild.timezone.utc).isoformat()
         for name, data in [('policy', settings), ('catalog', catalog), ('legacy', LEGACY)]:
             (self.directory / (name + '.json')).write_text(json.dumps(data))
         self.arguments = ['retention', '--owner', 'fixture', '--policy', str(self.directory / 'policy.json'),
@@ -257,7 +275,8 @@ class AutomaticApplyTests(unittest.TestCase):
                 self.router.select(reference)
 
     def invoke(self, arguments, automatic=None):
-        with mock.patch.object(sys, 'argv', arguments), mock.patch.object(rebuild, 'Client', return_value=self.router), \
+        with retention_clock(), mock.patch.object(sys, 'argv', arguments), \
+                mock.patch.object(rebuild, 'Client', return_value=self.router), \
                 mock.patch.object(rebuild.prune, 'Packages', return_value=self.ghcr), \
                 mock.patch.object(rebuild.prune, 'release_snapshot', return_value=[]):
             if automatic:
