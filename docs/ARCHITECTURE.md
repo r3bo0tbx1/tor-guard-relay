@@ -858,7 +858,7 @@ flowchart LR
     subgraph Source["📁 Reviewed inputs"]
         Pin["🧅 Lyrebird source SHA"]
         Lock["🔒 Independent go.mod / go.sum"]
-        Go["🐹 Go 1.27.2 builder digest"]
+        Go["🐹 Go 1.27.3 builder digest"]
         Files["📜 POSIX libraries and tools"]
     end
     subgraph Build["🏗️ Candidate build"]

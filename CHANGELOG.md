@@ -4,6 +4,12 @@ Current source: <!-- RELAY_VERSION -->v2.2.0<!-- /RELAY_VERSION -->. Historical 
 
 ## [Unreleased]
 
+### 🛡️ Security and dependency maintenance
+
+- Update both digest-pinned Go builders to 1.27.3 for [GO-2026-6809](https://pkg.go.dev/vuln/GO-2026-6809), which affects certificate verification in the transport's reachable standard-library graph. Keep symbol-level security gates blocking vulnerable candidates.
+- Review regctl 0.11.7 together with its Linux AMD64 release checksum; keep checksum verification mandatory before executing the registry client.
+- Combine the reviewed Snowflake, RTP, RTCP and KCP module proposals with the fixed builder, and update the Renovate validation tool to 44.175.2. Preserve the existing Pion compatibility limits and immediate security-fix review.
+
 ### 🏷️ Publishing fixes
 
 - Add version-independent rebuild retention with two recent builds, a 14-day image grace period, original-release/deployment protection, exact-plan confirmation and real manifest cleanup. Preserve weekly previews and enable a separate daily gate for automatic cleanup at most every 14 days after a verified public notice window. Require fresh fleet coverage, durable cleanup history and exact reviewed legacy graphs; preserve unknown images and GitHub release assets.

@@ -36,7 +36,7 @@ Current source version: <!-- RELAY_VERSION -->v2.2.0<!-- /RELAY_VERSION -->.
 | 🏗️ Build-once release gates | Validate all four candidates before promoting their exact images | [Release process](scripts/release/README.md) |
 | 🛡️ Independent security updates | Reviewed Lyrebird pins, direct/indirect Go fixes and six-hour read-only scans | [Security policy](SECURITY.md) |
 
-**Stable runtime:** Alpine 3.24.2 pinned by digest. **Builder:** Go 1.27.2. The independent lock includes Pion STUN 3.1.7 and `klauspost/compress` 1.20.1. Both variants enforce the Tor floor.
+**Stable runtime:** Alpine 3.24.2 pinned by digest. **Builder:** Go 1.27.3. The independent lock includes Pion STUN 3.1.7 and `klauspost/compress` 1.20.3. Both variants enforce the Tor floor.
 
 Generated torrc is regenerated from ENV on restart. Persist operator changes in deployment ENV or mount a torrc. Verify an encrypted backup and compare fingerprints before a real upgrade; never activate two copies of one relay identity.
 
