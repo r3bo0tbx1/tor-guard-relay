@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1.28.0
-FROM --platform=$BUILDPLATFORM golang:1.27.2-alpine3.24@sha256:f92b6ef800e499660581efdabdf25d9d817a9d124eaf900924f0504e7e27e12d AS builder
+FROM --platform=$BUILDPLATFORM golang:1.27.3-alpine3.24@sha256:f2c872bcee949b7be9c490efd02b48a8a2fbf947cdf533f1c58525ec9d8170fd AS builder
 ENV GOTOOLCHAIN=local
 RUN sed -i 's/http:/https:/g' /etc/apk/repositories && apk add --no-cache git
 WORKDIR /go/src/lyrebird
