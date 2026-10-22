@@ -242,7 +242,7 @@ This release introduces full support for Tor's new **Happy Family** system (`Fam
 
 | Variant | Base Image | Tags | Registries | Notes |
 | :--- | :--- | :--- | :--- | :--- |
-| **🟢 Stable** | Alpine 3.23.2 | `:latest`, `:1.1.4` | Docker Hub, GHCR | **Recommended** for production. |
+| **🟢 Stable** | Alpine 3.24.3 | `:latest`, `:1.1.4` | Docker Hub, GHCR | **Recommended** for production. |
 | **⚠️ Edge** | Alpine Edge | `:edge`, `:1.1.4-edge` | GHCR Only | Testing only; not for production. |
 
 ### ⚙️ Changed (Refactor)
@@ -273,7 +273,7 @@ Focused on refining deployment templates, enhancing security defaults in Compose
 
 - **New Tool**: Introduced `gen-auth` utility to easily generate hashed passwords for Tor Control Port authentication.
 - **Healthchecks**: Added native Docker healthcheck definitions to all Compose templates for improved orchestration reliability.
-- **Dependencies**: Updated base images to **Alpine 3.23.0** and **Golang 1.25.5** for latest security patches and performance.
+- **Dependencies**: Updated base images to **Alpine 3.24.3** and **Golang 1.25.5** for latest security patches and performance.
 
 ### 🐳 Docker Compose Refactoring
 
@@ -318,7 +318,7 @@ Add Alpine edge variant with dual-track build strategy 🏗️✅ - 🟢/⚠️
 ### 🏗️ Build Variants
 
 🟢 Stable (Production):
-- Base: Alpine 3.22.2
+- Base: Alpine 3.24.3
 - Tags: :latest, :stable, :1.1.2
 - Registries: Docker Hub + GHCR
 - Recommended for production relays
@@ -597,13 +597,13 @@ BREAKING CHANGES: None
 ## [1.0.6] - 2025-11-06
 
 🧠 Stability improvements, enhanced IPv6 diagnostics, and dashboard optimizations.
-🐳 Migrated base image **back to Alpine 3.22.2** for improved compatibility and reproducible builds.
+🐳 Migrated base image **back to Alpine 3.24.3** for improved compatibility and reproducible builds.
 
 ---
 
 ## [1.0.5] - 2025-11-06
 
-🐳 Downgrade base image from Alpine 3.22.2 to 3.21.5
+🐳 Downgrade base image from Alpine 3.24.3 to 3.21.5
 
 ---
 
