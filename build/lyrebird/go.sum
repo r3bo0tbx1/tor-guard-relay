@@ -107,6 +107,7 @@ github.com/pion/ice/v4 v4.4.2 h1:asS17nbHJrzlVQl8fiSJaipxrxSY3Dq6DWgmB+0VwpI=
 github.com/pion/ice/v4 v4.4.2/go.mod h1:YZgNFOyJWXpLpLj0mb4ccqNAWRo9C2RtqKwuVTEz0Sc=
 github.com/pion/interceptor v0.1.49 h1:iyBsNHRoLNNXZiJA/DdGvJgdyfS8YWDCzxIAlVjt5nY=
 github.com/pion/interceptor v0.1.49/go.mod h1:MZ6PJkja/TCo350HAnBrs/rUIyad9mWjpcvytrf3ViQ=
+github.com/pion/interceptor v0.1.50/go.mod h1:Gkk0oPHaDuJxibvboROMoI+fAEq8C2aYMB4OB+ls0p8=
 github.com/pion/logging v0.2.4 h1:tTew+7cmQ+Mc1pTBLKH2puKsOvhm32dROumOZ655zB8=
 github.com/pion/logging v0.2.4/go.mod h1:DffhXTKYdNZU+KtJ5pyQDjvOAh/GsNSyv1lbkFbe3so=
 github.com/pion/mdns/v2 v2.2.0 h1:AlAZ9MTUKtWgO+4itk35JdNak4sk5k7G/X4xnIBWHyA=
