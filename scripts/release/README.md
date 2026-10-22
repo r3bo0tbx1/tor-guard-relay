@@ -22,7 +22,7 @@ python3 scripts/testing/check-docs.py
 sh scripts/release/generate-release-notes.sh 2.2.0 v2.1.0 --output /tmp/release-draft.md
 ```
 
-The version checker discovers tracked and nonignored documentation, scripts and workflows, synchronizing current Alpine references from the stable Dockerfile. `--write` applies changes; `--version X.Y.Z` also updates managed current project references. Historical changelog entries and historical migration release semantics are retained.
+The version checker discovers tracked and nonignored documentation, scripts and workflows, synchronizing current Alpine references from the stable Dockerfile. `--write` applies changes; `--version X.Y.Z` also updates managed current project references. Published release notes and changelog dependency records retain their original versions. Historical migration release semantics are retained.
 
 The notes generator handles leading gitmoji, conventional scopes and multiline breaking-change bodies, and keeps emoji headings by default. Use `--no-emoji` or `--format plain` only when you want plain output. Its output is a review draft. The release workflow publishes the curated file at `docs/releases/vVERSION.md`.
 
@@ -104,7 +104,7 @@ GitHub/OSV security-fix proposals remain immediate and can cross routine compati
 
 The `build/lyrebird` directory contains the reviewed Go graph, while the Docker builder fetches the pinned Lyrebird source. Renovate can propose a version with only its go.mod checksum. Both builders download the complete selected graph, authenticate module content through Go's checksum verification, verify the module cache, and require go.mod to remain unchanged before read-only compilation. Automatic toolchain switching is disabled: review and update the pinned builder when a dependency requires a newer Go version. Do not run `go mod tidy` in the lock-only directory; it needs the actual Lyrebird source to preserve the required packages.
 
-After a Docker base version proposal, run `python3 scripts/release/check-versions.py --write` and review the synchronized examples and OCI base label. The consistency gate deliberately rejects unsynchronized documentation.
+Renovate groups stable Alpine base changes with the OCI base label and current documentation/helper-image references. Release notes and changelog records are excluded from these automatic updates. After a base proposal, run `python3 scripts/release/check-versions.py --write` and review the result; the consistency gate still rejects missing or unsynchronized references. A source merge does not replace published containers: use a validated `main` rebuild with publication enabled to update both variants in both registries, then verify the published digests and security audit.
 
 <a id="expedited-security-response"></a>
 

@@ -179,10 +179,10 @@ After any migration:
 **Fix**:
 ```bash
 # Check ownership
-docker run --rm -v <volume>:/data alpine:3.24.2 ls -ldn /data
+docker run --rm -v <volume>:/data alpine:3.24.3 ls -ldn /data
 
 # Fix if needed (Alpine tor user is UID 100)
-docker run --rm -v <volume>:/data alpine:3.24.2 chown -R 100:101 /data
+docker run --rm -v <volume>:/data alpine:3.24.3 chown -R 100:101 /data
 ```
 
 ### Issue: Fingerprint Changed

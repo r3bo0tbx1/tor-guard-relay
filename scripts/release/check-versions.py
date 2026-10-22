@@ -27,17 +27,24 @@ for rel in sorted(set(files)):
     p = root / rel
     if p.suffix not in (".md", ".sh", ".yml", ".json") and p.name not in ("Dockerfile", "Dockerfile.edge"):
         continue
+    # Published release notes describe their original source, not today's base image.
+    if rel.startswith("docs/releases/"):
+        checked += 1
+        continue
     text = p.read_text()
-    # Preserve historical changelog entries, validating current Unreleased/new release text only.
+    # Only the current header/Unreleased section can contain managed project fields.
     history = ""
-    if rel == "CHANGELOG.md" and "## [v2.1.0]" in text:
-        text, history = text.split("## [v2.1.0]", 1)
-        history = "## [v2.1.0]" + history
+    if rel == "CHANGELOG.md":
+        release = re.search(r"(?m)^## \[v\d+\.\d+\.\d+\]", text)
+        if release:
+            text, history = text[:release.start()], text[release.start():]
     old = text
-    text = re.sub(r"alpine:\d+\.\d+\.\d+", "alpine:" + alpine, text) if p.name not in ("Dockerfile", "Dockerfile.edge") else text
-    text = re.sub(r"Alpine(?: Linux)? \d+\.\d+\.\d+", lambda m: re.sub(r"\d+\.\d+\.\d+", alpine, m[0]), text)
-    text = re.sub(r"(docker\.io/library/alpine:)\d+\.\d+\.\d+", r"\g<1>" + alpine, text)
-    text = re.sub(r"\balpine(?=\s+(?:tar|sh|bash|chown|chmod|cat|grep|ls|find|rm|test)\b)", "alpine:" + alpine, text)
+    # Changelog dependency versions are change records, even before release.
+    if rel != "CHANGELOG.md":
+        text = re.sub(r"alpine:\d+\.\d+\.\d+", "alpine:" + alpine, text) if p.name not in ("Dockerfile", "Dockerfile.edge") else text
+        text = re.sub(r"Alpine(?: Linux)? \d+\.\d+\.\d+", lambda m: re.sub(r"\d+\.\d+\.\d+", alpine, m[0]), text)
+        text = re.sub(r"(docker\.io/library/alpine:)\d+\.\d+\.\d+", r"\g<1>" + alpine, text)
+        text = re.sub(r"\balpine(?=\s+(?:tar|sh|bash|chown|chmod|cat|grep|ls|find|rm|test)\b)", "alpine:" + alpine, text)
     if args.version:
         if not re.fullmatch(r"\d+\.\d+\.\d+", args.version): raise SystemExit("Version must be X.Y.Z")
         # Historical guides keep their target release semantics and tag references.

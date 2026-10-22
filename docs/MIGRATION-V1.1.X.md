@@ -167,18 +167,18 @@ docker inspect <container> --format='{{range .Config.Env}}{{println .}}{{end}}' 
 
 ```bash
 # Check current ownership (should be 101:101)
-docker run --rm -v obfs4-data:/data alpine:3.24.2 ls -ldn /data
+docker run --rm -v obfs4-data:/data alpine:3.24.3 ls -ldn /data
 # Output: drwx------ ... 101 101 ...
 
 # Fix ownership: 101 → 100
-docker run --rm -v obfs4-data:/data alpine:3.24.2 chown -R 100:101 /data
+docker run --rm -v obfs4-data:/data alpine:3.24.3 chown -R 100:101 /data
 
 # Verify fix
-docker run --rm -v obfs4-data:/data alpine:3.24.2 ls -ldn /data
+docker run --rm -v obfs4-data:/data alpine:3.24.3 ls -ldn /data
 # Output: drwx------ ... 100 101 ...  ← MUST show 100!
 
 # Verify key files are readable
-docker run --rm -v obfs4-data:/data alpine:3.24.2 ls -la /data/keys/
+docker run --rm -v obfs4-data:/data alpine:3.24.3 ls -la /data/keys/
 # Should show files owned by 100:101
 ```
 
@@ -339,7 +339,7 @@ Directory /var/lib/tor cannot be read: Permission denied
 **Fix**:
 ```bash
 docker stop obfs4-bridge
-docker run --rm -v obfs4-data:/data alpine:3.24.2 chown -R 100:101 /data
+docker run --rm -v obfs4-data:/data alpine:3.24.3 chown -R 100:101 /data
 docker start obfs4-bridge
 ```
 

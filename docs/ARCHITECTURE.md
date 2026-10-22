@@ -863,7 +863,7 @@ flowchart LR
     end
     subgraph Build["🏗️ Candidate build"]
         Native["🔨 Native builder / target cross-compile"]
-        Stable["🐧 Stable Alpine 3.24.2 digest"]
+        Stable["🐧 Stable Alpine 3.24.3 digest"]
         Edge["🧪 Alpine edge"]
         Matrix["🌍 Stable / edge × AMD64 / ARM64"]
     end

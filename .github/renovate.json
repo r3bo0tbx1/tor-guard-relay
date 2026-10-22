@@ -44,6 +44,22 @@
       "matchStrings": ["\"regctl\":\\s*\"(?<currentValue>v[0-9]+\\.[0-9]+\\.[0-9]+)\""],
       "depNameTemplate": "regclient/regclient",
       "datasourceTemplate": "github-releases"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["/\\.(?:md|sh|ya?ml|json)$/", "!CHANGELOG.md", "!docs/releases/**"],
+      "matchStrings": ["(?:alpine:|Alpine(?: Linux)? )(?<currentValue>[0-9]+\\.[0-9]+\\.[0-9]+)"],
+      "depNameTemplate": "alpine",
+      "datasourceTemplate": "docker",
+      "versioningTemplate": "docker"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["/^Dockerfile$/"],
+      "matchStrings": ["org\\.opencontainers\\.image\\.base\\.name=\"docker\\.io/library/alpine:(?<currentValue>[0-9]+\\.[0-9]+\\.[0-9]+)\""],
+      "depNameTemplate": "alpine",
+      "datasourceTemplate": "docker",
+      "versioningTemplate": "docker"
     }
   ],
   "packageRules": [
@@ -51,12 +67,13 @@
       "matchDatasources": ["docker"],
       "matchPackageNames": ["alpine"],
       "groupName": "🐳 Alpine Base Image",
+      "groupSingleUpdates": true,
       "labels": ["dependencies", "alpine", "docker"],
       "schedule": ["at any time"],
       "prPriority": 1,
       "automerge": false,
       "allowedVersions": "/^3\\.(2[2-9]|[3-9][0-9])\\./",
-      "description": "Track supported Alpine stable versions; current examples must pass the consistency check"
+      "description": "Update the stable base, OCI label and current examples together; preserve historical release records"
     },
     {
       "matchManagers": ["dockerfile"],
@@ -89,7 +106,7 @@
       "groupName": "🧅 Lyrebird source pin",
       "labels": ["dependencies", "lyrebird"],
       "automerge": false,
-      "prBodyNotes": ["Update both source and metadata pins in both Dockerfiles. Review upstream changes against the independently maintained Go lock and reassess the five routine Pion compatibility limits when Snowflake or its consumers change. Publication requires a new reviewed release tag after all candidate gates pass."]
+      "prBodyNotes": ["Update both source and metadata pins in both Dockerfiles. Review upstream changes against the independently maintained Go lock and reassess the five routine Pion compatibility limits when Snowflake or its consumers change. Publish reviewed fixes through a captured main rebuild after all candidate gates pass; version bumps require a new release tag."]
     },
     {
       "matchManagers": ["github-actions"],
@@ -178,5 +195,5 @@
   "osvVulnerabilityAlerts": true,
   "timezone": "UTC",
   "prConcurrentLimit": 5,
-  "description": "Propose reviewed Lyrebird source pins and independent Go/toolchain/base updates without a weekly wait. Security fixes receive priority; scheduled rebuilds still use released source and require current candidate security gates."
+  "description": "Propose reviewed Lyrebird source pins and independent Go/toolchain/base updates without a weekly wait. Security fixes receive priority; scheduled rebuilds use captured main source and require current candidate security gates."
 }

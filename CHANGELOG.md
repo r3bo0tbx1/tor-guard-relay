@@ -6,6 +6,8 @@ Current source: <!-- RELAY_VERSION -->v2.2.0<!-- /RELAY_VERSION -->. Historical 
 
 ### 🛡️ Security and dependency maintenance
 
+- Update the stable Alpine base to 3.24.3 with its reviewed digest and synchronize current examples and OCI metadata. Track those references in the same Renovate group; preserve published release notes and changelog dependency records during version synchronization.
+- Correct the README's rebuild schedules, main-source selection and current version; keep exact-tag rebuilds available for explicit release reproduction.
 - Update both digest-pinned Go builders to 1.27.3 for [GO-2026-6809](https://pkg.go.dev/vuln/GO-2026-6809), which affects certificate verification in the transport's reachable standard-library graph. Keep symbol-level security gates blocking vulnerable candidates.
 - Review regctl 0.11.7 together with its Linux AMD64 release checksum; keep checksum verification mandatory before executing the registry client.
 - Combine the reviewed Snowflake, RTP, RTCP and KCP module proposals with the fixed builder, and update the Renovate validation tool to 44.175.2. Preserve the existing Pion compatibility limits and immediate security-fix review.
