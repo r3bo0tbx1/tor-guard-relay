@@ -76,7 +76,7 @@ get_container_volumes() {
 
 get_fingerprint_from_volume() {
     volume_name="$1"
-    docker run --rm -v "${volume_name}:/data:ro" alpine:3.24.2 sh -c \
+    docker run --rm -v "${volume_name}:/data:ro" alpine:3.24.3 sh -c \
         'if [ -f /data/fingerprint ]; then cat /data/fingerprint; elif [ -f /data/keys/ed25519_master_id_public_key ]; then echo "Keys exist but fingerprint not yet generated"; else echo "NOT_FOUND"; fi' 2>/dev/null
 }
 
@@ -86,7 +86,7 @@ get_fingerprint_from_volume() {
 
 check_volume_ownership() {
     volume_name="$1"
-    ownership=$(docker run --rm -v "${volume_name}:/data:ro" alpine:3.24.2 stat -c '%u:%g' /data 2>/dev/null)
+    ownership=$(docker run --rm -v "${volume_name}:/data:ro" alpine:3.24.3 stat -c '%u:%g' /data 2>/dev/null)
     printf '%s' "$ownership"
 }
 
@@ -177,7 +177,7 @@ fix_volume_ownership() {
     current_ownership=$(check_volume_ownership "$volume_name")
     log "Current ownership: ${current_ownership}"
 
-    if ! docker run --rm -v "${volume_name}:/data" alpine:3.24.2 chown -R 100:101 /data 2>/dev/null; then
+    if ! docker run --rm -v "${volume_name}:/data" alpine:3.24.3 chown -R 100:101 /data 2>/dev/null; then
         error "Failed to fix ownership"
         return 1
     fi

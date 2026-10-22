@@ -324,10 +324,10 @@ docker logs obfs4-bridge 2>&1 | grep -A 10 "Configuration validation failed"
 **Fix:**
 ```bash
 # Check if torrc exists in volume
-docker run --rm -v obfs4-data:/data alpine:3.24.2 find /data -name "torrc"
+docker run --rm -v obfs4-data:/data alpine:3.24.3 find /data -name "torrc"
 
 # Remove any found torrc files
-docker run --rm -v obfs4-data:/data alpine:3.24.2 rm -f /data/torrc /data/etc/tor/torrc
+docker run --rm -v obfs4-data:/data alpine:3.24.3 rm -f /data/torrc /data/etc/tor/torrc
 ```
 
 #### Issue 2: Fingerprints still changing after migration
@@ -350,8 +350,8 @@ docker run --rm -v obfs4-data:/data alpine:3.24.2 rm -f /data/torrc /data/etc/to
 **Fix:** v1.1.1 has automatic permission healing. If it still fails:
 ```bash
 # Fix permissions manually
-docker run --rm -v obfs4-data:/data alpine:3.24.2 chown -R 100:101 /data
-docker run --rm -v obfs4-data:/data alpine:3.24.2 chmod 700 /data
+docker run --rm -v obfs4-data:/data alpine:3.24.3 chown -R 100:101 /data
+docker run --rm -v obfs4-data:/data alpine:3.24.3 chmod 700 /data
 ```
 
 #### Issue 4: obfs4 transport not working

@@ -14,7 +14,7 @@ RUN sha256sum go.mod > /tmp/go.mod.sha256 \
  && sha256sum -c /tmp/go.mod.sha256 \
  && CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -mod=readonly -trimpath -ldflags="-s -w" -o /usr/bin/lyrebird ./cmd/lyrebird
 
-FROM alpine:3.24.2@sha256:294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6
+FROM alpine:3.24.3@sha256:b3413572228e34bd1c9245f5565e6cd127005655e8a7899aef33d8e83255c9e6
 
 ARG BUILD_DATE
 ARG BUILD_VERSION
@@ -34,7 +34,7 @@ LABEL maintainer="rE-Bo0t.bx1 <r3bo0tbx1@brokenbotnet.com>" \
       org.opencontainers.image.vendor="rE-Bo0t.bx1" \
       org.opencontainers.image.authors="rE-Bo0t.bx1 <r3bo0tbx1@brokenbotnet.com>" \
       org.opencontainers.image.url="https://github.com/r3bo0tbx1/tor-guard-relay" \
-      org.opencontainers.image.base.name="docker.io/library/alpine:3.24.2" \
+      org.opencontainers.image.base.name="docker.io/library/alpine:3.24.3" \
       org.torproject.lyrebird.revision="${LYREBIRD_REVISION}" \
       org.opencontainers.image.revision="${SOURCE_REVISION}"
 

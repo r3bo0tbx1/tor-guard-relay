@@ -36,7 +36,7 @@ Current source version: <!-- RELAY_VERSION -->v2.2.0<!-- /RELAY_VERSION -->.
 | 🏗️ Build-once release gates | Validate all four candidates before promoting their exact images | [Release process](scripts/release/README.md) |
 | 🛡️ Independent security updates | Reviewed Lyrebird pins, direct/indirect Go fixes and six-hour read-only scans | [Security policy](SECURITY.md) |
 
-**Stable runtime:** Alpine 3.24.2 pinned by digest. **Builder:** Go 1.27.3. The independent lock includes Pion STUN 3.1.7 and `klauspost/compress` 1.20.3. Both variants enforce the Tor floor.
+**Stable runtime:** Alpine 3.24.3 pinned by digest. **Builder:** Go 1.27.3. The independent lock includes Pion STUN 3.1.7 and `klauspost/compress` 1.20.3. Both variants enforce the Tor floor.
 
 Generated torrc is regenerated from ENV on restart. Persist operator changes in deployment ENV or mount a torrc. Verify an encrypted backup and compare fingerprints before a real upgrade; never activate two copies of one relay identity.
 
@@ -184,7 +184,7 @@ Each current tag supports AMD64 and ARM64. Retired container versions can be rem
 
 ### Stable Variant (Recommended)
 
-**Base:** Alpine 3.24.2 | **Recommended for:** Production relays
+**Base:** Alpine 3.24.3 | **Recommended for:** Production relays
 
 - ✅ Battle-tested Alpine stable release
 - ✅ Weekly automated rebuilds with latest security patches
@@ -719,22 +719,21 @@ Found a vulnerability? See our [Security Policy](SECURITY.md) for responsible di
 
 ### Updates
 
-Images are automatically rebuilt on separate schedules to include security patches:
+The shared workflow rebuilds both variants for AMD64 and ARM64 every Sunday at 18:30 UTC and on days 1, 4, 7, … of each month at 12:00 UTC. Each run captures an immutable `main` commit, validates all four candidates, then publishes their exact images.
 
 **Stable Variant** (`:latest`)
-- **Schedule:** Every Sunday at 18:30 UTC
-- **Includes:** Latest Tor + Alpine 3.24.2 updates
-- **Strategy:** Rebuilds the latest release source (e.g., `v2.1.0`) with updated packages
-- **Tags Updated:** `:latest` and version tags (e.g., `:2.1.0`)
+- **Schedule:** Both shared schedules above
+- **Includes:** Latest Tor + Alpine 3.24.3 updates
+- **Strategy:** Rebuilds the captured `main` source with updated packages
+- **Tags Updated:** `:latest` and the current release version in both registries
 
 **Edge Variant** (`:edge`)
-- **Schedule:** Every 3 days at 12:00 UTC (independent schedule)
+- **Schedule:** Both shared schedules above
 - **Includes:** Latest Tor + Alpine edge (bleeding-edge) updates
-- **Strategy:** Rebuilds the latest release source (e.g., `v2.1.0`) against Alpine edge
-- **Tags Updated:** `:edge` and version tags (e.g., `:2.1.0-edge`)
-- **Frequency:** ~2-3x more frequent updates than stable
+- **Strategy:** Rebuilds the same captured `main` source against Alpine edge
+- **Tags Updated:** Docker Hub `:edge`; GHCR `:edge` and the current release's `-edge` tag
 
-All images auto-published to Docker Hub and GitHub Container Registry
+For a manual rebuild, select `main`, leave `source_tag` empty and enable `publish`. An explicit `source_tag` instead rebuilds that exact release. A source merge alone does not replace published images or running relays. See the [release procedure](scripts/release/README.md) for validation and publication details.
 
 ---
 
@@ -766,7 +765,7 @@ All images auto-published to Docker Hub and GitHub Container Registry
 [![GitHub Stars](https://img.shields.io/github/stars/r3bo0tbx1/tor-guard-relay?style=for-the-badge&logo=github&logoColor=white&label=Stars&labelColor=0a0a0a&color=f5c542)](https://github.com/r3bo0tbx1/tor-guard-relay)
 [![Open Issues](https://img.shields.io/github/issues/r3bo0tbx1/tor-guard-relay?style=for-the-badge&logo=github&logoColor=white&label=Open%20Issues&labelColor=0a0a0a&color=d73a49)](https://github.com/r3bo0tbx1/tor-guard-relay/issues)
 
-**Current Version:** v2.1.0<br>
+**Current Version:** <!-- RELAY_VERSION -->v2.2.0<!-- /RELAY_VERSION --><br>
 **Image Size:** variant-dependent image size<br>
 **Registry Cleanup:** Retention review • Explicit tag-only maintenance • Rollback manifests preserved<br>
 **Registries:** Docker Hub • GHCR

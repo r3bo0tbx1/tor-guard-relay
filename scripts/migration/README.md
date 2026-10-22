@@ -259,10 +259,10 @@ Next Steps:
 **Solution:**
 ```bash
 # Manually fix ownership
-docker run --rm -v <volume-name>:/data alpine:3.24.2 chown -R 100:101 /data
+docker run --rm -v <volume-name>:/data alpine:3.24.3 chown -R 100:101 /data
 
 # Verify
-docker run --rm -v <volume-name>:/data alpine:3.24.2 ls -ldn /data
+docker run --rm -v <volume-name>:/data alpine:3.24.3 ls -ldn /data
 # Should show: drwx------ 5 100 101 ...
 ```
 
@@ -380,7 +380,7 @@ If you encounter issues:
 
 1. **Check logs:** `docker logs tor-bridge`
 2. **Run diagnostics:** `docker exec tor-bridge status`
-3. **Verify volume:** `docker run --rm -v <volume>:/data alpine:3.24.2 ls -la /data`
+3. **Verify volume:** `docker run --rm -v <volume>:/data alpine:3.24.3 ls -la /data`
 4. **Check FAQ:** See docs/FAQ.md for common issues
 5. **Review architecture:** See docs/ARCHITECTURE.md for technical details
 

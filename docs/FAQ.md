@@ -43,14 +43,14 @@ Use the host [encrypted backup command](BACKUP.md), verify the full archive and 
 - **Exit relay** - Last hop (requires legal preparation)
 - **Bridge relay** - Helps users bypass censorship (obfs4 support)
 
-Built on Alpine Linux 3.24.2 with a minimal 20MB image size, busybox-only tools, and weekly automated security rebuilds.
+Built on Alpine Linux 3.24.3 with a minimal 20MB image size, busybox-only tools, and weekly automated security rebuilds.
 
 ### What makes this different from the official Tor images?
 
 | Feature | This Project | Official Images |
 |---------|--------------|-----------------|
 | **Image size** | ~variant-dependent image size | ~100+ MB |
-| **Base** | Alpine 3.24.2 | Debian |
+| **Base** | Alpine 3.24.3 | Debian |
 | **Built-in tools** | 7 busybox tools + JSON API and safe torrc reloads | None |
 | **Multi-mode** | Guard/Exit/Bridge in one image | Separate images |
 | **Weekly rebuilds** | ✅ Automated | ❌ Manual |
@@ -318,10 +318,10 @@ docker logs tor-bridge | grep "bridge line"
 **Fix:**
 ```bash
 # Alpine uses UID 100 (tor user)
-docker run --rm -v tor-data:/data alpine:3.24.2 chown -R 100:101 /data
+docker run --rm -v tor-data:/data alpine:3.24.3 chown -R 100:101 /data
 
 # Verify fix
-docker run --rm -v tor-data:/data alpine:3.24.2 ls -ldn /data
+docker run --rm -v tor-data:/data alpine:3.24.3 ls -ldn /data
 # Should show: drwx------ X 100 101 ...
 ```
 
@@ -518,7 +518,7 @@ docker exec tor-relay fingerprint
 
 **Security features:**
 - ✅ Non-root execution (tor user, UID 100, GID 101)
-- ✅ Ultra-minimal image (~variant-dependent image size, Alpine 3.24.2)
+- ✅ Ultra-minimal image (~variant-dependent image size, Alpine 3.24.3)
 - ✅ Busybox-only (no bash, python, or unnecessary binaries)
 - ✅ No exposed monitoring ports (diagnostics via `docker exec` only)
 - ✅ Weekly automated security rebuilds (Sundays 18:30 UTC)

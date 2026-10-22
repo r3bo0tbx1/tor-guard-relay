@@ -1,9 +1,11 @@
 #!/usr/bin/env node
 // Exercise Renovate itself: rule order and advisory overrides matter as much as schema validity.
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { execFileSync } from 'node:child_process';
 
 const renovateRoot = process.argv[2];
 assert(renovateRoot, 'Usage: node scripts/testing/check-renovate.mjs /path/to/node_modules/renovate');
@@ -23,6 +25,10 @@ const { get } = await load('modules/versioning/index.js');
 const { filterVersions } = await load('workers/repository/process/lookup/filter.js');
 const { applyVulnerabilityFixFilter } = await load('workers/repository/process/lookup/vulnerability.js');
 const { Vulnerabilities } = await load('workers/repository/process/vulnerabilities.js');
+const { extractPackageFile } = await load('modules/manager/custom/regex/index.js');
+const { matchRegexOrGlobList } = await load('util/string-match.js');
+const { doAutoReplace } = await load('workers/repository/update/branch/auto-replace.js');
+const { GlobalConfig } = await load('config/global.js');
 
 const raw = await readJson(path.join(root, '.github/renovate.json'));
 const { config: resolved } = await resolveConfigPresets(raw);
@@ -141,4 +147,58 @@ assert.equal(config.vulnerabilityAlerts.enabled, true);
 assert.equal(config.commitMessageAction, 'update');
 assert(!config.postUpdateOptions.includes('gomodTidy'), 'Do not tidy the source-less lock directory');
 checked('Security monitoring, lowercase summaries and source-aware lock maintenance retained');
+
+const alpineManagers = raw.customManagers.filter(manager => manager.depNameTemplate === 'alpine');
+assert.equal(alpineManagers.length, 2, 'Track current Alpine references and the OCI label separately');
+const alpineVersion = (await readFile('Dockerfile', 'utf8')).match(/^FROM alpine:(\d+\.\d+\.\d+)/m)[1];
+const nextAlpine = alpineVersion.replace(/\d+$/, patch => Number(patch) + 1);
+const trackedFiles = execFileSync('git', ['ls-files', '--cached', '--others', '--exclude-standard'],
+  { encoding: 'utf8' }).trim().split('\n');
+const covered = new Set();
+const alpineScratch = await mkdtemp(path.join(tmpdir(), 'relay-renovate-alpine-'));
+GlobalConfig.set({ localDir: alpineScratch });
+try {
+  for (const file of new Set(trackedFiles)) {
+    if (!/\.(?:md|sh|ya?ml|json)$/.test(file) && file !== 'Dockerfile') continue;
+    const text = await readFile(file, 'utf8');
+    const history = file === 'CHANGELOG.md' || file.startsWith('docs/releases/');
+    for (const manager of alpineManagers) {
+      const matches = matchRegexOrGlobList(file, manager.managerFilePatterns);
+      if (history) assert.equal(matches, false, `${file}: historical facts must not be proposed for update`);
+      if (!matches) continue;
+      const extracted = extractPackageFile(text, file, manager);
+      if (!extracted) continue;
+      let updated = text;
+      for (const [depIndex, dep] of extracted.deps.entries()) {
+        assert.equal(dep.currentValue, alpineVersion, `${file}: current Alpine reference drifted`);
+        const rule = await applyPackageRules({ ...config, manager: 'custom.regex', ...dep,
+          packageName: dep.packageName ?? dep.depName,
+          packageFile: file, updateType: 'patch' }, 'update-type');
+        assert.equal(rule.groupName, '🐳 Alpine Base Image');
+        assert.equal(rule.groupSingleUpdates, true);
+        assert.equal(rule.automerge, false);
+        updated = await doAutoReplace({ ...config, ...manager, ...extracted, ...dep,
+          // Renovate's update worker uses the internal, unprefixed manager name.
+          manager: 'regex', packageFile: file, depIndex, newValue: nextAlpine }, updated, false);
+        assert.equal(typeof updated, 'string', `${file}: Renovate must produce a real replacement`);
+      }
+      const after = extractPackageFile(updated, file, manager);
+      assert.equal(after.deps.length, extracted.deps.length, `${file}: preserve every reference`);
+      assert(after.deps.every(dep => dep.currentValue === nextAlpine), `${file}: update every occurrence`);
+      if (file === 'Dockerfile') {
+        assert.equal(updated.match(/^FROM alpine:.*$/m)[0], text.match(/^FROM alpine:.*$/m)[0],
+          'The custom manager updates only metadata; the Dockerfile manager owns FROM and its digest');
+      }
+      covered.add(file);
+    }
+    if (!history && /(?:alpine:|Alpine(?: Linux)? )\d+\.\d+\.\d+/.test(text)) {
+      assert(covered.has(file), `${file}: no Renovate manager covers this current Alpine reference`);
+    }
+  }
+} finally {
+  await rm(alpineScratch, { recursive: true, force: true });
+}
+assert(covered.has('README.md') && covered.has('SECURITY.md') && covered.has('Dockerfile'));
+checked(`Alpine base metadata and ${covered.size - 1} current files share reviewed, working replacements`);
+checked('Alpine automation preserves historical release notes and changelog records');
 console.log(`🧅 ${checks} Renovate behavior checks passed with ${installed.version}`);
