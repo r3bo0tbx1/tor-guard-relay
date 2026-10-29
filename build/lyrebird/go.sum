@@ -221,6 +221,7 @@ gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/ptutil v0.0.0-202
 gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/snowflake/v2 v2.15.1 h1:QUVDPSkMrvdKlBnDuAFvN2WgqwueU6MoV11c51CpcFg=
 gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/snowflake/v2 v2.15.1/go.mod h1:LIfwK5C1dPDFrrldJMIX9Sk1XSoc09IpKmoaYIRTQHs=
 gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/snowflake/v2 v2.15.2/go.mod h1:2i5odtYaKNWdhq2gslsymHkpkMCyi4gf/AP6ZxaALZM=
+gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/snowflake/v2 v2.15.3/go.mod h1:2i5odtYaKNWdhq2gslsymHkpkMCyi4gf/AP6ZxaALZM=
 gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/webtunnel v0.0.7 h1:c7PutWnnXJytefsiENNo+iq2qAbE2RfUbggGtnnmuAA=
 gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/webtunnel v0.0.7/go.mod h1:GlxU1bY/uoCOkbMJpmsiynfU20eL36CGitONPa3Z2gs=
 go.yaml.in/yaml/v3 v3.0.5 h1:N6y/pJk8buWs9NY5ERU2HSMfm+IuD/OtfdAnq6kESPw=
