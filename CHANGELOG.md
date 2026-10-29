@@ -6,6 +6,7 @@ Current source: <!-- RELAY_VERSION -->v2.2.0<!-- /RELAY_VERSION -->. Historical 
 
 ### 🛡️ Security and dependency maintenance
 
+- Keep validator Node proposals within the pinned Renovate engine range. Batch routine validator branch creation into a weekly window while retaining updates to open PRs, immediate review of received security alerts and the existing runtime-dependency update schedules. Verify the actual workflow extraction, runtime compatibility and schedule boundaries with the pinned Renovate engine.
 - Update the stable Alpine base to 3.24.3 with its reviewed digest and synchronize current examples and OCI metadata. Track those references in the same Renovate group; preserve published release notes and changelog dependency records during version synchronization.
 - Correct the README's rebuild schedules, main-source selection and current version; keep exact-tag rebuilds available for explicit release reproduction.
 - Update both digest-pinned Go builders to 1.27.3 for [GO-2026-6809](https://pkg.go.dev/vuln/GO-2026-6809), which affects certificate verification in the transport's reachable standard-library graph. Keep symbol-level security gates blocking vulnerable candidates.

@@ -21,6 +21,14 @@ Renovate proposes a reviewed pin update. Go fixes can update the independent loc
 
 Use the host [encrypted backup command](BACKUP.md), verify the full archive and rehearse restore into a new staging directory. Keep age private identities separately from ciphertext and preserve external master keys through their own encrypted custody procedure.
 
+### Why does Renovate open another validator PR after I merge one?
+
+Renovate updates an existing open PR for the same dependency and major version. A merged PR is finished; a later version needs a new PR. The version in `build/security-tools.json` pins the validator used by CI, independently of the hosted Renovate bot.
+
+Routine validator branches can be created on Mondays from 00:00 until 04:00 UTC. Existing open PRs remain eligible for updates and rebases between those windows. This reduces creation churn; it does not impose a strict one-PR-per-week limit if you merge during the window and another release becomes available. Received security alerts bypass the routine schedule and still require review. The rule does not delay Go, Alpine or source-pin updates.
+
+The validator's Node runtime follows its declared engine range. Node 26 is excluded while the pinned Renovate release requires `^24.11.0`; review the pin, runtime and compatibility rule together before changing that range. CI checks the rule against the actual installed validator package. Neither these updates nor the hosted bot patch a running relay.
+
 ---
 
 ## 📋 Table of Contents
