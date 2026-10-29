@@ -91,6 +91,26 @@
       "prPriority": 5
     },
     {
+      "description": "Batch routine validator upgrades while keeping an existing PR up to date",
+      "matchManagers": ["custom.regex"],
+      "matchDatasources": ["npm"],
+      "matchPackageNames": ["renovate"],
+      "schedule": ["* 0-3 * * 1"],
+      "updateNotScheduled": true,
+      "automerge": false
+    },
+    {
+      "description": "Review received validator security alerts without the routine creation window",
+      "matchManagers": ["custom.regex"],
+      "matchDatasources": ["npm"],
+      "matchPackageNames": ["renovate"],
+      "matchJsonata": ["isVulnerabilityAlert = true"],
+      "schedule": ["at any time"],
+      "prCreation": "immediate",
+      "minimumReleaseAge": "0 days",
+      "automerge": false
+    },
+    {
       "matchPackageNames": ["regclient/regclient"],
       "prBodyNotes": ["Review the regctl release and update linux-amd64-sha256 from its verified release asset before merging. A stale checksum deliberately blocks installation and the registry rehearsal."],
       "automerge": false
@@ -123,6 +143,13 @@
       "labels": ["dependencies", "github-actions"],
       "schedule": ["before 3am on monday"],
       "automerge": true
+    },
+    {
+      "description": "The pinned Renovate validator requires Node ^24.11.0; review both before a runtime major upgrade",
+      "matchManagers": ["github-actions"],
+      "matchFileNames": [".github/workflows/validate.yml"],
+      "matchDepNames": ["node"],
+      "allowedVersions": "^24.11.0"
     },
     {
       "description": "Review the independently maintained Go graph as one update batch",

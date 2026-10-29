@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { execFileSync } from 'node:child_process';
+import { createRequire } from 'node:module';
 
 const renovateRoot = process.argv[2];
 assert(renovateRoot, 'Usage: node scripts/testing/check-renovate.mjs /path/to/node_modules/renovate');
@@ -29,6 +30,14 @@ const { extractPackageFile } = await load('modules/manager/custom/regex/index.js
 const { matchRegexOrGlobList } = await load('util/string-match.js');
 const { doAutoReplace } = await load('workers/repository/update/branch/auto-replace.js');
 const { GlobalConfig } = await load('config/global.js');
+const { extractPackageFile: extractActions } = await load('modules/manager/github-actions/extract.js');
+const { isScheduledNow, hasValidSchedule } = await load('workers/repository/update/branch/schedule.js');
+const requireRenovate = createRequire(path.resolve(renovateRoot, 'package.json'));
+const semver = requireRenovate('semver');
+const luxonPackage = requireRenovate.resolve('luxon/package.json');
+const luxon = await readJson(luxonPackage);
+// Renovate imports the ESM clock; Luxon's CommonJS clock is a separate instance.
+const { Settings } = await import(pathToFileURL(path.resolve(path.dirname(luxonPackage), luxon.exports['.'].import)).href);
 
 const raw = await readJson(path.join(root, '.github/renovate.json'));
 const { config: resolved } = await resolveConfigPresets(raw);
@@ -59,6 +68,68 @@ const filtered = (dependency, versions) => filterVersions(
 
 let checks = 0;
 function checked(message) { checks++; console.log(`✅ ${message}`); }
+
+GlobalConfig.set({ localDir: root });
+const workflow = '.github/workflows/validate.yml';
+const extractedActions = await extractActions(await readFile(workflow, 'utf8'), workflow, config);
+const nodeDependencies = extractedActions.deps.filter(dep => dep.depName === 'node');
+assert.equal(nodeDependencies.length, 1, 'Extract the validator runtime from the actual workflow');
+const nodeDependency = await evaluate({ ...config, ...nodeDependencies[0],
+  manager: 'github-actions', packageFile: workflow, updateType: 'major' });
+assert(semver.satisfies(process.versions.node, installed.engines.node), 'Run with a supported validator runtime');
+assert(nodeDependency.allowedVersions, 'Keep a compatibility constraint on the validator runtime');
+assert(semver.subset(nodeDependency.allowedVersions, installed.engines.node),
+  'Review the Node rule when the pinned validator changes its engines requirement');
+const nodeVersions = get(nodeDependencies[0].versioning ?? 'node');
+assert(nodeVersions.matches(process.versions.node, nodeDependency.allowedVersions));
+assert(!nodeVersions.matches('26.13.0', nodeDependency.allowedVersions),
+  'The unsupported Node 26 proposal must not be offered for this validator');
+checked('Actual workflow runtime updates stay within the pinned validator engine requirement');
+const otherNode = await evaluate({ ...config, ...nodeDependencies[0],
+  manager: 'github-actions', packageFile: '.github/workflows/unrelated.yml', updateType: 'major' });
+assert.equal(otherNode.allowedVersions, undefined, 'Do not constrain unrelated Node workflows');
+checked('Validator runtime restriction does not affect unrelated Node dependencies');
+
+const validatorInput = { ...config, manager: 'custom.regex', datasource: 'npm',
+  packageFile: 'build/security-tools.json', depName: 'renovate', packageName: 'renovate',
+  currentValue: tools.renovate, currentVersion: tools.renovate };
+const validator = await evaluate({ ...validatorInput, updateType: 'patch' });
+assert.deepEqual(validator.schedule, ['* 0-3 * * 1']);
+assert.equal(hasValidSchedule(validator.schedule)[0], true);
+assert.equal(validator.updateNotScheduled, true);
+assert.equal(validator.rebaseWhen, 'behind-base-branch');
+assert.equal(validator.automerge, false);
+assert.equal(validator.groupName, config.groupName, 'Keep the existing per-major PR identity');
+assert.equal(validator.groupSlug, config.groupSlug);
+const originalNow = Settings.now;
+try {
+  for (const [timestamp, allowed] of [
+    ['2026-11-01T23:59:00Z', false], ['2026-11-02T00:00:00Z', true],
+    ['2026-11-02T03:59:00Z', true], ['2026-11-02T04:00:00Z', false],
+    ['2026-11-03T01:00:00Z', false],
+  ]) {
+    Settings.now = () => Date.parse(timestamp);
+    assert.equal(isScheduledNow(validator), allowed, timestamp);
+  }
+} finally {
+  Settings.now = originalNow;
+}
+checked('Validator creation window has correct UTC boundaries; open PR updates and review stay enabled');
+const validatorAlert = await evaluate({ ...validatorInput, updateType: 'patch', isVulnerabilityAlert: true });
+assert.deepEqual(validatorAlert.schedule, ['at any time']);
+assert.equal(validatorAlert.prCreation, 'immediate');
+assert.equal(validatorAlert.minimumReleaseAge, '0 days');
+assert.equal(validatorAlert.automerge, false);
+checked('Received validator security alerts bypass routine scheduling and still require review');
+for (const dep of [
+  { ...validatorInput, datasource: 'go', depName: 'golang.org/x/vuln', packageName: 'golang.org/x/vuln' },
+  { ...config, manager: 'dockerfile', datasource: 'docker', depName: 'alpine', packageName: 'alpine' },
+]) {
+  const result = await evaluate({ ...dep, updateType: 'patch' });
+  assert.deepEqual(result.schedule, ['at any time']);
+}
+checked('Go security tooling and Alpine updates retain their existing immediate eligibility');
+
 const boundaries = [
   ['github.com/pion/webrtc/v4', 'v4.2.20', 'v4.2.23'],
   ['github.com/pion/ice/v4', 'v4.4.2', 'v4.4.7'],
