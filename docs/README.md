@@ -18,6 +18,7 @@ Examples in this checkout describe v2.2.0. Published availability is stated in t
 | Test | [Local testing](LOCAL-TESTING.md) | Fixtures and offline recovery |
 | Release | [Release scripts](../scripts/release/README.md) | Local checks and curated notes |
 | Review v2.2.0 | [Release notes](releases/v2.2.0.md) | Security, changes and upgrade steps |
+| Prepare v2.2.1 | [Tor 0.4.9.15 upgrade](releases/v2.2.1.md) | DoS defenses, consensus defaults and the authenticated source-build gate |
 
 ## 📜 Historical records
 

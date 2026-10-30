@@ -5,9 +5,17 @@ Guide to monitoring your Tor Guard Relay with external tools. The >=v1.1.1 ultra
 ---
 
 > [!IMPORTANT]
-> 🧅 **v2.2.0 release candidate:** Tor must be **0.4.9.14 or newer**. Current-run health, validated configuration and encrypted recovery are described in the [release notes](releases/v2.2.0.md). Recreate from the validated image to update Tor; changing torrc alone does not upgrade the binary.
+> 🧅 **v2.2.1 preparation:** Tor must be **0.4.9.15 or newer**. Review the [release and torrc migration notes](releases/v2.2.1.md); Tor is built from authenticated upstream source on each matching Alpine base; publication requires all candidate gates. Recreate from the validated image to update Tor; changing torrc alone does not upgrade the binary.
 
 ## 🆕 Current-run health and fleet metrics
+
+### 🛡️ Tor 0.4.9.15 directory-request defenses
+
+Observe DoS refusals in Tor's notice/heartbeat output. If you already operate a privately bound MetricsPort, the new counters use `tor_relay_dos_total` with `type="begindir_rate_rejected"`, `type="begindir_rejected"` and `type="begindir_hsdir_rejected"`. They describe refused requests, not overall attack volume or readiness. Continued high CPU or circuit creation is still possible after upgrading.
+
+Leave the new rate-limit options unset for consensus control. No MetricsPort listener is enabled or exposed by this update, and health JSON fields are unchanged. See the [v2.2.1 operator notes](releases/v2.2.1.md) before changing temporary `DirCache 0` workarounds.
+
+### 🔎 Current-run observations
 
 ```sh
 docker exec tor-relay health | jq '{liveness, config_valid, readiness, fresh, reason, bootstrap, reachable}'

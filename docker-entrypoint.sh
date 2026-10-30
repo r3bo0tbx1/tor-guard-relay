@@ -67,8 +67,9 @@ cleanup_and_exit() {
 }
 
 startup_banner() {
+  inspect_build_version
   log "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-  log "🧅 Tor Guard Relay v2.2.0 - Initialization"
+  log "🧅 Tor Guard Relay v${BUILD_VERSION} - Initialization"
   log "https://github.com/r3bo0tbx1/tor-guard-relay"
   log "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
   log ""

@@ -2,7 +2,7 @@
 SPDX-License-Identifier: MIT
 
 > [!IMPORTANT]
-> 🧅 **v2.2.0 release candidate:** Tor must be **0.4.9.14 or newer**. Current-run health, validated configuration and encrypted recovery are described in the [release notes](docs/releases/v2.2.0.md). Recreate from the validated image to update Tor; changing torrc alone does not upgrade the binary.
+> 🧅 **v2.2.1 preparation:** Tor must be **0.4.9.15 or newer**. Review the [release and torrc migration notes](docs/releases/v2.2.1.md); Tor is built from authenticated upstream source on each matching Alpine base; publication requires all candidate gates. Recreate from the validated image to update Tor; changing torrc alone does not upgrade the binary.
 
 ## Scope
 
@@ -13,12 +13,12 @@ Issues related to the Tor network itself should be reported directly to [The Tor
 
 ## Supported Versions
 
-Only the latest published release receives maintenance. v2.2.0 is the prepared candidate; confirm its actual publication before upgrading. Historical tags remain useful as recorded rollback material, not supported targets.
+Only the latest published release receives maintenance. v2.2.0 is the last published release; v2.2.1 is in local preparation. Confirm replacement image digests before upgrading. Historical tags remain useful as recorded rollback material, not supported targets.
 
 | Version | Status |
 | --- | --- |
 | Latest published release | ✅ Supported |
-| v2.2.0 candidate | 🧪 Locally validated; publication is a separate gate |
+| v2.2.1 preparation | 🧪 Source/image validation and publication are separate gates |
 | Older releases | 📜 Historical / unsupported |
 
 ---
@@ -30,7 +30,7 @@ Only the latest published release receives maintenance. v2.2.0 is the prepared c
 - Affects `github.com/pion/stun/v3` versions through v3.1.4. Affected Lyrebird builds link the vulnerable v3.0.0 release through Snowflake and Pion ICE.
 - When the STUN/ICE parsing path is used, a malformed `XOR-MAPPED-ADDRESS` attribute can remotely trigger a panic and denial of service. The normal obfs4 server path does not exercise this code, but the vulnerable component remains linked into the Lyrebird binary.
 - Remediation is **image-level**: stable and edge builds now explicitly update Pion STUN to v3.1.5 or later when compiling Lyrebird.
-- Fix status: prepared for the next patch release. The current stable version remains v2.1.0 until that release is published.
+- Fix status: shipped in v2.2.0. Verify the linked transport and current image assessments rather than relying on a tag alone.
 
 ### [CVE-2026-31789](https://nvd.nist.gov/vuln/detail/CVE-2026-31789) (OpenSSL / Alpine package)
 
@@ -270,9 +270,11 @@ Only the latest **published** release receives maintenance and scheduled rebuild
 
 ## 🚨 Urgent Tor update
 
-[Tor 0.4.9.14](https://forum.torproject.org/t/security-release-0-4-9-14/22241) addresses high-severity issues affecting clients, onion services, authorities and relays. Update as soon as possible. Detailed issue tickets were initially withheld under upstream's disclosure policy; do not infer undisclosed exploit details.
+The previous [Tor 0.4.9.14 security release](https://forum.torproject.org/t/security-release-0-4-9-14/22241) addressed high-severity issues affecting clients, onion services, authorities and relays. Those fixes remain required; use the newer minimum below. Detailed issue tickets were initially withheld under upstream's disclosure policy; do not infer undisclosed exploit details.
 
-Both Dockerfiles enforce Tor >= 0.4.9.14. Operators must recreate the container from a validated updated image to replace Tor; torrc edits and SIGHUP do not update binaries.
+The next source release requires **Tor >= 0.4.9.15**, upstream's [28 October security release](https://gitlab.torproject.org/tpo/core/tor/-/blob/tor-0.4.9.15/ChangeLog) with directory-request DoS defenses. The authenticated source lock, acceptance and component checks enforce the same minimum; published-image monitoring reports older binaries until replacement digests pass. Both variants build Tor from the same authenticated upstream source, with matching Alpine runtime libraries. The source lock, package provenance and complete candidate security gates must be verified before publication. See the [v2.2.1 preparation and migration notes](docs/releases/v2.2.1.md).
+
+Operators must recreate the container from a validated updated image to replace Tor; torrc edits and SIGHUP do not update binaries. Leave the new rate-limit settings unset for consensus control, and review temporary `DirCache 0` workarounds only after upgrading. The existing `DirPort 0` default remains valid. Mounted configuration and relay identity material are never silently rewritten or replaced by this update.
 
 ## 📦 Dependency policy
 

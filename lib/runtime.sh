@@ -52,8 +52,13 @@ config_valid() {
   [ -r "$TOR_CONFIG" ] && [ -s "$TOR_CONFIG" ] && tor --verify-config -f "$TOR_CONFIG" >/dev/null 2>&1
 }
 inspect_config_paths() {
-  effective_data=$(tor --dump-config short -f "$TOR_CONFIG" 2>/dev/null | awk '$1=="DataDirectory" {sub(/^DataDirectory[[:space:]]+/,""); gsub(/^"|"$/,""); print; exit}')
+  EFFECTIVE_CONFIG=$(tor --dump-config short -f "$TOR_CONFIG" 2>/dev/null || true)
+  effective_data=$(printf '%s\n' "$EFFECTIVE_CONFIG" | awk '$1=="DataDirectory" {sub(/^DataDirectory[[:space:]]+/,""); gsub(/^"|"$/,""); print; exit}')
   [ -z "$effective_data" ] || TOR_DATA_DIR=$effective_data
+}
+inspect_build_version() {
+  BUILD_VERSION=$(awk -F': ' '/^Version:/ {print $2; exit}' "${BUILD_INFO:-/build-info.txt}" 2>/dev/null || true)
+  [ -n "$BUILD_VERSION" ] || BUILD_VERSION=unknown
 }
 inspect_health() {
   LIVE=false; READY=false; CONFIG_VALID=false; FRESH=false
@@ -64,14 +69,14 @@ inspect_health() {
     UPTIME=$(ps -o pid=,etime= | awk -v p="$TOR_PID" '$1==p {print $2; exit}')
     [ -n "$UPTIME" ] || UPTIME=unknown
   else REASON=$PROCESS_REASON; fi
+  inspect_config_paths
   config_source
   if config_valid; then CONFIG_VALID=true; else REASON=config_invalid; fi
   RELAY_MODE=${TOR_RELAY_MODE:-unknown}
   if [ -r "$TOR_CONFIG" ]; then
-    if grep -qi '^BridgeRelay[[:space:]]\+1' "$TOR_CONFIG"; then RELAY_MODE=bridge
-    elif grep -qi '^ExitRelay[[:space:]]\+1' "$TOR_CONFIG"; then RELAY_MODE='exit'; fi
+    if printf '%s\n' "$EFFECTIVE_CONFIG" | grep -qE '^BridgeRelay[[:space:]]+1([[:space:]]|$)'; then RELAY_MODE=bridge
+    elif printf '%s\n' "$EFFECTIVE_CONFIG" | grep -qE '^ExitRelay[[:space:]]+1([[:space:]]|$)'; then RELAY_MODE='exit'; fi
   fi
-  inspect_config_paths
   TOR_LOG=$TOR_LOG_DIR/notices.log
   if [ "$LIVE" = true ] && [ -r "$RELAY_STATE" ] && [ -r "$TOR_LOG" ]; then
     saved_pid=$(awk -F= '$1=="pid" {print $2}' "$RELAY_STATE")
@@ -99,8 +104,7 @@ inspect_health() {
     FINGERPRINT=$(awk 'NR==1 {print $2}' "$TOR_DATA_DIR/fingerprint")
   fi
   TOR_VERSION=$(tor --version 2>/dev/null | head -n 1 | sed 's/^Tor version //;s/\.$//')
-  BUILD_VERSION=$(awk -F': ' '/^Version:/ {print $2; exit}' "${BUILD_INFO:-/build-info.txt}" 2>/dev/null || true)
-  [ -n "$BUILD_VERSION" ] || BUILD_VERSION=unknown
+  inspect_build_version
 }
 health_json() {
   status=down; [ "$LIVE" != true ] || status=up

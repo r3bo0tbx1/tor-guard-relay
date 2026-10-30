@@ -5,7 +5,7 @@ Complete guide to optimizing CPU, memory, bandwidth, and network performance for
 ---
 
 > [!IMPORTANT]
-> 🧅 **v2.2.0 release candidate:** Tor must be **0.4.9.14 or newer**. Current-run health, validated configuration and encrypted recovery are described in the [release notes](releases/v2.2.0.md). Recreate from the validated image to update Tor; changing torrc alone does not upgrade the binary.
+> 🧅 **v2.2.1 preparation:** Tor must be **0.4.9.15 or newer**. Review the [release and torrc migration notes](releases/v2.2.1.md); Tor is built from authenticated upstream source on each matching Alpine base; publication requires all candidate gates. Recreate from the validated image to update Tor; changing torrc alone does not upgrade the binary.
 
 ## 🆕 Current-run health and fleet metrics
 

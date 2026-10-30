@@ -1,48 +1,34 @@
 #!/usr/bin/env python3
-"""Check repository-local Markdown links, images and heading anchors."""
+"""Check local and current-source GitHub documentation links and anchors."""
 from pathlib import Path
 import re
 import subprocess as sp
-from urllib.parse import unquote, urlsplit
+import sys
 
 root = Path(__file__).resolve().parents[2]
-paths = sp.check_output(["git", "-C", str(root), "ls-files", "--cached", "--others", "--exclude-standard"], text=True).splitlines()
-documents = sorted({root / p for p in paths if p.endswith(".md")})
-failures = []
+sys.path.insert(0, str(root / "scripts/release"))
+from markdown_links import local_target, transform_links
 
-def prose(text):
-    return re.sub(r"(?ms)^([~`]{3,})[^\n]*\n.*?^\1[ \t]*$", "", text)
 
-def anchors(path):
-    text = prose(path.read_text(encoding="utf-8"))
-    found = set(re.findall(r'<[^>]+\b(?:id|name)=["\']([^"\']+)', text))
-    counts = {}
-    for heading in re.findall(r"(?m)^#{1,6}\s+(.+?)(?:\s+#+)?$", text):
-        heading = re.sub(r"\[([^]]+)\]\([^)]*\)", r"\1", heading)
-        slug = re.sub(r"[^\w\- ]", "", re.sub(r"<[^>]*>", "", heading).strip().lower()).replace(" ", "-")
-        count = counts.get(slug, 0)
-        found.add(slug if count == 0 else f"{slug}-{count}")
-        counts[slug] = count + 1
-    return found
+def main():
+    paths = sp.check_output(["git", "-C", str(root), "ls-files", "--cached", "--others", "--exclude-standard"], text=True).splitlines()
+    documents = sorted({root / p for p in paths if p.endswith(".md")})
+    version = re.search(r'<!-- RELAY_VERSION -->v(\d+\.\d+\.\d+)<!-- /RELAY_VERSION -->', (root / "README.md").read_text(encoding="utf-8"))
+    if not version:
+        raise SystemExit("Managed project version marker missing")
+    failures = []
+    for document in documents:
+        def check(target):
+            try:
+                local_target(target, document, root, version[1])
+            except ValueError as error:
+                failures.append(f"{document.relative_to(root)}: {error}")
+            return target
+        transform_links(document.read_text(encoding="utf-8"), check)
+    if failures:
+        raise SystemExit("\n".join(sorted(set(failures))))
+    print(f"Validated local and current-source GitHub links, images and anchors in {len(documents)} Markdown documents")
 
-for document in documents:
-    text = prose(document.read_text(encoding="utf-8"))
-    targets = re.findall(r"!?\[[^\n\]]*\]\((<?[^\s]+?>?)(?:\s+[^)]*)?\)", text)
-    targets += re.findall(r'<(?:img|a)\b[^>]*\b(?:src|href)=["\']([^"\']+)', text)
-    for target in targets:
-        target = target.strip("<>")
-        parsed = urlsplit(target)
-        if parsed.scheme or parsed.netloc or target.startswith("//"):
-            continue
-        path = unquote(parsed.path)
-        if any(c in path for c in ("<", ">", "{", "}")):
-            continue
-        resolved = (root / path.lstrip("/")) if path.startswith("/") else document.parent / path
-        resolved = resolved.resolve() if path else document
-        if not resolved.exists():
-            failures.append(f"{document.relative_to(root)}: missing {target}")
-        elif parsed.fragment and resolved.suffix == ".md" and unquote(parsed.fragment) not in anchors(resolved):
-            failures.append(f"{document.relative_to(root)}: missing anchor {target}")
-if failures:
-    raise SystemExit("\n".join(sorted(set(failures))))
-print(f"Validated local links, images and anchors in {len(documents)} Markdown documents")
+
+if __name__ == "__main__":
+    main()

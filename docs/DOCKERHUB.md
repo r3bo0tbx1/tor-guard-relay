@@ -18,13 +18,13 @@
 
 ---
 
-## 🆕 v2.2.0 — safer relay operations and encrypted recovery
+## 🆕 v2.2.1 preparation: Tor directory-request DoS defenses
 
-Current release: <!-- RELAY_VERSION -->v2.2.0<!-- /RELAY_VERSION -->.
+Prepared source: <!-- RELAY_VERSION -->v2.2.1<!-- /RELAY_VERSION -->. Both architectures build Tor 0.4.9.15 from authenticated upstream source; publication requires passing candidate gates. Versioned pull examples below apply after publication; existing aliases alone do not prove an upgraded Tor binary.
 
 | Feature | What it gives you |
 | --- | --- |
-| 🛡️ Tor 0.4.9.14 or newer | Enforced runtime security floor |
+| 🛡️ Tor 0.4.9.15 or newer | Enforced minimum for the prepared update |
 | 🔎 Current-run diagnostics | Health, readiness, `doctor` and redacted config checks |
 | ⚙️ Validated configuration | Atomic changes and reloads that preserve the Tor process |
 | 🔐 Encrypted recovery | Verified backups of config, identity keys and relay state; staged offline restore |
@@ -49,11 +49,11 @@ Retired container tags can be removed while [historical GitHub releases and thei
 
 ```bash
 docker pull r3bo0tbx1/onion-relay:latest
-docker pull r3bo0tbx1/onion-relay:2.2.0
+docker pull r3bo0tbx1/onion-relay:2.2.1
 docker pull r3bo0tbx1/onion-relay:edge
 ```
 
-📦 GHCR additionally provides versioned edge tags, including `ghcr.io/r3bo0tbx1/onion-relay:2.2.0-edge`.
+📦 GHCR additionally provides versioned edge tags, including `ghcr.io/r3bo0tbx1/onion-relay:2.2.1-edge`.
 
 ## 🚀 Deploy with your own relay configuration
 

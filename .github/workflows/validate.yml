@@ -34,7 +34,9 @@ jobs:
           python3 scripts/testing/check-dependency-pins.py
           python3 scripts/testing/check-templates.py
           python3 scripts/testing/check-docs.py
-          shellcheck -S warning -x docker-entrypoint.sh healthcheck.sh lib/*.sh tools/* scripts/utilities/relay-backup.sh scripts/utilities/relay-inventory.sh
+          version=$(python3 scripts/release/check-versions.py --print-version)
+          python3 scripts/release/render-release-notes.py --root . --version "$version" --output "$RUNNER_TEMP/release-notes.md"
+          shellcheck -S warning -x docker-entrypoint.sh healthcheck.sh lib/*.sh tools/* build/tor/build.sh scripts/utilities/relay-backup.sh scripts/utilities/relay-inventory.sh
           python3 -m unittest discover -s tests -v
       - name: 🧰 Install verified registry client
         run: python3 scripts/release/install-regctl.py
@@ -75,7 +77,7 @@ jobs:
   image:
     name: 🐋 Verify ${{ matrix.variant }} / ${{ matrix.arch }}
     needs: source
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.arch == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
     strategy:
       fail-fast: false
       matrix:
@@ -84,10 +86,15 @@ jobs:
     steps:
       - name: 📥 Check out source
         uses: actions/checkout@v7.0.1
-      - name: 🌐 Prepare cross-platform emulation
-        uses: docker/setup-qemu-action@v4.4.0
+      - name: 🧭 Verify native build host
+        env:
+          EXPECTED_ARCH: ${{ matrix.arch }}
+        run: test "$(docker version --format '{{.Server.Arch}}')" = "$EXPECTED_ARCH"
       - name: 🏗️ Prepare image builder
         uses: docker/setup-buildx-action@v4.4.1
+      - name: 🏷️ Read the managed source version
+        id: version
+        run: echo "version=$(python3 scripts/release/check-versions.py --print-version)" >> "$GITHUB_OUTPUT"
       - name: 🐋 Build local candidate image
         uses: docker/build-push-action@v7.4.0
         with:
@@ -98,7 +105,7 @@ jobs:
           push: false
           tags: relay-test:local
           build-args: |
-            BUILD_VERSION=2.2.0-candidate
+            BUILD_VERSION=${{ steps.version.outputs.version }}-candidate
             SOURCE_REVISION=${{ github.sha }}
       - name: 🧪 Image acceptance
         run: |

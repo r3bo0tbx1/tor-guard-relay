@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+import shutil
 
 ROOT = Path(__file__).resolve().parents[1]
 path = ROOT / "scripts/testing/security_policy.py"
@@ -71,12 +72,35 @@ class SecurityGateTests(unittest.TestCase):
 
 
 class DependencyPinTests(unittest.TestCase):
+    def test_mismatched_source_builder_or_missing_source_install_is_rejected(self):
+        spec = importlib.util.spec_from_file_location('pins', ROOT / 'scripts/testing/check-dependency-pins.py')
+        pins = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(pins)
+        for change in ('base', 'package', 'source'):
+            with self.subTest(change=change), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                shutil.copytree(ROOT / 'build/tor', root / 'build/tor')
+                for name in ('Dockerfile', 'Dockerfile.edge'):
+                    (root / name).write_text((ROOT / name).read_text())
+                edge = root / 'Dockerfile.edge'
+                text = edge.read_text()
+                if change == 'base':
+                    text = text.replace('FROM alpine:edge AS tor-builder', 'FROM alpine:3.24.3 AS tor-builder')
+                elif change == 'package':
+                    text = text.replace('apk add --no-cache /tmp/tor-package/tor-*.apk', 'apk add --no-cache tor')
+                else:
+                    text = text.replace('RUN sh /build/tor/build.sh', 'RUN true')
+                edge.write_text(text)
+                with self.assertRaises(ValueError):
+                    pins.inspect_pins(root)
+
     def test_source_metadata_or_variant_pin_drift_is_rejected(self):
         spec = importlib.util.spec_from_file_location('pins', ROOT / 'scripts/testing/check-dependency-pins.py')
         pins = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(pins)
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
+            shutil.copytree(ROOT / 'build/tor', root / 'build/tor')
             for name in ['Dockerfile', 'Dockerfile.edge']:
                 (root / name).write_text((ROOT / name).read_text())
             original = pins.inspect_pins(root)['lyrebird_revision']

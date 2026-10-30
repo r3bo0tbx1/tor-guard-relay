@@ -92,8 +92,17 @@ jobs:
           python3 scripts/testing/check-dependency-pins.py
           python3 scripts/testing/check-docs.py
           python3 scripts/testing/check-templates.py
-          shellcheck -S warning -x docker-entrypoint.sh healthcheck.sh lib/*.sh tools/* scripts/utilities/relay-backup.sh scripts/utilities/relay-inventory.sh
+          shellcheck -S warning -x docker-entrypoint.sh healthcheck.sh lib/*.sh tools/* build/tor/build.sh scripts/utilities/relay-backup.sh scripts/utilities/relay-inventory.sh
           python3 -m unittest discover -s tests -v
+
+      - name: 📝 Check release-note links before candidate builds
+        env:
+          VERSION: ${{ needs.source.outputs.version }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          python3 .release-policy/scripts/release/render-release-notes.py \
+            --root .release-source --version "$VERSION" \
+            --repository "$REPOSITORY" --output "$RUNNER_TEMP/release-notes.md"
 
       - name: 📋 Record workflow outcome
         if: always()
@@ -114,7 +123,7 @@ jobs:
   candidate:
     name: 🏗️ Build and verify candidates
     needs: [source, source-validation]
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.arch == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
     strategy:
       fail-fast: false
       matrix:
@@ -133,8 +142,10 @@ jobs:
           SOURCE_SHA: ${{ needs.source.outputs.sha }}
           POLICY_SHA: ${{ needs.source.outputs.policy_sha }}
         run: python3 scripts/release/prepare-source.py --source "$SOURCE_SHA" --policy "$POLICY_SHA"
-      - name: 🌐 Prepare cross-platform emulation
-        uses: docker/setup-qemu-action@v4.4.0
+      - name: 🧭 Verify native build host
+        env:
+          EXPECTED_ARCH: ${{ matrix.arch }}
+        run: test "$(docker version --format '{{.Server.Arch}}')" = "$EXPECTED_ARCH"
       - name: 🏗️ Prepare image builder
         uses: docker/setup-buildx-action@v4.4.1
       - name: 🔍 Validate source and templates
@@ -204,6 +215,7 @@ jobs:
           IMAGE: relay-candidate:${{ matrix.variant }}-${{ matrix.arch }}
         run: |
           docker image inspect "$IMAGE" > image.json
+          docker run --rm --pull=never --network none --entrypoint cat "$IMAGE" /usr/share/tor/source.json > tor-source.json
           docker save "$IMAGE" -o image.tar
           sha256sum image.tar > image.tar.sha256
       - name: 📎 Retain build evidence
@@ -215,6 +227,7 @@ jobs:
             image.tar
             image.tar.sha256
             image.json
+            tor-source.json
             trivy.json
             govulncheck*.json
             sbom/*.json
@@ -325,12 +338,14 @@ jobs:
           SOURCE_SHA: ${{ needs.source.outputs.sha }}
           POLICY_SHA: ${{ needs.source.outputs.policy_sha }}
         run: python3 scripts/release/prepare-source.py --source "$SOURCE_SHA" --policy "$POLICY_SHA"
-      - name: 📝 Select curated release notes
+      - name: 📝 Validate and render curated release notes
         env:
           VERSION: ${{ needs.source.outputs.version }}
+          REPOSITORY: ${{ github.repository }}
         run: |
-          test -s ".release-source/docs/releases/v$VERSION.md"
-          cp ".release-source/docs/releases/v$VERSION.md" release-notes.md
+          python3 .release-policy/scripts/release/render-release-notes.py \
+            --root .release-source --version "$VERSION" \
+            --repository "$REPOSITORY" --output release-notes.md
       - name: 📥 Download verified evidence
         uses: actions/download-artifact@v8.0.2
         with:

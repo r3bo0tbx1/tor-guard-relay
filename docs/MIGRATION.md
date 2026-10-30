@@ -6,6 +6,14 @@ For **specific v1.1.0 → >=v1.1.1 migration**, see [`MIGRATION-V1.1.X.md`](MIGR
 
 ---
 
+## 🧅 v2.2.0 to v2.2.1: source-built Tor
+
+This update changes how the image obtains Tor, while retaining the Alpine runtime, UID/GID `100:101`, `/usr/bin/tor`, persistent data/config/log paths and diagnostic commands. Tor is compiled from authenticated upstream source and installed as this project's signed APK; Alpine's prebuilt `tor` package is no longer downloaded. GeoIP data, package metadata and runtime library dependencies remain included.
+
+An existing running v2.2.0 container stays on its existing image. Pulling a refreshed `latest` alone does not replace that container; a separately configured updater may recreate it. When recreating from the validated new image, keep the same data volume or bind mount, torrc/includes, Compose ENV, ports and secrets. Preserve the whole DataDirectory, including long-term identity and family keys and bridge `pt_state`. No data conversion, key regeneration or volume deletion is required for the packaging change. Mounted torrc remains operator-owned; ENV-generated torrc is regenerated from the deployment ENV as before.
+
+Before rollout, verify an encrypted backup and follow the [v2.2.1 operator migration checklist](releases/v2.2.1.md#-required-operator-migration). A container replacement restarts Tor; stop the previous container before activating the same identity. People using a fixed `2.2.0` tag or digest must select the new validated version explicitly. Review the Tor 0.4.9.15 operator guidance and any temporary `DirCache 0` workaround; no new mandatory torrc setting is introduced.
+
 ## 📋 General Migration Principles
 
 ### 1. Always Backup First
@@ -100,11 +108,17 @@ Create and verify an [encrypted backup](BACKUP.md), then rehearse restore into a
 
 ## 🚀 Upgrade an existing deployment
 
+### 🧅 Tor 0.4.9.15 security update
+
+All relay and bridge modes should migrate to a validated image containing Tor **0.4.9.15 or newer** as soon as it is published. The [v2.2.1 preparation notes](releases/v2.2.1.md) record the upstream changes and the authenticated source-build gate; a new tag or a configuration reload alone does not establish an upgraded binary.
+
+Leave the four new `DoSBeginDirRateEnabled`, `DoSBeginDirRate`, `DoSBeginDirBurst` and `DoSBeginDirDefenseType` options unset so the network consensus controls them. `DoSBeginDirLimitEnabled` is consensus-only and must not be added to torrc. After upgrading, review removing any temporary `DirCache 0` attack workaround; `DirPort 0` is unrelated and remains supported. Change operator-owned mounted files and includes deliberately, validate before activation, and observe the relay after recreation.
+
 1. Review ENV versus mounted config ownership. Persist lasting changes in the deployment.
 2. Validate torrc and Compose/template syntax.
 3. Stop the old relay and confirm no other writer shares the data.
 4. Recreate with the validated image, retaining the original data and include mounts.
-5. Confirm Tor 0.4.9.14 or newer and the original fingerprint.
+5. Confirm Tor 0.4.9.15 or newer and the original fingerprint.
 6. Check fresh bootstrap evidence and public listeners independently.
 7. Keep the previous image/deployment and backup until the new relay is verified.
 
@@ -334,7 +348,7 @@ sh scripts/utilities/relay-backup.sh verify "$HOME/relay-backups/BACKUP.tar.gz.a
   --identity "$HOME/.config/relay-backup/identity.txt"
 sh scripts/utilities/relay-backup.sh restore "$HOME/relay-backups/BACKUP.tar.gz.age" \
   --identity "$HOME/.config/relay-backup/identity.txt" \
-  --destination "$HOME/relay-restored" --validation-image tor-relay:2.2.0-local
+  --destination "$HOME/relay-restored" --validation-image tor-relay:local
 ```
 
 🔐 Keep the private age identity separately. Restore only to a new staging directory, validate ownership and mounts, and stop the previous relay before activating its identity. The validation image must already exist locally.
@@ -353,9 +367,10 @@ docker exec tor-relay doctor
 | From | To | Guide |
 |------|-----|-------|
 | v1.1.0 | >=v1.1.1 | [MIGRATION-V1.1.X.md](MIGRATION-V1.1.X.md) |
+| v2.2.0 | v2.2.1 | [Source-built Tor](#-v220-to-v221-source-built-tor) and [release checklist](releases/v2.2.1.md#-required-operator-migration) |
 | Official bridge | v1.1.1 | [MIGRATION-V1.1.X.md](MIGRATION-V1.1.X.md) - Path 2 |
 | Future | Future | This document + version-specific guide |
 
 ---
 
-*Last Updated: 2026-10-09*
+*Last Updated: 2026-10-29*

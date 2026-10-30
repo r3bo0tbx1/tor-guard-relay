@@ -327,6 +327,8 @@ class EvidenceTests(unittest.TestCase):
         calls = []
         def call(*args):
             calls.append(args)
+            if args == ('info', '--format', '{{.ID}}'):
+                return 'test-engine'
             if args == ('ps', '-aq'):
                 return 'running\nstopped\nunrelated'
             if args[0] == 'inspect':
@@ -340,6 +342,9 @@ class EvidenceTests(unittest.TestCase):
         self.assertEqual(result['relay_containers'], 2)
         self.assertEqual(len(result['protected_image_ids']), 2)
         self.assertFalse(result['deployment_review_complete'])
+        self.assertEqual(result['schema'], 1)
+        self.assertEqual(result['owner'], 'fixture')
+        self.assertRegex(result['engine_id_sha256'], r'^[0-9a-f]{64}$')
         self.assertTrue(all('exec' not in parts for parts in calls))
         self.assertTrue(all('{{json .}}' not in parts for parts in calls))
 

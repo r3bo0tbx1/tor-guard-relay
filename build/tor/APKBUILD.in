@@ -1,0 +1,29 @@
+# Build only authenticated upstream source supplied by source.py.
+pkgname=tor
+pkgver=@VERSION@
+pkgrel=0
+pkgdesc="Anonymous network connectivity (verified upstream source)"
+url="https://www.torproject.org/"
+arch="all"
+license="BSD-3-Clause AND GPL-3.0-only"
+makedepends="libcap-dev libevent-dev libseccomp-dev openssl-dev xz-dev zlib-dev zstd-dev"
+source="tor-$pkgver.tar.gz"
+
+build() {
+	./configure --prefix=/usr --sysconfdir=/etc --localstatedir=/var \
+		--mandir=/usr/share/man --enable-gpl --disable-html-manual
+	make -j2
+}
+
+check() {
+	make test
+}
+
+package() {
+	make DESTDIR="$pkgdir" install
+	rm -rf "$pkgdir/usr/share/man"
+	install -Dm644 LICENSE "$pkgdir/usr/share/licenses/tor/LICENSE"
+	install -Dm644 "$startdir/source.json" "$pkgdir/usr/share/tor/source.json"
+}
+
+sha512sums="@SHA512@  tor-@VERSION@.tar.gz"

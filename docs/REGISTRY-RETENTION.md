@@ -2,6 +2,8 @@
 
 Docker Hub's repository size includes more than its visible tag list. Replacing `latest`, `edge` or a version tag can leave older image indexes and architecture manifests behind. Deleting a tag does not establish that every old manifest has been removed.
 
+This cleanup targets reviewed old **registry image manifests in Docker Hub and GHCR**. It does not prune Docker caches on relay servers, remove containers or volumes, touch torrc/keys, or delete GitHub release assets. Deployment inventories identify the images that must stay pullable; collecting one does not change a relay.
+
 **An untagged image is not automatically disposable.** Current multi-platform images use untagged AMD64/ARM64 children. Remote deployments can also need an old digest even when no public tag points to it.
 
 ## 🧭 Preview first
@@ -64,11 +66,35 @@ python3 scripts/utilities/relay-image-protection.py --docker docker.exe
 
 An existing remote Docker context can be selected with `--context CONTEXT`. The command only reads container image IDs and narrow image identity fields. It does not read relay ENV, torrc, keys, mounts or logs, and never starts/stops a container.
 
+WSL can inspect a remote engine only through an existing authenticated connection, such as a Docker context over SSH. Installing Docker in WSL creates another local engine; it does not grant access to relay servers. Do not expose an unauthenticated Docker TCP socket. The collector includes a hashed engine identity so that two reports from the same engine cannot count as two servers.
+
 Docker image IDs can represent a config digest or a manifest/index digest, depending on the engine's image store. The planner resolves either form and protects its parent indexes and architecture children. An unresolved deployment identity blocks the plan instead of being silently ignored.
 
 Merge the resulting `protected_image_ids` and `protected_digests` into `build/registry-retention.json`. Only after every deployment host, dormant deployment and planned rollback is accounted for should the maintainer set `deployment_review_complete` to `true` and `deployment_reviewed_at` to the review's UTC timestamp. A local engine with zero relays cannot certify a remote fleet. External users' digest pins are not discoverable from the registry; publish the retention policy before retiring builds they may use.
 
+### 📋 Prepare a fleet-review proposal
+
+The local helper validates one report per distinct engine and only adds protection. For a three-engine fleet, after accounting for dormant deployments and required rollback identities:
+
+```sh
+python3 scripts/release/review-fleet-protection.py \
+  --report /tmp/relay-server-1.json \
+  --report /tmp/relay-server-2.json \
+  --report /tmp/relay-server-3.json \
+  --expected-engines 3 --confirm-complete-fleet \
+  --output /tmp/registry-retention-proposal.json
+git diff --no-index build/registry-retention.json /tmp/registry-retention-proposal.json
+```
+
+Use the actual engine count and reports from the current collector. The helper rejects missing, duplicate, empty, future or more-than-seven-day-old inventories. It uses the **oldest observation** as the review timestamp, so rerunning it cannot renew stale evidence. Reports cover containers, including stopped ones; separately required rollback images must already be protected in the input policy before confirming coverage. Existing digest protection, migration windows and automatic settings remain intact. The helper creates a new proposal file, never overwrites the tracked policy, contacts no registry and deletes nothing.
+
+Review and copy the proposal into the tracked policy only after confirming its evidence. Keep raw reports outside the repository. The existing automatic workflow continues to wait safely until all review and notice requirements pass; the helper does not bypass them or publish a notice.
+
 The policy also explicitly protects the original release's stable and edge parent indexes, identified by comparing their architecture config IDs with the retained release archive. These digest entries are rollback protection, not a release-version setting. Keep them until their retirement is separately reviewed; replacing a public version tag does not retire these protected copies.
+
+### 🔄 After a new project release
+
+Publishing v2.2.1 does not automatically retire v2.2.0 or remove explicit digest protection. Keep the old deployed images and required rollback copies until the replacement has been verified on the fleet. Then collect fresh inventories and review the proposed protection diff. The currently reviewed initial legacy list covers v2.0.0/v2.1.0; expanding that list to another release requires a revised public notice and its full migration window. Routine evidence-backed superseded rebuilds continue through the existing rolling policy.
 
 ## 🍓 ARM64 and other operators
 

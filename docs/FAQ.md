@@ -5,7 +5,7 @@ Common questions about Tor Guard Relay deployment, configuration, and troublesho
 ---
 
 > [!IMPORTANT]
-> 🧅 **v2.2.0 release candidate:** Tor must be **0.4.9.14 or newer**. Current-run health, validated configuration and encrypted recovery are described in the [release notes](releases/v2.2.0.md). Recreate from the validated image to update Tor; changing torrc alone does not upgrade the binary.
+> 🧅 **v2.2.1 preparation:** Tor must be **0.4.9.15 or newer**. Review the [release and torrc migration notes](releases/v2.2.1.md); Tor is built from authenticated upstream source on each matching Alpine base; publication requires all candidate gates. Recreate from the validated image to update Tor; changing torrc alone does not upgrade the binary.
 
 ## 🆕 v2.2.0 operator questions
 
@@ -67,10 +67,10 @@ Built on Alpine Linux 3.24.3 with a minimal 20MB image size, busybox-only tools,
 
 ### Is this production-ready?
 
-**Yes.** Current version is v1.1.3 (Active/Stable). Used in production with:
+Use the latest published, validated images for production. v2.2.1 is currently in preparation; its release requires the full candidate and security gates. The project provides:
 - ✅ Security-hardened (32 vulnerabilities fixed in >=v1.1.1)
 - ✅ Non-root execution (tor user, UID 100)
-- ✅ Weekly automated rebuilds with latest Tor + Alpine patches
+- ✅ Scheduled rebuilds with the reviewed Tor source pin and updated Alpine libraries
 - ✅ Multi-architecture support (AMD64, ARM64)
 - ✅ Comprehensive documentation (11 guides)
 
@@ -438,7 +438,7 @@ Create and verify an [encrypted backup](BACKUP.md), then rehearse restore into a
 2. Validate torrc and Compose/template syntax.
 3. Stop the old relay and confirm no other writer shares the data.
 4. Recreate with the validated image, retaining the original data and include mounts.
-5. Confirm Tor 0.4.9.14 or newer and the original fingerprint.
+5. Confirm Tor 0.4.9.15 or newer and the original fingerprint.
 6. Check fresh bootstrap evidence and public listeners independently.
 7. Keep the previous image/deployment and backup until the new relay is verified.
 
@@ -535,9 +535,9 @@ docker exec tor-relay fingerprint
 - ✅ Comprehensive security audit (32 vulnerabilities fixed in v1.1.1)
 
 **Security updates:**
-- **Weekly rebuilds** pull latest Alpine + Tor patches
+- **Scheduled rebuilds** refresh Alpine libraries and rebuild the reviewed Tor source pin
 - **Same version tag** overwritten with updated packages (e.g., :1.1.1)
-- **No package pinning** - always latest stable Tor from Alpine edge
+- **Reviewed Tor source pin** - upstream monitoring detects stable releases; authenticated pin updates require review and the full candidate matrix
 
 **Verify security:**
 ```bash

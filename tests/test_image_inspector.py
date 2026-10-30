@@ -1,7 +1,11 @@
 """Registry failures may retry; component inspection must still fail closed."""
 import importlib.util
+from contextlib import redirect_stdout
+import io
+import json
 from pathlib import Path
 import subprocess as sp
+import tempfile
 import unittest
 from unittest.mock import Mock, patch
 
@@ -13,6 +17,62 @@ PIN = checker.pins.inspect_pins(ROOT)['go_builder']
 
 
 class InspectorTests(unittest.TestCase):
+    def test_source_provenance_and_binary_must_match_the_reviewed_pin(self):
+        lock = {'version': '0.4.9.15', 'sha256': 'a' * 64,
+                'signing_fingerprint': 'B74417EDDF22AC9F9E90F49142E86A2A11F48D36'}
+        checker.check_tor_source('Tor version 0.4.9.15.\n', lock, lock)
+        for actual, provenance in (('0.4.9.16', lock),
+                                   ('0.4.9.15', {**lock, 'sha256': 'b' * 64}),
+                                   ('0.4.9.15', {**lock, 'signing_fingerprint': 'F' * 40})):
+            with self.subTest(actual=actual, provenance=provenance), self.assertRaises(ValueError):
+                checker.check_tor_source(f'Tor version {actual}.\n', provenance, lock)
+
+    def test_current_policy_requires_tor_security_release(self):
+        floor = checker.pins.inspect_pins(ROOT)['tor_min_version']
+        self.assertGreaterEqual(tuple(map(int, floor.split('.'))), (0, 4, 9, 15))
+
+    def test_tor_floor_rejects_previous_release_and_accepts_exact_or_newer(self):
+        for version in ('0.4.8.99', '0.4.9.14'):
+            with self.assertRaisesRegex(ValueError, 'below the required minimum'):
+                checker.check_tor_version(f'Tor version {version}.\n', '0.4.9.15')
+        for version in ('0.4.9.15', '0.4.9.16', '0.4.10.1'):
+            self.assertEqual(checker.check_tor_version(f'Tor version {version}.\n', '0.4.9.15'), version)
+
+    def test_unidentified_or_prerelease_tor_does_not_satisfy_stable_floor(self):
+        for output in ('', '0.4.9.15', 'Tor version 0.4.9.15-alpha.', 'Tor version 0.4.9.15-dev.',
+                       'Tor version 0.4.9.15.1.'):
+            with self.assertRaisesRegex(ValueError, 'stable Tor version'):
+                checker.check_tor_version(output, '0.4.9.15')
+
+    def test_published_tor_only_mode_checks_binary_without_go_inspector(self):
+        floor = checker.pins.inspect_pins(ROOT)['tor_min_version']
+        output = io.StringIO()
+        with patch.object(checker.sys, 'argv', ['check-image.py', 'fixture:local', '--tor-only']), \
+                patch.object(checker.shutil, 'which', return_value='docker'), \
+                patch.object(checker, 'run', side_effect=[b'amd64\n', f'Tor version {floor}.\n'.encode()]) as run, \
+                patch.object(checker, 'inspect_transport') as transport, redirect_stdout(output):
+            checker.main()
+        self.assertEqual(run.call_count, 2)
+        self.assertEqual(json.loads(output.getvalue())['tor_min_version'], floor)
+        self.assertIn('--network', run.call_args.args)
+        self.assertIn('--pull=never', run.call_args.args)
+        transport.assert_not_called()
+
+    def test_published_old_tor_failure_retains_json_and_actionable_summary(self):
+        output = io.StringIO()
+        with tempfile.TemporaryDirectory() as directory:
+            summary = Path(directory) / 'summary.md'
+            with patch.object(checker.sys, 'argv', ['check-image.py', 'fixture:local', '--tor-only', '--summary', str(summary)]), \
+                    patch.object(checker.shutil, 'which', return_value='docker'), \
+                    patch.object(checker, 'run', side_effect=[b'amd64\n', b'Tor version 0.4.9.14.\n']), \
+                    patch.object(checker, 'inspect_transport') as transport, redirect_stdout(output):
+                with self.assertRaises(SystemExit) as stopped:
+                    checker.main()
+            self.assertEqual(stopped.exception.code, 1)
+            self.assertFalse(json.loads(output.getvalue())['passed'])
+            self.assertIn('below the required minimum', summary.read_text(encoding='utf-8'))
+            transport.assert_not_called()
+
     def test_exact_local_native_pin_needs_no_registry(self):
         with patch.object(checker.sp, 'run', return_value=Mock(returncode=0, stdout='linux/amd64\n')) as run:
             checker.ensure_inspector('docker', PIN, 'linux/amd64')

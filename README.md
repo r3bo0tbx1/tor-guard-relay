@@ -20,12 +20,14 @@
 
 ---
 
-## 🆕 v2.2.0: safer operations and recovery
+## 🆕 v2.2.1 preparation: directory-request DoS defenses
 
-Current source version: <!-- RELAY_VERSION -->v2.2.0<!-- /RELAY_VERSION -->.
+Current source version: <!-- RELAY_VERSION -->v2.2.1<!-- /RELAY_VERSION -->.
 
 > [!IMPORTANT]
-> 🛡️ Tor **0.4.9.14 or newer** is required. **[v2.2.0 is published](https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v2.2.0)** with verified images for both architectures. See the [curated release notes](docs/releases/v2.2.0.md) and verify your own relay after upgrading.
+> 🛡️ This source requires Tor **0.4.9.15 or newer**. **v2.2.1 is prepared, not published**: Tor is built from authenticated upstream source instead of waiting for Alpine’s Tor package. Read the [v2.2.1 upgrade and torrc guidance](docs/releases/v2.2.1.md). The last published project release remains [v2.2.0](https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v2.2.0); its tags alone do not prove which Tor binary a running relay uses.
+
+**📝 torrc:** Leave the new `DoSBeginDirRate*`, `DoSBeginDirBurst` and `DoSBeginDirDefenseType` settings unset so the network consensus controls them. After upgrading, review any temporary `DirCache 0` workaround. Keep `DirPort 0` if it is part of your deployment. The [sample configs](examples/) document this without forcing thresholds.
 
 | Improvement | Operator benefit | Guide |
 | --- | --- | --- |
@@ -36,7 +38,7 @@ Current source version: <!-- RELAY_VERSION -->v2.2.0<!-- /RELAY_VERSION -->.
 | 🏗️ Build-once release gates | Validate all four candidates before promoting their exact images | [Release process](scripts/release/README.md) |
 | 🛡️ Independent security updates | Reviewed Lyrebird pins, direct/indirect Go fixes and six-hour read-only scans | [Security policy](SECURITY.md) |
 
-**Stable runtime:** Alpine 3.24.3 pinned by digest. **Builder:** Go 1.27.3. The independent lock includes Pion STUN 3.1.7 and `klauspost/compress` 1.20.3. Both variants enforce the Tor floor.
+**Stable runtime:** Alpine 3.24.3 pinned by digest. **Builder:** Go 1.27.3. The independent lock includes Pion STUN 3.1.7 and `klauspost/compress` 1.20.3. Both variants build the reviewed [Tor source pin](build/tor/README.md) and enforce its security floor.
 
 Generated torrc is regenerated from ENV on restart. Persist operator changes in deployment ENV or mount a torrc. Verify an encrypted backup and compare fingerprints before a real upgrade; never activate two copies of one relay identity.
 
@@ -194,11 +196,11 @@ Each current tag supports AMD64 and ARM64. Retired container versions can be rem
 ```bash
 # Pull from Docker Hub (easiest)
 docker pull r3bo0tbx1/onion-relay:latest
-docker pull r3bo0tbx1/onion-relay:2.2.0
+docker pull r3bo0tbx1/onion-relay:2.2.1
 
 # Pull from GHCR
 docker pull ghcr.io/r3bo0tbx1/onion-relay:latest
-docker pull ghcr.io/r3bo0tbx1/onion-relay:2.2.0
+docker pull ghcr.io/r3bo0tbx1/onion-relay:2.2.1
 ```
 
 ### Edge Variant (Testing Only)
@@ -217,7 +219,7 @@ docker pull r3bo0tbx1/onion-relay:edge
 
 # Pull from GHCR
 docker pull ghcr.io/r3bo0tbx1/onion-relay:edge
-docker pull ghcr.io/r3bo0tbx1/onion-relay:2.2.0-edge
+docker pull ghcr.io/r3bo0tbx1/onion-relay:2.2.1-edge
 ```
 
 **When to use edge:**
@@ -723,17 +725,19 @@ The shared workflow rebuilds both variants for AMD64 and ARM64 every Sunday at 1
 
 **Stable Variant** (`:latest`)
 - **Schedule:** Both shared schedules above
-- **Includes:** Latest Tor + Alpine 3.24.3 updates
-- **Strategy:** Rebuilds the captured `main` source with updated packages
+- **Includes:** Reviewed Tor source pin + Alpine 3.24.3 library updates
+- **Strategy:** Rebuilds the captured `main` source and authenticated Tor package with updated runtime libraries
 - **Tags Updated:** `:latest` and the current release version in both registries
 
 **Edge Variant** (`:edge`)
 - **Schedule:** Both shared schedules above
-- **Includes:** Latest Tor + Alpine edge (bleeding-edge) updates
+- **Includes:** The same reviewed Tor source pin + Alpine edge library updates
 - **Strategy:** Rebuilds the same captured `main` source against Alpine edge
 - **Tags Updated:** Docker Hub `:edge`; GHCR `:edge` and the current release's `-edge` tag
 
 For a manual rebuild, select `main`, leave `source_tag` empty and enable `publish`. An explicit `source_tag` instead rebuilds that exact release. A source merge alone does not replace published images or running relays. See the [release procedure](scripts/release/README.md) for validation and publication details.
+
+The six-hour **🔒🧅** upstream watch detects stable Tor releases and retains authenticated proposed pins for review. After a compatible Tor update is merged and validated, rebuild the current project version without moving its Git tag. Scheduled rebuilds never adopt an unreviewed floating Tor version. See [Tor source maintenance](build/tor/README.md).
 
 ---
 
@@ -765,7 +769,7 @@ For a manual rebuild, select `main`, leave `source_tag` empty and enable `publis
 [![GitHub Stars](https://img.shields.io/github/stars/r3bo0tbx1/tor-guard-relay?style=for-the-badge&logo=github&logoColor=white&label=Stars&labelColor=0a0a0a&color=f5c542)](https://github.com/r3bo0tbx1/tor-guard-relay)
 [![Open Issues](https://img.shields.io/github/issues/r3bo0tbx1/tor-guard-relay?style=for-the-badge&logo=github&logoColor=white&label=Open%20Issues&labelColor=0a0a0a&color=d73a49)](https://github.com/r3bo0tbx1/tor-guard-relay/issues)
 
-**Current Version:** <!-- RELAY_VERSION -->v2.2.0<!-- /RELAY_VERSION --><br>
+**Source Version:** <!-- RELAY_VERSION -->v2.2.1<!-- /RELAY_VERSION --><br>
 **Image Size:** variant-dependent image size<br>
 **Registry Cleanup:** Retention review • Explicit tag-only maintenance • Rollback manifests preserved<br>
 **Registries:** Docker Hub • GHCR

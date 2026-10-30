@@ -449,11 +449,12 @@ def restore(args):
         after = file_hash(args.archive)
         if after != before: raise ValueError("Archive changed during restore")
         validate_restored_config(destination, manifest, args.validation_image or manifest["image_id"])
+        can_chown = getattr(os, "geteuid", lambda: -1)() == 0
         for p in destination.rglob("*"):
             if p.is_file() and "keys" in p.parts: p.chmod(0o600)
             if p.is_dir(): p.chmod(0o700)
-            if os.geteuid() == 0: os.chown(p, 100, 101)
-        if os.geteuid() == 0: os.chown(destination, 100, 101)
+            if can_chown: os.chown(p, 100, 101)
+        if can_chown: os.chown(destination, 100, 101)
         print(json.dumps({"restored": str(destination), "config_path": manifest["config_path"],
                           "config_valid": True, "activation": "Map config/includes before explicit activation; no relay was started."}))
     except BaseException:

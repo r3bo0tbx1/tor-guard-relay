@@ -79,6 +79,15 @@ class VersionSyncTests(unittest.TestCase):
         self.assertIn("Updated Alpine to 3.24.2.", changelog)
         self.assertIn("<!-- RELAY_VERSION -->v2.3.0<!-- /RELAY_VERSION -->", changelog)
 
+    def test_print_version_has_no_file_mutations_or_status_noise(self):
+        before = (self.root / 'README.md').read_bytes()
+        result = self.run_check('--print-version')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout, '2.2.0\n')
+        self.assertEqual((self.root / 'README.md').read_bytes(), before)
+        invalid = self.run_check('--print-version', '--version', 'invalid')
+        self.assertNotEqual(invalid.returncode, 0)
+
 
 if __name__ == "__main__":
     unittest.main()

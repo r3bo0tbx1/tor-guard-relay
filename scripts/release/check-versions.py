@@ -11,12 +11,17 @@ root = Path(__file__).resolve().parents[2]
 parser = argparse.ArgumentParser()
 parser.add_argument("--write", action="store_true")
 parser.add_argument("--version", help="Update explicit RELAY_VERSION markers and current image references")
+parser.add_argument("--print-version", action="store_true", help="Print the managed source version without changing files")
 args = parser.parse_args()
 if not args.version:
-    marker = re.search(r'<!-- RELAY_VERSION -->v(\d+\.\d+\.\d+)<!-- /RELAY_VERSION -->', (root / "README.md").read_text())
+    marker = re.search(r'<!-- RELAY_VERSION -->v(\d+\.\d+\.\d+)<!-- /RELAY_VERSION -->', (root / "README.md").read_text(encoding="utf-8"))
     if not marker: raise SystemExit("Managed project version marker missing")
     args.version = marker[1]
-source = (root / "Dockerfile").read_text()
+if not re.fullmatch(r"\d+\.\d+\.\d+", args.version): raise SystemExit("Version must be X.Y.Z")
+if args.print_version:
+    print(args.version)
+    raise SystemExit(0)
+source = (root / "Dockerfile").read_text(encoding="utf-8")
 base = re.search(r"^FROM alpine:(\d+\.\d+\.\d+)", source, re.M)
 if not base: raise SystemExit("Stable Alpine FROM missing")
 alpine = base[1]
@@ -31,7 +36,7 @@ for rel in sorted(set(files)):
     if rel.startswith("docs/releases/"):
         checked += 1
         continue
-    text = p.read_text()
+    text = p.read_text(encoding="utf-8")
     # Only the current header/Unreleased section can contain managed project fields.
     history = ""
     if rel == "CHANGELOG.md":
@@ -55,7 +60,7 @@ for rel in sorted(set(files)):
             text = re.sub(r'("cosmos-version":\s*")[^"]+("|$)', r'\g<1>' + args.version + r'\g<2>', text)
             text = re.sub(r'(?m)^(\s+version: )"\d+\.\d+\.\d+"', r'\g<1>"' + args.version + '"', text)
     if text != old:
-        if args.write: p.write_text(text + history, newline="\n"); print("Synchronized", rel)
+        if args.write: p.write_text(text + history, encoding="utf-8", newline="\n"); print("Synchronized", rel)
         else: failures.append(rel)
     checked += 1
 if checked < 23: raise SystemExit("Documentation discovery unexpectedly empty/incomplete")
