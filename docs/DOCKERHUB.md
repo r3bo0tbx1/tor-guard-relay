@@ -20,18 +20,21 @@
 
 ## 🆕 v2.2.1: Tor directory-request DoS defenses
 
-Source version: <!-- RELAY_VERSION -->v2.2.1<!-- /RELAY_VERSION -->. Both architectures build Tor 0.4.9.15 from authenticated upstream source; publication requires passing candidate gates. Use validated published images and verify the running Tor binary after recreating the container; an image alias alone does not establish a successful upgrade.
+Current release: <!-- RELAY_VERSION -->v2.2.1<!-- /RELAY_VERSION -->. Stable and edge images include **Tor 0.4.9.15**, built from authenticated upstream source for **AMD64 and ARM64**. Upgrade existing relays and bridges promptly, recreate the container and verify the running Tor binary.
 
 | Feature | What it gives you |
 | --- | --- |
-| 🛡️ Tor 0.4.9.15 or newer | Enforced minimum for both variants |
+| 🛡️ Tor 0.4.9.15 or newer | Directory-request DoS defenses and an enforced minimum for both variants |
+| 🏗️ Authenticated Tor builds | Verified upstream source packaged as an APK for the matching Alpine base |
 | 🔎 Current-run diagnostics | Health, readiness, `doctor` and redacted config checks |
 | ⚙️ Validated configuration | Atomic changes and reloads that preserve the Tor process |
 | 🔐 Encrypted recovery | Verified backups of config, identity keys and relay state; staged offline restore |
 | 📊 Fleet inventory | Host-side inventory and metrics without an exposed diagnostics port |
-| 🏗️ Verified publication | Both architectures checked before their exact images reach the registries |
+| ✅ Verified publication | Both architectures checked before their exact images reach the registries |
 
-📖 [Latest release notes](https://github.com/r3bo0tbx1/tor-guard-relay/releases/latest) · [Migration guide](https://github.com/r3bo0tbx1/tor-guard-relay/blob/main/docs/MIGRATION.md)
+📖 [v2.2.1 release notes](https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v2.2.1) · [Migration guide](https://github.com/r3bo0tbx1/tor-guard-relay/blob/v2.2.1/docs/MIGRATION.md)
+
+**📝 torrc:** No new mandatory lines are required. Leave `DoSBeginDirRateEnabled`, `DoSBeginDirRate`, `DoSBeginDirBurst` and `DoSBeginDirDefenseType` unset so the network consensus controls them. After upgrading, review any temporary `DirCache 0` workaround. Keep `DirPort 0` if it is part of your deployment. See the [sample configurations](https://github.com/r3bo0tbx1/tor-guard-relay/tree/v2.2.1/examples) and [operator guidance](https://github.com/r3bo0tbx1/tor-guard-relay/blob/v2.2.1/docs/releases/v2.2.1.md#-what-to-change-in-torrc).
 
 ## 🏷️ Choose your image
 
