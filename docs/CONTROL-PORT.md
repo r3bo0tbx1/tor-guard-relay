@@ -1,8 +1,10 @@
 # Control Port Configuration & Advanced Monitoring
 
-[Documentation](README.md) · [Release notes](releases/v2.2.0.md)
+[Documentation](README.md) · [Latest release](https://github.com/r3bo0tbx1/tor-guard-relay/releases/latest)
 
-## 🛠️ v2.2.0 operator workflow
+<a id="-v220-operator-workflow"></a>
+
+## 🛠️ Operator workflow
 
 The control port remains an explicit, authenticated operator option. It is not required for `health`, `doctor` or host inventory. Validate edited torrc files with `config validate`, then use `refresh` for reloadable directives. Mounted configuration remains authoritative; generated configuration is regenerated from ENV on restart.
 

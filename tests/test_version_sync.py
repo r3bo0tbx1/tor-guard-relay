@@ -17,7 +17,7 @@ class VersionSyncTests(unittest.TestCase):
         self.root = Path(self.work.name)
         sp.run(["git", "init", "-q", str(self.root)], check=True)
         self.write("scripts/release/check-versions.py",
-                   (ROOT / "scripts/release/check-versions.py").read_text())
+                   (ROOT / "scripts/release/check-versions.py").read_text(encoding='utf-8'))
         self.write("Dockerfile", 'FROM alpine:3.24.3@sha256:' + "a" * 64 +
                    '\nLABEL org.opencontainers.image.base.name="docker.io/library/alpine:3.24.2"\n')
         self.write("README.md", "<!-- RELAY_VERSION -->v2.2.0<!-- /RELAY_VERSION -->\n"
@@ -26,6 +26,9 @@ class VersionSyncTests(unittest.TestCase):
                      "scripts/release/README.md"):
             self.write(name, "Alpine 3.24.2\n")
         self.write("docs/DOCKERHUB.md", "<!-- RELAY_IMAGE_VERSION -->`2.2.0`<!-- /RELAY_IMAGE_VERSION -->\n")
+        self.write("docs/TOOLS.md", 'Alpine 3.24.2\nTor Relay Status · 2.2.0\n'
+                   '"build_version": "2.2.0"\n')
+        self.write("docs/image-tags.md", '<!-- RELAY_IMAGE_VERSION -->`2.2.0-edge`<!-- /RELAY_IMAGE_VERSION -->\n')
         for number in range(20):
             self.write(f"docs/current-{number}.md", "docker run alpine:3.24.2 sh\n")
         self.release = ("<!-- RELAY_VERSION -->v2.2.0<!-- /RELAY_VERSION -->\n"
@@ -76,6 +79,11 @@ class VersionSyncTests(unittest.TestCase):
         self.assertIn("onion-relay:2.3.0", (self.root / "README.md").read_text())
         self.assertEqual((self.root / "docs/DOCKERHUB.md").read_text(),
                          "<!-- RELAY_IMAGE_VERSION -->`2.3.0`<!-- /RELAY_IMAGE_VERSION -->\n")
+        self.assertEqual((self.root / "docs/image-tags.md").read_text(),
+                         '<!-- RELAY_IMAGE_VERSION -->`2.3.0-edge`<!-- /RELAY_IMAGE_VERSION -->\n')
+        tools = (self.root / 'docs/TOOLS.md').read_text(encoding='utf-8')
+        self.assertIn('Tor Relay Status · 2.3.0', tools)
+        self.assertIn('"build_version": "2.3.0"', tools)
         self.assertEqual((self.root / "docs/releases/v2.2.0.md").read_text(), self.release)
         changelog = (self.root / "CHANGELOG.md").read_text()
         self.assertTrue(changelog.endswith(self.history))
@@ -99,6 +107,15 @@ class VersionSyncTests(unittest.TestCase):
         self.assertEqual((self.root / 'README.md').read_bytes(), before)
         invalid = self.run_check('--print-version', '--version', 'invalid')
         self.assertNotEqual(invalid.returncode, 0)
+
+    def test_current_tool_examples_cannot_silently_keep_an_older_version(self):
+        self.assertEqual(self.run_check('--write').returncode, 0)
+        stale = 'Tor Relay Status · 2.1.0\n"build_version": "2.1.0"\n'
+        self.write('docs/TOOLS.md', stale)
+        result = self.run_check()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('docs/TOOLS.md', result.stderr)
+        self.assertEqual((self.root / 'docs/TOOLS.md').read_text(encoding='utf-8'), stale)
 
 
 if __name__ == "__main__":

@@ -1033,6 +1033,6 @@ Renovate tracks all four source/metadata pins and direct/indirect module updates
 ---
 <div align="center">
 
-**Document Version:** 2.2.0 • **Last Updated:** 2026-10-09 • **Container Version:** v2.2.0
+**Document Version:** <!-- RELAY_VERSION -->v2.2.1<!-- /RELAY_VERSION --> • **Last Updated:** 2026-10-30 • **Container Version:** <!-- RELAY_VERSION -->v2.2.1<!-- /RELAY_VERSION -->
 
 </div>

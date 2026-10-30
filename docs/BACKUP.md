@@ -123,13 +123,13 @@ Verification authenticates the complete age stream and reads every archived memb
 
 ## 🔄 Restore into a new staging directory
 
-Load a compatible local validation image first. Restore never pulls an image or starts a relay on the Tor network.
+Load a compatible, reviewed validation image locally as `tor-relay:local` first. Restore never pulls an image or starts a relay on the Tor network.
 
 ```sh
 sh scripts/utilities/relay-backup.sh restore "$HOME/relay-backups/BACKUP.tar.gz.age" \
   --identity "$HOME/.config/relay-backup/identity.txt" \
   --destination "$HOME/relay-restored" \
-  --validation-image tor-relay:2.2.0-local
+  --validation-image tor-relay:local
 ```
 
 The destination must not exist. The command authenticates before extraction, checks the restored fingerprint, then validates torrc/includes in a disposable container with networking disabled. Omit `--validation-image` to use the original image ID if it is still available locally. Any failure removes only the newly created staging directory. As root, restore applies UID 100/GID 101; otherwise arrange ownership before activation.
@@ -252,7 +252,7 @@ sh scripts/utilities/relay-backup.sh verify "$HOME/relay-backups/BACKUP.tar.gz.a
   --identity "$HOME/.config/relay-backup/identity.txt"
 sh scripts/utilities/relay-backup.sh restore "$HOME/relay-backups/BACKUP.tar.gz.age" \
   --identity "$HOME/.config/relay-backup/identity.txt" \
-  --destination "$HOME/relay-restored" --validation-image tor-relay:2.2.0-local
+  --destination "$HOME/relay-restored" --validation-image tor-relay:local
 ```
 
 🔐 Keep the private age identity separately. Restore only to a new staging directory, validate ownership and mounts, and stop the previous relay before activating its identity. The validation image must already exist locally.

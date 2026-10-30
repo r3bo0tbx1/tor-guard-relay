@@ -1,6 +1,6 @@
 # 🚀 Deployment Guide - Tor Guard Relay
 
-[Documentation](README.md) · [Release notes](releases/v2.2.0.md)
+[Documentation](README.md) · [Latest release](https://github.com/r3bo0tbx1/tor-guard-relay/releases/latest)
 
 <a id="configuration-ownership"></a>
 

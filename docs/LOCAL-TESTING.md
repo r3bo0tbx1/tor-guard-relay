@@ -91,15 +91,16 @@ The source builds Tor from the authenticated pin in `build/tor/source.json`, ind
 ### ✅ Release preparation order
 
 1. Keep source, samples, current documentation and managed version markers synchronized; preserve historical release records, artwork, emojis and Mermaid diagrams.
+   Review root policies (`SECURITY.md`, `CONTRIBUTING.md`), both build READMEs, the template guide and every current guide as well as `docs/releases/`. Check registry tables, document footers and illustrative output versions. Keep deliberate historical, rollback and dependency-version references intact.
 2. Run local regression, shell, workflow, dependency, documentation and recursive template checks.
 3. Authenticate the pinned Tor source archive and its reviewed release signer. Verify matching Alpine builder/runtime bases, source-package metadata and runtime libraries for both architectures.
 4. Build stable/edge AMD64/ARM64 candidates with the normal Dockerfiles. Verify binary versions, each sample configuration, ENV generation, reload/startup, shutdown and identity-preserving encrypted recovery.
 5. Run component/security gates and retain exact candidate digests, SBOMs and scan evidence. Prepare the signed release commit/tag and publish only after all four candidates pass and the maintainer authorizes publication.
 6. Follow the migration checklist and retain evidence from real deployments. Keep registry-retention protection and the existing published notice unchanged by preparation. The [fleet-review helper](REGISTRY-RETENTION.md#-prepare-a-fleet-review-proposal) can prepare additive protection from fresh reports; it cannot renew stale evidence or authorize deletion without complete coverage.
 
-Coordinate the managed version bump with the new release tag after the approved change reaches main. Until `v2.2.1` exists on main, scheduled/manual main rebuilds reject the mismatch with the last published `v2.2.0` namespace. Do not merge the version bump early expecting routine rebuilds to publish it under `2.2.0`, or suppress published-image alerts while old Tor binaries remain deployed.
+Coordinate each managed version bump with its new release tag after the approved change reaches main. Scheduled/manual main rebuilds reject a source version that differs from the latest published release namespace. Create the reviewed release tag to publish a new version; do not suppress published-image alerts while older binaries remain deployed.
 
-Record incomplete candidate gates in the maintainer's validation evidence. The curated release notes are published verbatim after promotion, so keep preparation status and unfinished-test claims out of that publication copy.
+Record incomplete candidate gates in the maintainer's validation evidence. The curated release notes are validated, rendered with tag-pinned documentation links and published after promotion. Keep preparation status and unfinished-test claims out of that publication copy.
 
 ### 🔨 Build a local candidate
 

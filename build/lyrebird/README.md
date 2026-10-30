@@ -4,6 +4,10 @@ The Dockerfiles fetch the reviewed Lyrebird revision, then use this go.mod/go.su
 
 Do not replace the graph with upstream defaults without checking the Pion STUN security floor. Renovate can propose Go module updates; component checks and offline image acceptance remain required.
 
+## 🔖 v2.2.1 dependency snapshot
+
+The initial v2.2.1 source selects Snowflake **2.15.3**, `golang.org/x/net` **0.62.0** and `klauspost/compress` **1.20.3**. This is a release snapshot: compatible reviewed main rebuilds can advance the graph under the same project version. [go.mod](go.mod) and [go.sum](go.sum) are authoritative for the selected source's exact module versions.
+
 ## 🔄 Independent update paths
 
 Renovate tracks upstream `main` through a `git-refs` custom manager and proposes one reviewed source-pin update across all four ARG occurrences in both Dockerfiles. The pin consistency check rejects stage or variant drift. Source proposals are not auto-merged.
@@ -20,9 +24,9 @@ Regenerate a combined lock against the actual pinned Lyrebird source with the pi
 
 ### 🧩 Pion compatibility boundary
 
-The v2.2.0 batch updates Snowflake to 2.15.1 and selects these compatible components:
+The following routine update ceilings preserve compatibility with Snowflake's transport interface. They are policy boundaries; inspect [go.mod](go.mod) for the actual selected versions.
 
-| Module | Selected version |
+| Module | Routine update ceiling |
 | --- | --- |
 | WebRTC v4 | 4.2.20 |
 | ICE v4 | 4.4.2 |
@@ -38,10 +42,10 @@ RTP v2 changes its module import path. Replacing the indirect RTP v1 requirement
 
 Compatibility limits apply to routine updates. Detected GitHub/OSV security-fix proposals are ungrouped, immediate and never auto-merged; the security override allows review beyond routine ceilings and indirect-major restrictions. OSV's generated fix range and GitHub's fixed-version filter remain effective. An incompatible security candidate still fails build/security gates: review a source migration, a maintained backport or exposure mitigation rather than bypassing CI. OSV's direct-dependency coverage limitation still applies, so source/image scans remain essential.
 
-The pinned Renovate validator in [security-tools.json](../security-tools.json) also runs the [behavior checker](../../scripts/testing/check-renovate.mjs) in PR/main source validation before image builds. It resolves the real presets and exercises Renovate's rule engine, version filtering and advisory adapters against compatible updates, the known Pion proposals, RTP's major migration and synthetic security-fix fixtures. Tool updates must preserve those behaviors. The independent lock also includes the compatible `golang.org/x/net` 0.61.0 update.
+The pinned Renovate validator in [security-tools.json](../security-tools.json) also runs the [behavior checker](../../scripts/testing/check-renovate.mjs) in PR/main source validation before image builds. It resolves the real presets and exercises Renovate's rule engine, version filtering and advisory adapters against compatible updates, the known Pion proposals, RTP's major migration and synthetic security-fix fixtures. Tool updates must preserve those behaviors.
 
-The first source scan retained module-level [GO-2026-5841](https://pkg.go.dev/vuln/GO-2026-5841) for `klauspost/compress` 1.18.0 without a reachable call. The current batch moves the lock to 1.20.1 after the earlier fix in 1.18.7, independently of the Lyrebird source revision. Keep the full analysis rather than inferring exposure from a module name alone.
+The first source scan retained module-level [GO-2026-5841](https://pkg.go.dev/vuln/GO-2026-5841) for `klauspost/compress` 1.18.0 without a reachable call. The initial v2.2.1 lock uses 1.20.3 after the earlier fix in 1.18.7, independently of the Lyrebird source revision. Keep the full analysis rather than inferring exposure from a module name alone.
 
 The host/CI Go checker rebuilds only the native builder stage, verifies that its transport bytes match each candidate, and analyzes the same source/lock/toolchain for Linux AMD64 or ARM64. It uses the scanner version in [security-tools.json](../security-tools.json). Reachable Go findings block publication regardless of severity or fix availability; full module/package findings remain visible. No scanner is added to the runtime image.
 
-After a reviewed update passes candidate gates, publish a new patch release promptly. Existing release tags retain their source identity, and scheduled rebuilds use the latest released tag. Recreate running containers from the validated new image.
+After a reviewed compatible security update passes candidate gates, publish a validated main rebuild promptly under the latest released version's image namespace. Scheduled rebuilds use their captured reviewed main commit, retaining merged fixes. Explicit release-tag rebuilds select that tag's original source; Git release tags remain immutable. Operator-visible compatibility changes require a new project release. Recreate running containers from the validated new image.

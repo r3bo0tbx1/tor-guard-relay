@@ -28,7 +28,7 @@ sh scripts/utilities/relay-inventory.sh --prometheus tor-relay > relay.prom
 
 The host inventory command writes Prometheus text; connect it to an existing textfile collector or scraper. It opens no listener and adds no runtime dependencies. Existing external exporter examples below require a separately installed service; they are not built into the relay image.
 
-Resource tables below are planning estimates, not v2.2.0 measurements. Measure your actual traffic and hardware before tuning. The prepared candidate has not been validated on a production relay.
+Resource tables below are planning estimates, not release-specific benchmark results. Measure your actual traffic and hardware before tuning.
 
 ---
 
@@ -481,4 +481,4 @@ A:
 
 ---
 
-**Last Updated:** December 2025 | **Version:** 1.1.3
+**Last Updated:** 2026-10-30 | **Source Version:** <!-- RELAY_VERSION -->v2.2.1<!-- /RELAY_VERSION -->

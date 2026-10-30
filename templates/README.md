@@ -4,9 +4,9 @@
 
 ## 🧪 v2.2.1 template checks
 
-These templates target the prepared source update. Versioned v2.2.1 images must not be deployed until publication and all Tor 0.4.9.15 candidate gates pass. See the [release preparation and torrc notes](../docs/releases/v2.2.1.md).
+These templates target <!-- RELAY_VERSION -->v2.2.1<!-- /RELAY_VERSION --> and require validated published images containing Tor 0.4.9.15 or newer. See the [release and torrc migration notes](../docs/releases/v2.2.1.md).
 
-All seven Cosmos JSON templates and five Compose templates are validated locally and in CI. Published aliases follow validated releases; a local candidate does not change them. Build the source locally for prepublication testing.
+All seven Cosmos JSON templates and five Compose templates are validated locally and in CI. Published aliases follow validated releases. Use isolated local candidates when testing unpublished changes.
 
 Mounted torrc examples retain host ownership. ENV examples regenerate validated configuration at each start. Accounting and IPv6 settings can be added using the mappings in [Deployment](../docs/DEPLOYMENT.md#accounting-and-ipv6-env-options). Keep keys persistent and create an [encrypted backup](../docs/BACKUP.md) before changing volumes.
 
@@ -307,5 +307,5 @@ If you still see this error after updating to the latest version:
 ---
 
 **Version:** <!-- RELAY_VERSION -->v2.2.1<!-- /RELAY_VERSION -->
-**Last Updated:** 2026-03-02
+**Last Updated:** 2026-10-30
 **Maintainer:** rE-Bo0t.bx1 <r3bo0tbx1@brokenbotnet.com>

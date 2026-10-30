@@ -53,7 +53,7 @@ Generated torrc is regenerated from ENV on restart. Persist operator changes in 
 ### Why Choose This Project?
 
 - 🛡️ **Security-First** - Hardened Alpine Linux, non-root operation, and minimized port exposure
-- 🪶 **Very light** - Ultra-minimal variant-dependent image size image
+- 🪶 **Lightweight** - Alpine runtime with build tools kept in the builder stages
 - 🎯 **Simple** - One command to deploy, minimal configuration needed
 - 📊 **Observable** - 9 POSIX shell tools with JSON health and PID-preserving config reloads
 - 🌉 **Multi-Mode** - Supports guard, exit, and bridge (obfs4) relays
@@ -177,8 +177,8 @@ We offer **two build variants** to match your risk tolerance and requirements:
 
 | Registry | Stable tags | Edge tags |
 | --- | --- | --- |
-| 🐳 Docker Hub | `latest`, `2.2.0` | `edge` |
-| 📦 GHCR | `latest`, `2.2.0` | `edge`, `2.2.0-edge` |
+| 🐳 Docker Hub | `latest`, <!-- RELAY_IMAGE_VERSION -->`2.2.1`<!-- /RELAY_IMAGE_VERSION --> | `edge` |
+| 📦 GHCR | `latest`, <!-- RELAY_IMAGE_VERSION -->`2.2.1`<!-- /RELAY_IMAGE_VERSION --> | `edge`, <!-- RELAY_IMAGE_VERSION -->`2.2.1-edge`<!-- /RELAY_IMAGE_VERSION --> |
 
 Each current tag supports AMD64 and ARM64. Retired container versions can be removed while historical GitHub releases and their downloadable assets remain available. Retained v2.2.0 builds can be selected by digest for rollback. Validated package rebuilds can refresh version tags; use a digest to select an exact build. Publishing intermediates are addressed by digest and do not need public tags. The branded [Docker Hub overview](docs/DOCKERHUB.md) is maintained separately from this full guide.
 
