@@ -20,14 +20,14 @@
 
 ---
 
-## 🆕 v2.2.1 preparation: directory-request DoS defenses
+## 🆕 v2.2.1: directory-request DoS defenses
 
 Current source version: <!-- RELAY_VERSION -->v2.2.1<!-- /RELAY_VERSION -->.
 
 > [!IMPORTANT]
-> 🛡️ This source requires Tor **0.4.9.15 or newer**. **v2.2.1 is prepared, not published**: Tor is built from authenticated upstream source instead of waiting for Alpine’s Tor package. Read the [v2.2.1 upgrade and torrc guidance](docs/releases/v2.2.1.md). The last published project release remains [v2.2.0](https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v2.2.0); its tags alone do not prove which Tor binary a running relay uses.
+> 🛡️ Tor **0.4.9.15 or newer** is required. **v2.2.1** builds Tor from authenticated upstream source instead of waiting for Alpine’s Tor package. Read the [v2.2.1 upgrade and torrc guidance](docs/releases/v2.2.1.md). Deploy a validated published image, recreate the container and verify the running binary; an image tag alone does not establish a successful upgrade.
 
-**📝 torrc:** Leave the new `DoSBeginDirRate*`, `DoSBeginDirBurst` and `DoSBeginDirDefenseType` settings unset so the network consensus controls them. After upgrading, review any temporary `DirCache 0` workaround. Keep `DirPort 0` if it is part of your deployment. The [sample configs](examples/) document this without forcing thresholds.
+**📝 torrc:** Leave `DoSBeginDirRateEnabled`, `DoSBeginDirRate`, `DoSBeginDirBurst` and `DoSBeginDirDefenseType` unset so the network consensus controls them. No new torrc lines are required. After upgrading, review any temporary `DirCache 0` workaround. Keep `DirPort 0` if it is part of your deployment. The [sample configs](examples/) document this without forcing thresholds.
 
 | Improvement | Operator benefit | Guide |
 | --- | --- | --- |

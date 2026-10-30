@@ -18,27 +18,27 @@
 
 ---
 
-## 🆕 v2.2.1 preparation: Tor directory-request DoS defenses
+## 🆕 v2.2.1: Tor directory-request DoS defenses
 
-Prepared source: <!-- RELAY_VERSION -->v2.2.1<!-- /RELAY_VERSION -->. Both architectures build Tor 0.4.9.15 from authenticated upstream source; publication requires passing candidate gates. Versioned pull examples below apply after publication; existing aliases alone do not prove an upgraded Tor binary.
+Source version: <!-- RELAY_VERSION -->v2.2.1<!-- /RELAY_VERSION -->. Both architectures build Tor 0.4.9.15 from authenticated upstream source; publication requires passing candidate gates. Use validated published images and verify the running Tor binary after recreating the container; an image alias alone does not establish a successful upgrade.
 
 | Feature | What it gives you |
 | --- | --- |
-| 🛡️ Tor 0.4.9.15 or newer | Enforced minimum for the prepared update |
+| 🛡️ Tor 0.4.9.15 or newer | Enforced minimum for both variants |
 | 🔎 Current-run diagnostics | Health, readiness, `doctor` and redacted config checks |
 | ⚙️ Validated configuration | Atomic changes and reloads that preserve the Tor process |
 | 🔐 Encrypted recovery | Verified backups of config, identity keys and relay state; staged offline restore |
 | 📊 Fleet inventory | Host-side inventory and metrics without an exposed diagnostics port |
 | 🏗️ Verified publication | Both architectures checked before their exact images reach the registries |
 
-📖 [Release notes and migration details](https://github.com/r3bo0tbx1/tor-guard-relay/releases/tag/v2.2.0)
+📖 [Latest release notes](https://github.com/r3bo0tbx1/tor-guard-relay/releases/latest) · [Migration guide](https://github.com/r3bo0tbx1/tor-guard-relay/blob/main/docs/MIGRATION.md)
 
 ## 🏷️ Choose your image
 
 | Docker Hub tag | Variant | Platforms |
 | --- | --- | --- |
 | `latest` | Stable, recommended for production | AMD64 / ARM64 |
-| `2.2.0` | Current stable release series | AMD64 / ARM64 |
+| <!-- RELAY_IMAGE_VERSION -->`2.2.1`<!-- /RELAY_IMAGE_VERSION --> | Stable version series | AMD64 / ARM64 |
 | `edge` | Alpine edge, for testing | AMD64 / ARM64 |
 
 Stable uses **Alpine 3.24.3**. Validated manual and scheduled rebuilds from main include merged fixes and fresh packages; version tags can receive those rebuilds. Pin an image digest when you need an exact build.

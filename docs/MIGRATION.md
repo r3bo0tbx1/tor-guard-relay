@@ -110,7 +110,7 @@ Create and verify an [encrypted backup](BACKUP.md), then rehearse restore into a
 
 ### 🧅 Tor 0.4.9.15 security update
 
-All relay and bridge modes should migrate to a validated image containing Tor **0.4.9.15 or newer** as soon as it is published. The [v2.2.1 preparation notes](releases/v2.2.1.md) record the upstream changes and the authenticated source-build gate; a new tag or a configuration reload alone does not establish an upgraded binary.
+All relay and bridge modes should migrate to a validated published image containing Tor **0.4.9.15 or newer** as soon as possible. The [v2.2.1 release notes](releases/v2.2.1.md) record the upstream changes and the authenticated source-build gate; a new tag or a configuration reload alone does not establish an upgraded binary.
 
 Leave the four new `DoSBeginDirRateEnabled`, `DoSBeginDirRate`, `DoSBeginDirBurst` and `DoSBeginDirDefenseType` options unset so the network consensus controls them. `DoSBeginDirLimitEnabled` is consensus-only and must not be added to torrc. After upgrading, review removing any temporary `DirCache 0` attack workaround; `DirPort 0` is unrelated and remains supported. Change operator-owned mounted files and includes deliberately, validate before activation, and observe the relay after recreation.
 
