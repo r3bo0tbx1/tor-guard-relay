@@ -1,8 +1,10 @@
 # 🔄 Multi-Mode Relay Guide - Tor Guard Relay
 
-[Documentation](README.md) · [Release notes](releases/v2.2.0.md)
+[Documentation](README.md) · [Latest release](https://github.com/r3bo0tbx1/tor-guard-relay/releases/latest)
 
-## 🛡️ v2.2.0 operating contract
+<a id="-v220-operating-contract"></a>
+
+## 🛡️ Operating contract
 
 All three roles share config validation, current-run health and encrypted recovery. Docker health does not establish a guard flag, public reachability or consensus membership. An obfs4 line becomes available when local transport state exists; no fixed 24–48 hour wait is required.
 

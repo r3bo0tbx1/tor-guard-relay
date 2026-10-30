@@ -169,7 +169,7 @@
       "enabled": false
     },
     {
-      "description": "Snowflake 2.15.1 requires the reviewed transport-v4 Pion interfaces; reassess with source updates",
+        "description": "The reviewed Snowflake graph requires transport-v4 Pion interfaces; reassess with source or Snowflake updates",
       "matchManagers": ["gomod"],
       "matchPackageNames": ["github.com/pion/webrtc/v4"],
       "allowedVersions": "<=4.2.20"

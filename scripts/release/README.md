@@ -188,10 +188,11 @@ SBOM provides transparency about software components and dependencies:
 **Check for vulnerabilities:**
 
 ```bash
-# After the maintainer publishes v2.2.0, download its evidence archive.
-# Until then, use the retained candidate artifacts from the validation run.
+# After publication, download evidence for this checkout's managed version.
+# Before publication, use the retained candidate artifacts from validation.
+version=$(python3 scripts/release/check-versions.py --print-version)
 curl --fail --location --output release-evidence.tar.gz \
-  https://github.com/r3bo0tbx1/tor-guard-relay/releases/download/v2.2.0/release-evidence.tar.gz
+  "https://github.com/r3bo0tbx1/tor-guard-relay/releases/download/v${version}/release-evidence.tar.gz"
 mkdir release-evidence
 tar -xzf release-evidence.tar.gz -C release-evidence
 # Select one candidate's SBOM; the archive retains all four variants.
@@ -331,7 +332,8 @@ git log --oneline
 git describe --tags --abbrev=0
 
 # Specify previous version explicitly
-sh scripts/release/generate-release-notes.sh 2.2.0 v2.1.0 --output /tmp/release-draft.md
+version=$(python3 scripts/release/check-versions.py --print-version)
+sh scripts/release/generate-release-notes.sh "$version" --output /tmp/release-draft.md
 ```
 
 ### Version Update Missing Files
@@ -341,7 +343,8 @@ sh scripts/release/generate-release-notes.sh 2.2.0 v2.1.0 --output /tmp/release-
 **Solution:**
 ```bash
 # Check what current version was detected
-sh scripts/release/update-version.sh 2.2.0 --dry-run
+version=$(python3 scripts/release/check-versions.py --print-version)
+sh scripts/release/update-version.sh "$version" --dry-run
 
 # Search for old version manually
 rg "RELAY_VERSION|Alpine|onion-relay:" README.md docs templates

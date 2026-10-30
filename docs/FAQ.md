@@ -51,15 +51,15 @@ The validator's Node runtime follows its declared engine range. Node 26 is exclu
 - **Exit relay** - Last hop (requires legal preparation)
 - **Bridge relay** - Helps users bypass censorship (obfs4 support)
 
-Built on Alpine Linux 3.24.3 with a minimal 20MB image size, busybox-only tools, and weekly automated security rebuilds.
+Built on Alpine Linux 3.24.3 with a minimal runtime, nine POSIX shell tools and automated security rebuilds.
 
 ### What makes this different from the official Tor images?
 
 | Feature | This Project | Official Images |
 |---------|--------------|-----------------|
-| **Image size** | ~variant-dependent image size | ~100+ MB |
+| **Image size** | Varies by variant and architecture | Varies by image |
 | **Base** | Alpine 3.24.3 | Debian |
-| **Built-in tools** | 7 busybox tools + JSON API and safe torrc reloads | None |
+| **Built-in tools** | 9 POSIX shell tools + JSON health and validated torrc reloads | None |
 | **Multi-mode** | Guard/Exit/Bridge in one image | Separate images |
 | **Weekly rebuilds** | ✅ Automated | ❌ Manual |
 | **ENV configuration** | ✅ Full support | Limited |
@@ -424,7 +424,7 @@ docker images ghcr.io/r3bo0tbx1/onion-relay:latest --format='{{.ID}}'
 
 [Documentation](README.md) · [Encrypted recovery](BACKUP.md) · [Deployment](DEPLOYMENT.md)
 
-Preserve identity and transport state before changing image, ownership or storage. The v2.2.0 candidate upgrades Tor and the runtime without intentionally rotating relay identity.
+Preserve identity and transport state before changing image, ownership or storage. Upgrades preserve relay identity while replacing Tor and the runtime; retain verified encrypted recovery before recreating containers.
 
 ## 📋 Prepare
 
@@ -596,5 +596,5 @@ See [CONTRIBUTING.md](../CONTRIBUTING.md) for guidelines.
 
 ---
 
-**Last Updated:** July 2026 (v2.1.0)
+**Last Updated:** 2026-10-30 | **Source Version:** <!-- RELAY_VERSION -->v2.2.1<!-- /RELAY_VERSION -->
 **Maintained by:** [@r3bo0tbx1](https://github.com/r3bo0tbx1)

@@ -56,7 +56,10 @@ for rel in sorted(set(files)):
         if rel not in ("docs/MIGRATION-V1.1.X.md", "docs/TROUBLESHOOTING-BRIDGE-MIGRATION.md") and not rel.startswith("docs/releases/"):
             text = re.sub(r"(onion-relay:)\d+\.\d+\.\d+(?![\d.])", r"\g<1>" + args.version, text)
         text = re.sub(r"(<!-- RELAY_VERSION -->).*?(<!-- /RELAY_VERSION -->)", r"\g<1>v" + args.version + r"\g<2>", text)
-        text = re.sub(r"(<!-- RELAY_IMAGE_VERSION -->`?).*?(`?<!-- /RELAY_IMAGE_VERSION -->)", r"\g<1>" + args.version + r"\g<2>", text)
+        text = re.sub(r"(<!-- RELAY_IMAGE_VERSION -->`?).*?((?:-edge)?`?<!-- /RELAY_IMAGE_VERSION -->)", r"\g<1>" + args.version + r"\g<2>", text)
+        if rel == "docs/TOOLS.md":
+            text = re.sub(r'("build_version":\s*")\d+\.\d+\.\d+(")', r'\g<1>' + args.version + r'\g<2>', text)
+            text = re.sub(r'(Tor Relay Status · )\d+\.\d+\.\d+', r'\g<1>' + args.version, text)
         if rel.startswith("templates/"):
             text = re.sub(r'("cosmos-version":\s*")[^"]+("|$)', r'\g<1>' + args.version + r'\g<2>', text)
             text = re.sub(r'(?m)^(\s+version: )"\d+\.\d+\.\d+"', r'\g<1>"' + args.version + '"', text)

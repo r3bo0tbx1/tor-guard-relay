@@ -2,7 +2,9 @@
 
 [Documentation](docs/README.md)
 
-## 🧪 v2.2.0 validation and documentation
+<a id="-v220-validation-and-documentation"></a>
+
+## 🧪 Validation and documentation
 
 Run the [local source and image checks](docs/LOCAL-TESTING.md) before proposing operator changes. Behavioral tests use synthetic offline identities; record any live or remote behavior that remains unverified.
 

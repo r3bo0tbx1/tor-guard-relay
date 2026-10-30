@@ -56,7 +56,7 @@ docker exec tor-relay status
 **Output Example (illustrative fixture):**
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🧅 Tor Relay Status · 2.2.0
+🧅 Tor Relay Status · 2.2.1
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 🚀 Process: true (PID 123)
@@ -105,7 +105,7 @@ docker exec tor-relay health | jq .status
   "fingerprint": "ABCD1234567890ABCDEF1234567890ABCDEFGHIJ",
   "tor_version": "0.4.9.15",
   "relay_mode": "guard",
-  "build_version": "2.2.0",
+  "build_version": "2.2.1",
   "config_source": "environment",
   "config_path": "/etc/tor/torrc",
   "liveness": true,
@@ -558,4 +558,4 @@ A: Removed (required Python/Flask). Use `status` tool for visual output or build
 
 ---
 
-**Last Updated:** July 2026 | **Version:** 2.1.0
+**Last Updated:** 2026-10-30 | **Source Version:** <!-- RELAY_VERSION -->v2.2.1<!-- /RELAY_VERSION -->

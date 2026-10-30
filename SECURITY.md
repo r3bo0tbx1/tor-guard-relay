@@ -2,7 +2,7 @@
 SPDX-License-Identifier: MIT
 
 > [!IMPORTANT]
-> 🧅 **v2.2.1 preparation:** Tor must be **0.4.9.15 or newer**. Review the [release and torrc migration notes](docs/releases/v2.2.1.md); Tor is built from authenticated upstream source on each matching Alpine base; publication requires all candidate gates. Recreate from the validated image to update Tor; changing torrc alone does not upgrade the binary.
+> 🧅 **v2.2.1:** Tor must be **0.4.9.15 or newer**. Review the [release and torrc migration notes](docs/releases/v2.2.1.md); Tor is built from authenticated upstream source on each matching Alpine base; publication requires all candidate gates. Recreate from the validated image to update Tor; changing torrc alone does not upgrade the binary.
 
 ## Scope
 
@@ -13,12 +13,11 @@ Issues related to the Tor network itself should be reported directly to [The Tor
 
 ## Supported Versions
 
-Only the latest published release receives maintenance. v2.2.0 is the last published release; v2.2.1 is in local preparation. Confirm replacement image digests before upgrading. Historical tags remain useful as recorded rollback material, not supported targets.
+Only the [latest published release](https://github.com/r3bo0tbx1/tor-guard-relay/releases/latest) receives maintenance. Confirm replacement image digests, the current Tor security floor and retained validation evidence before upgrading. Source validation and image publication are separate gates. Historical tags remain useful as recorded rollback material, not supported targets.
 
 | Version | Status |
 | --- | --- |
 | Latest published release | ✅ Supported |
-| v2.2.1 preparation | 🧪 Source/image validation and publication are separate gates |
 | Older releases | 📜 Historical / unsupported |
 
 ---
@@ -35,7 +34,7 @@ Only the latest published release receives maintenance. v2.2.0 is the last publi
 ### [CVE-2026-31789](https://nvd.nist.gov/vuln/detail/CVE-2026-31789) (OpenSSL / Alpine package)
 
 - Affects vulnerable OpenSSL package ranges in Alpine-based images.
-- Fix target for this project is `openssl >= 3.5.6-r0` via base image/package refresh and rebuild.
+- The original remediation target was `openssl >= 3.5.6-r0` via base image/package refresh and rebuild. The current project policy requires installed `libssl3 >= 3.5.9`.
 - Mitigation is **image-level**: pull updated image tags after release.
 
 ### [CVE-2026-31431](https://nvd.nist.gov/vuln/detail/CVE-2026-31431) ("Copy Fail" Linux kernel)
@@ -55,7 +54,7 @@ Only the latest published release receives maintenance. v2.2.0 is the last publi
 - ✅ **NO monitoring HTTP endpoints** - Removed for maximum security
 - ✅ **NO exposed metrics ports** - All monitoring via `docker exec` only
 - ✅ **Only Tor protocol ports exposed** - ORPort (configurable), obfs4 (bridge mode), DirPort (disabled)
-- ✅ **~variant-dependent image size image** - Minimal attack surface
+- ✅ **Minimal Alpine runtime** - Build tools remain in the builder stages
 
 ### Public Port Exposure (Configurable)
 
@@ -266,13 +265,13 @@ sudo ufw allow <TOR_OBFS4_PORT>/tcp  # bridge only
 
 ## 🏷️ Supported versions
 
-Only the latest **published** release receives maintenance and scheduled rebuilds. The latest published release remains v2.1.0 while this checkout prepares v2.2.0. Publication of v2.2.0 ends support for earlier releases; historic tags remain available for reproducibility.
+The [supported-version policy](#supported-versions) follows the latest published release. Validated maintenance rebuilds use the captured reviewed `main` source under that release's image tag namespace; original Git release tags remain immutable. Historical tags remain available for reproducibility and recorded rollback use.
 
 ## 🚨 Urgent Tor update
 
 The previous [Tor 0.4.9.14 security release](https://forum.torproject.org/t/security-release-0-4-9-14/22241) addressed high-severity issues affecting clients, onion services, authorities and relays. Those fixes remain required; use the newer minimum below. Detailed issue tickets were initially withheld under upstream's disclosure policy; do not infer undisclosed exploit details.
 
-The next source release requires **Tor >= 0.4.9.15**, upstream's [28 October security release](https://gitlab.torproject.org/tpo/core/tor/-/blob/tor-0.4.9.15/ChangeLog) with directory-request DoS defenses. The authenticated source lock, acceptance and component checks enforce the same minimum; published-image monitoring reports older binaries until replacement digests pass. Both variants build Tor from the same authenticated upstream source, with matching Alpine runtime libraries. The source lock, package provenance and complete candidate security gates must be verified before publication. See the [v2.2.1 preparation and migration notes](docs/releases/v2.2.1.md).
+The current source requires **Tor >= 0.4.9.15**, upstream's [28 October security release](https://gitlab.torproject.org/tpo/core/tor/-/blob/tor-0.4.9.15/ChangeLog) with directory-request DoS defenses. The authenticated source lock, acceptance and component checks enforce the same minimum; published-image monitoring reports older binaries until replacement digests pass. Both variants build Tor from the same authenticated upstream source, with matching Alpine runtime libraries. The source lock, package provenance and complete candidate security gates must be verified before publication. See the [v2.2.1 release and migration notes](docs/releases/v2.2.1.md).
 
 Operators must recreate the container from a validated updated image to replace Tor; torrc edits and SIGHUP do not update binaries. Leave the new rate-limit settings unset for consensus control, and review temporary `DirCache 0` workarounds only after upgrading. The existing `DirPort 0` default remains valid. Mounted configuration and relay identity material are never silently rewritten or replaced by this update.
 
@@ -298,11 +297,11 @@ Prepare persistent-volume ownership yourself. Startup cannot silently heal arbit
 
 ## 🚦 Release gates
 
-All stable/edge AMD64/ARM64 candidates must pass behavior, component floors and security checks before promotion. Promotion loads the validated images and checks their identity; it does not rebuild. Scheduled rebuilds use the latest released tag with current reviewed main security policy. Source and policy SHAs are recorded independently. Pin updates and new features require a reviewed source release.
+All stable/edge AMD64/ARM64 candidates must pass behavior, component floors and security checks before promotion. Promotion loads the validated images and checks their identity; it does not rebuild. Scheduled rebuilds use the captured reviewed `main` commit under the latest published release's image namespace. Explicit tag rebuilds select the original tagged source. Current reviewed main security policy applies separately, and source/policy SHAs are recorded independently. Compatible security pin updates can ship through validated main rebuilds; operator-visible compatibility changes require a new project release.
 
 An available fix for an applicable security issue should proceed through expedited validation and release, without waiting for the routine schedule. An unfixed issue still requires assessment and mitigation; severe image findings or reachable Go findings remain blockers. This checkout contains no automatic security exception mechanism.
 
-Cleanup is manual and separate from validation. Preserve a rollback image, deployment and verified encrypted backup before upgrading.
+Registry cleanup is separate from validation and follows the [notice, fleet-protection and exact-plan gates](docs/REGISTRY-RETENTION.md), including the guarded automatic path. Preserve a rollback image, deployment and verified encrypted backup before upgrading.
 
 ## 📣 Reporting a Vulnerability
 
@@ -756,4 +755,4 @@ Security researchers who responsibly disclose vulnerabilities will be listed her
 
 ---
 
-*Last Updated: 2026-08-02 | Current Stable: 2.1.0*
+*Last Updated: 2026-10-30 | Supported release: [latest published release](https://github.com/r3bo0tbx1/tor-guard-relay/releases/latest)*
