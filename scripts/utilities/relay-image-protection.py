@@ -2,12 +2,16 @@
 """Read Docker image identities without reading relay ENV, torrc, keys or logs."""
 import argparse
 from datetime import datetime, timezone
+import hashlib
 import json
 import re
 import subprocess as sp
 
 
 def collect(call, owner):
+    engine = call('info', '--format', '{{.ID}}').strip()
+    if not engine or '\n' in engine or len(engine) > 256:
+        raise ValueError('Docker engine has no valid identity')
     containers = call('ps', '-aq').split()
     image_ids, digests = set(), set()
     count = 0
@@ -29,7 +33,9 @@ def collect(call, owner):
         for ref in fields['digests'] or []:
             if belongs(ref) and '@' in ref:
                 digests.add(ref.rsplit('@', 1)[1])
-    return {'observed_at': datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
+    return {'schema': 1, 'owner': owner,
+            'engine_id_sha256': hashlib.sha256(engine.encode()).hexdigest(),
+            'observed_at': datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
             'scope': 'One Docker engine; running AND stopped containers. This is not a fleet coverage assertion.',
             'relay_containers': count, 'protected_image_ids': sorted(image_ids),
             'protected_digests': sorted(digests), 'deployment_review_complete': False}

@@ -13,13 +13,48 @@
 ---
 
 > [!IMPORTANT]
-> 🧅 **v2.2.0 release candidate:** Tor must be **0.4.9.14 or newer**. Current-run health, validated configuration and encrypted recovery are described in the [release notes](releases/v2.2.0.md). Recreate from the validated image to update Tor; changing torrc alone does not upgrade the binary.
+> 🧅 **v2.2.1 preparation:** Tor must be **0.4.9.15 or newer**. Review the [release and torrc migration notes](releases/v2.2.1.md); Tor is built from authenticated upstream source on each matching Alpine base; publication requires all candidate gates. Recreate from the validated image to update Tor; changing torrc alone does not upgrade the binary.
 
 ## Environment
 
-Docker Desktop on Windows with WSL works. Run host scripts in Linux/WSL with Python 3.10+, age, ShellCheck and dos2unix. A Linux Docker daemon is also supported. ARM64 testing on an AMD64 machine requires registered QEMU/binfmt support.
+Docker Desktop on Windows with WSL works. Run source checks in Linux/WSL with Python 3.11+, age, ShellCheck and dos2unix. A Linux Docker daemon is also supported. Full source builds and upstream sandbox tests require a Linux kernel for the target architecture. For ARM64 candidates, use native ARM64 hardware or a full-system ARM64 Linux VM with Docker running inside the guest.
 
-On Docker Desktop, finish WSL source/recovery commands before registering ARM64 emulation and running ARM64 fixtures. This environment has reset binfmt registration when WSL sessions changed; running those steps concurrently produced local `exec format error` failures. Re-register with `docker run --privileged --rm tonistiigi/binfmt --install arm64` after the WSL commands finish, then run ARM64 builds and tests sequentially with respect to WSL activity.
+QEMU/binfmt supports short cross-platform version checks, but its user-mode emulation cannot load Tor's seccomp sandbox filters. An emulated source build can compile and then fail the upstream sandbox tests; do not bypass that gate. See the [source-build guide](../build/tor/README.md). Hosted candidate jobs use native ARM64 runners.
+
+For short emulated checks on Docker Desktop, finish WSL commands before registering binfmt. WSL session changes can reset its registration and cause `exec format error`. Re-register with `docker run --privileged --rm tonistiigi/binfmt --install arm64` after WSL commands finish, then run those checks sequentially with respect to WSL activity.
+
+### 🍓 ARM64 without a Raspberry Pi
+
+A full-system [QEMU ARM `virt` machine](https://www.qemu.org/docs/master/system/arm/virt.html) runs its own ARM64 Linux kernel, unlike Docker's binfmt user-mode emulation. Install Docker **inside that guest** and run the build/test commands there. CPU emulation is slower than native hardware and does not establish Raspberry Pi performance or hardware compatibility. Hosted native ARM64 candidate jobs remain required before publication.
+
+1. On an Ubuntu/WSL host, install `qemu-system-arm`, `qemu-utils`, `qemu-efi-aarch64` and `cloud-image-utils`. Use an official [Alpine ARM64 cloud image](https://alpinelinux.org/cloud/), verify its checksum and detached OpenPGP signature against Alpine's published full fingerprint, and keep the verified image read-only.
+2. Create a task-owned QCOW2 overlay and NoCloud seed with a temporary SSH public key. Run `qemu-system-aarch64` with `-machine virt -cpu max -accel tcg -m 3072 -smp 2`, AAVMF firmware, the overlay, seed and virtio devices. Bind any SSH forwarding explicitly to loopback, for example `hostfwd=tcp:127.0.0.1:2264-:22`. Keep Docker's API on the guest's Unix socket.
+3. Inside the guest, install Docker, its buildx CLI plugin and the testing prerequisites. Use an account authorized for the guest's Docker Unix socket. On Alpine, start the `cgroups` OpenRC service before Docker; wait for `docker version` to report its server architecture. Confirm the architecture and kernel preflight before a long build:
+
+```sh
+uname -m                                      # aarch64
+docker version --format '{{.Server.Arch}}'     # arm64
+python3 build/tor/preflight.py
+```
+
+4. Copy the reviewed working source into the guest, including uncommitted release changes. Cloning the current remote branch alone will omit local preparation. Keep real relay data, ENV, credentials and keys out of the test guest. Run both candidates sequentially:
+
+```sh
+set -eu
+version=$(python3 scripts/release/check-versions.py --print-version)
+for variant in stable edge; do
+  recipe=Dockerfile
+  test "$variant" != edge || recipe=Dockerfile.edge
+  image="relay-arm64-local:$variant"
+  docker buildx build --platform linux/arm64 --load --progress plain \
+    -f "$recipe" --build-arg BUILD_VERSION="$version-local" \
+    -t "$image" .
+  python3 scripts/testing/image-acceptance.py "$image" --platform linux/arm64
+  python3 scripts/testing/check-image.py "$image"
+done
+```
+
+Retain the full upstream test output. A successful kernel preflight alone is insufficient: the build must pass upstream sandbox tests, then image behavior, component/security scans, SBOMs, source/image identity and encrypted recovery checks. Use the same gates documented below and in the candidate workflow. Do not disable sandbox support, skip failing tests or publish from this rehearsal. Shut down the disposable guest after testing and keep its disk only if needed for continued local validation.
 
 ## 🔎 Source checks
 
@@ -27,7 +62,7 @@ On Docker Desktop, finish WSL source/recovery commands before registering ARM64 
 python3 scripts/release/check-versions.py
 python3 scripts/testing/check-templates.py
 python3 scripts/testing/check-docs.py
-shellcheck -S warning -x docker-entrypoint.sh healthcheck.sh lib/*.sh tools/* scripts/utilities/relay-backup.sh scripts/utilities/relay-inventory.sh
+shellcheck -S warning -x docker-entrypoint.sh healthcheck.sh lib/*.sh tools/* build/tor/build.sh scripts/utilities/relay-backup.sh scripts/utilities/relay-inventory.sh
 python3 -m unittest discover -s tests -v
 git diff --check
 ```
@@ -51,18 +86,48 @@ Remove the task-owned temporary tool directory when finished. The checker uses R
 
 ## 🏗️ Build and inspect candidates
 
+The source builds Tor from the authenticated pin in `build/tor/source.json`, independently of Alpine’s Tor package. Alpine still supplies the base and runtime libraries. Follow the [source verification and validation order](#-release-preparation-order) before treating a local build as a candidate.
+
+### ✅ Release preparation order
+
+1. Keep source, samples, current documentation and managed version markers synchronized; preserve historical release records, artwork, emojis and Mermaid diagrams.
+2. Run local regression, shell, workflow, dependency, documentation and recursive template checks.
+3. Authenticate the pinned Tor source archive and its reviewed release signer. Verify matching Alpine builder/runtime bases, source-package metadata and runtime libraries for both architectures.
+4. Build stable/edge AMD64/ARM64 candidates with the normal Dockerfiles. Verify binary versions, each sample configuration, ENV generation, reload/startup, shutdown and identity-preserving encrypted recovery.
+5. Run component/security gates and retain exact candidate digests, SBOMs and scan evidence. Prepare the signed release commit/tag and publish only after all four candidates pass and the maintainer authorizes publication.
+6. Follow the migration checklist and retain evidence from real deployments. Keep registry-retention protection and the existing published notice unchanged by preparation. The [fleet-review helper](REGISTRY-RETENTION.md#-prepare-a-fleet-review-proposal) can prepare additive protection from fresh reports; it cannot renew stale evidence or authorize deletion without complete coverage.
+
+Coordinate the managed version bump with the new release tag after the approved change reaches main. Until `v2.2.1` exists on main, scheduled/manual main rebuilds reject the mismatch with the last published `v2.2.0` namespace. Do not merge the version bump early expecting routine rebuilds to publish it under `2.2.0`, or suppress published-image alerts while old Tor binaries remain deployed.
+
+Record incomplete candidate gates in the maintainer's validation evidence. The curated release notes are published verbatim after promotion, so keep preparation status and unfinished-test claims out of that publication copy.
+
+### 🔨 Build a local candidate
+
 ```sh
+version=$(python3 scripts/release/check-versions.py --print-version)
 docker buildx build --platform linux/amd64 --load \
-  --build-arg BUILD_VERSION=2.2.0-local -t tor-relay:2.2.0-local .
-python3 scripts/testing/image-acceptance.py tor-relay:2.2.0-local
-python3 scripts/testing/check-image.py tor-relay:2.2.0-local
+  --build-arg BUILD_VERSION="$version-local" -t tor-relay:local .
+python3 scripts/testing/image-acceptance.py tor-relay:local
+python3 scripts/testing/check-image.py tor-relay:local
 ```
 
-Repeat with `Dockerfile.edge` and both `linux/amd64` and `linux/arm64`. Pass the platform explicitly to image acceptance for ARM64. Check-image reads the Go dependency metadata from the actual transport binary as well as Tor and installed OpenSSL packages.
+Repeat with `Dockerfile.edge`. Test both `linux/amd64` and `linux/arm64` on their corresponding hosts or full-system guests. Pass the platform explicitly to image acceptance for ARM64. Check-image reads the Go dependency metadata from the actual transport binary as well as Tor and installed OpenSSL packages.
 
 The Go inspector uses the digest-pinned builder from the policy Dockerfiles on the Docker host architecture, so ARM64 metadata can be inspected natively on an AMD64 host. An exact local inspector image avoids a registry request. Otherwise, its fetch has at most three attempts of 120 seconds each with 10- and 20-second delays. Once fetched, inspection runs with network disabled and implicit pulls prohibited. Component/inspection failures are never retried or bypassed.
 
-Acceptance covers guard, exit and bridge generation, custom torrc path, accounting, config validation, PID-preserving reload, fresh restart evidence, bridge transport state and clean shutdown. Injected bootstrap messages test observation logic; they are not proof of live bootstrap.
+Acceptance validates all three sample torrc files after replacing only their address placeholders with reserved test addresses. It also covers guard, exit and bridge generation, custom torrc path, accounting, config validation, PID-preserving reload, fresh restart evidence, bridge transport state and clean shutdown. Injected bootstrap messages test observation logic; they are not proof of live bootstrap.
+
+## 🔄 Upgrade rehearsal
+
+Use two images that already exist locally. Tag the reviewed previous v2.2.0 image as `relay-previous:local` and the candidate as `tor-relay:local`; verify their image IDs instead of relying on a stale local `latest` tag. The rehearsal creates only disposable named volumes and synthetic identities, disables container networking, and tests guard, exit and obfs4 bridge upgrades with ENV-generated and read-only mounted torrc/includes. It stops the old process before starting the replacement, checks identity/family/bridge state and UID/GID, and confirms that historical bootstrap logs do not establish new-run readiness. It removes only its own labelled fixtures.
+
+```sh
+python3 scripts/testing/upgrade-rehearsal.py \
+  --from-image relay-previous:local \
+  --to-image tor-relay:local --output /tmp/relay-upgrade.json
+```
+
+Repeat with the corresponding edge images. This is offline compatibility evidence; it does not prove public bootstrap, reachability or consensus flags.
 
 ## 🔐 Recovery rehearsal
 
@@ -73,7 +138,7 @@ The archive regression suite checks wrong identities, truncation, unsafe paths, 
 Run the isolated named-volume and bind-mount rehearsal with a task-owned scratch parent accessible to Docker:
 
 ```sh
-python3 scripts/testing/recovery-rehearsal.py --image tor-relay:2.2.0-local --bind-parent /path/to/scratch
+python3 scripts/testing/recovery-rehearsal.py --image tor-relay:local --bind-parent /path/to/scratch
 ```
 
 ## 🎨 Presentation checks
@@ -394,6 +459,8 @@ docker run --rm localhost:5000/onion-relay:test ls -ldn /var/log/tor
 ## 🔄 Multi-Arch Testing
 
 ### Build for Multiple Architectures
+
+This example requires separate matching-kernel builders for AMD64 and ARM64. Configure those buildx nodes first; a single AMD64 Docker Desktop daemon with binfmt cannot satisfy the ARM64 source-build sandbox gate. For a local alternative, use the full-system guest procedure above and build each architecture on its matching Docker engine.
 
 ```bash
 # Set up buildx (once)

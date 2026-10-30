@@ -18,7 +18,7 @@ spec = importlib.util.spec_from_file_location("recovery", ROOT / "scripts/utilit
 backup = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(backup)
 parser = argparse.ArgumentParser()
-parser.add_argument("--image", default="tor-relay:2.2.0-local")
+parser.add_argument("--image", required=True, help="Explicit locally available candidate image")
 parser.add_argument("--bind-parent", required=True, help="Task-owned scratch parent accessible to the Docker daemon")
 args = parser.parse_args()
 cli = backup.docker_cli()
@@ -40,7 +40,7 @@ with tempfile.TemporaryDirectory(dir="/dev/shm" if Path("/dev/shm").exists() els
         try:
             if bind:
                 source = bind.name
-                if cli.endswith(".exe"):
+                if cli.lower().endswith(".exe") and os.environ.get("WSL_DISTRO_NAME"):
                     source = sp.check_output(["wslpath", "-w", source], text=True).strip()
             else:
                 run("volume", "create", volume)
@@ -95,6 +95,7 @@ with tempfile.TemporaryDirectory(dir="/dev/shm" if Path("/dev/shm").exists() els
                 sp.run([cli, "volume", "rm", volume], stdout=sp.DEVNULL, stderr=sp.DEVNULL)
             if bind:
                 # Return only this newly created synthetic bind fixture to the host user.
-                run("run", "--rm", "--network", "none", "--user", "0", "--mount", mount,
-                    "--entrypoint", "chown", args.image, "-R", f"{os.getuid()}:{os.getgid()}", "/var/lib/tor")
+                if os.name == 'posix':
+                    run("run", "--rm", "--network", "none", "--user", "0", "--mount", mount,
+                        "--entrypoint", "chown", args.image, "-R", f"{os.getuid()}:{os.getgid()}", "/var/lib/tor")
                 bind.cleanup()

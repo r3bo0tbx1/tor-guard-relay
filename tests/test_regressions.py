@@ -85,6 +85,35 @@ class ArchiveTests(unittest.TestCase):
         with self.assertRaises(ValueError): backup.restore(args)
         self.assertEqual(marker.read_text(),"keep")
 
+class ConsensusConfigTests(unittest.TestCase):
+    def test_all_generated_modes_leave_directory_dos_policy_to_consensus(self):
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory) / 'torrc'
+            for mode in ('guard', 'middle', 'exit', 'bridge'):
+                with self.subTest(mode=mode):
+                    env = {**os.environ, 'RELAY_LIB': str(ROOT / 'lib'), 'OUTPUT_CONFIG': str(target),
+                           'TOR_RELAY_MODE': mode, 'TOR_NICKNAME': 'ConfigTestRelay',
+                           'TOR_CONTACT_INFO': 'operator@example.com', 'TOR_DATA_DIR': '/var/lib/tor',
+                           'TOR_LOG_DIR': '/var/log/tor'}
+                    sp.run(['sh', '-ec', '. "$RELAY_LIB/config.sh"; render_config "$OUTPUT_CONFIG"'],
+                           env=env, check=True, capture_output=True, text=True)
+                    active = [line.strip() for line in target.read_text().splitlines()
+                              if line.strip() and not line.lstrip().startswith('#')]
+                    self.assertFalse(any(line.startswith('DoSBeginDir') for line in active))
+                    self.assertNotIn('DirCache 0', active)
+                    self.assertEqual('DirPort 0' in active, mode != 'bridge')
+                    self.assertIn('SocksPort 0', active)
+                    self.assertIn('DataDirectory /var/lib/tor', active)
+
+    def test_samples_do_not_force_new_consensus_controls(self):
+        for path in (ROOT / 'examples').glob('relay-*.conf'):
+            with self.subTest(path=path.name):
+                active = [line.strip() for line in path.read_text().splitlines()
+                          if line.strip() and not line.lstrip().startswith('#')]
+                self.assertFalse(any(line.startswith('DoSBeginDir') for line in active))
+                self.assertNotIn('DirCache 0', active)
+
+
 class RuntimeTests(unittest.TestCase):
     def setUp(self):
         self.tmp=tempfile.TemporaryDirectory()

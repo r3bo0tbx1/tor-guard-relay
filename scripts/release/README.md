@@ -14,20 +14,28 @@ The release automation includes three main components:
 
 ## 🛠️ Local commands
 
+The prepared [v2.2.1 update](../../docs/releases/v2.2.1.md) builds Tor 0.4.9.15 from authenticated upstream source on each matching Alpine base. [build/tor/source.json](../../build/tor/source.json) is the version/checksum/signer pin and current Tor security floor; the pin checker rejects build-path or base drift. Current policy also applies to explicit older-tag rebuilds. A source-only pass never authorizes publication.
+
 ```sh
-sh scripts/release/update-version.sh 2.2.0 --dry-run
+sh scripts/release/update-version.sh 2.2.1 --dry-run
 python3 scripts/release/check-versions.py
+python3 scripts/release/check-versions.py --print-version
 python3 scripts/testing/check-dependency-pins.py
+python3 scripts/release/update-tor-source.py --output /tmp/tor-upstream.json
 python3 scripts/testing/check-docs.py
-sh scripts/release/generate-release-notes.sh 2.2.0 v2.1.0 --output /tmp/release-draft.md
+sh scripts/release/generate-release-notes.sh 2.2.1 v2.2.0 --output /tmp/release-draft.md
 ```
 
 The version checker discovers tracked and nonignored documentation, scripts and workflows, synchronizing current Alpine references from the stable Dockerfile. `--write` applies changes; `--version X.Y.Z` also updates managed current project references. Published release notes and changelog dependency records retain their original versions. Historical migration release semantics are retained.
 
 The notes generator handles leading gitmoji, conventional scopes and multiline breaking-change bodies, and keeps emoji headings by default. Use `--no-emoji` or `--format plain` only when you want plain output. Its output is a review draft. The release workflow publishes the curated file at `docs/releases/vVERSION.md`.
 
+The upstream checker is read-only by default: it discovers stable releases directly from Tor, authenticates any newer archive and retains a proposed source pin without committing or publishing. Missing assets, invalid signatures, unknown signers and checksum failures block updates. Use `--version VERSION --write` to prepare a verified local pin, review operator guidance and run all gates. Compatible Tor updates can refresh existing 2.2.1 image tags through main rebuilds; the Git release tag stays unchanged. See [Tor source maintenance](../../build/tor/README.md).
+
 
 ### 📝 Curated notes and version markers
+
+For registry cleanup, `review-fleet-protection.py` prepares a separate additive policy proposal from fresh inventories of distinct Docker engines. It preserves existing rollback identities and automatic-retention settings, and never renews a review from stale reports. See the [fleet-review procedure](../../docs/REGISTRY-RETENTION.md#-prepare-a-fleet-review-proposal) before confirming complete coverage.
 
 Use the notes generator for a local review draft; the hosted release publishes `docs/releases/vVERSION.md`. The version synchronizer updates explicit current markers and validates examples against the stable Dockerfile, leaving historical changelog entries intact. No helper commits, pushes, signs or publishes automatically.
 
@@ -346,13 +354,13 @@ python3 scripts/release/check-versions.py
 **Solution:**
 ```bash
 # Ensure image exists locally or in registry
-docker pull ghcr.io/r3bo0tbx1/onion-relay:2.2.0
+docker pull ghcr.io/r3bo0tbx1/onion-relay:2.2.1
 
 # Generate SBOM locally for testing
 docker run --rm \
   -v /var/run/docker.sock:/var/run/docker.sock \
   anchore/syft:latest \
-  ghcr.io/r3bo0tbx1/onion-relay:2.2.0 \
+  ghcr.io/r3bo0tbx1/onion-relay:2.2.1 \
   -o cyclonedx-json
 ```
 

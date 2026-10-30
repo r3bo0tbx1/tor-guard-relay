@@ -15,7 +15,7 @@ while [ "$#" -gt 0 ]; do
   esac
 done
 reason=ready; line=''
-if ! grep -qi '^BridgeRelay[[:space:]]\+1' "$TOR_CONFIG" 2>/dev/null; then reason=not_bridge
+if ! printf '%s\n' "$EFFECTIVE_CONFIG" | grep -qE '^BridgeRelay[[:space:]]+1([[:space:]]|$)'; then reason=not_bridge
 elif [ ! -s "$TOR_DATA_DIR/pt_state/obfs4_bridgeline.txt" ] || [ ! -s "$TOR_DATA_DIR/fingerprint" ]; then reason=transport_pending
 elif [ -z "$address" ]; then reason=address_required
 else

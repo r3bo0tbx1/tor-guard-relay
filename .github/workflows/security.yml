@@ -21,10 +21,28 @@ concurrency:
   group: security-watch-${{ github.ref }}
   cancel-in-progress: false
 jobs:
+  tor-upstream:
+    name: 🧅 Watch stable Tor releases
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: 📥 Check out source
+        uses: actions/checkout@v7.0.1
+      - name: 🔎 Detect and authenticate newer stable Tor source
+        run: python3 scripts/release/update-tor-source.py --output tor-upstream.json
+      - name: 📎 Retain upstream status and any authenticated proposed pin
+        if: always()
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: tor-upstream
+          path: tor-upstream.json
+          retention-days: 30
+
   source:
     name: 🛡️ Go source (${{ matrix.arch }})
     if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.arch == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
     timeout-minutes: 30
     strategy:
       fail-fast: false
@@ -33,6 +51,10 @@ jobs:
     steps:
       - name: 📥 Check out source
         uses: actions/checkout@v7.0.1
+      - name: 🧭 Verify native source-analysis host
+        env:
+          EXPECTED_ARCH: ${{ matrix.arch }}
+        run: test "$(docker version --format '{{.Server.Arch}}')" = "$EXPECTED_ARCH"
       - name: 🏗️ Prepare image builder
         uses: docker/setup-buildx-action@v4.4.1
       - name: 🔍 Check source and metadata pins
@@ -85,6 +107,8 @@ jobs:
     steps:
       - name: 📥 Check out source
         uses: actions/checkout@v7.0.1
+      - name: 🌐 Prepare cross-platform version checks
+        uses: docker/setup-qemu-action@v4.4.0
       - name: 🏗️ Prepare image builder
         uses: docker/setup-buildx-action@v4.4.1
       - name: 🔑 Authenticate GHCR
@@ -129,6 +153,12 @@ jobs:
           exit-code: '0'
       - name: ✨ Assess published image using current policy
         run: python3 scripts/testing/check-security.py trivy.json --image-metadata image.json --summary "$GITHUB_STEP_SUMMARY"
+      - name: 🛡️ Enforce the current Tor minimum on the published digest
+        if: always() && steps.image.outcome == 'success'
+        env:
+          IMAGE: ${{ steps.image.outputs.reference }}
+        run: |
+          python3 scripts/testing/check-image.py "$IMAGE" --tor-only --summary "$GITHUB_STEP_SUMMARY" > tor-version.json
       - name: 📎 Retain published assessment
         if: always()
         uses: actions/upload-artifact@v7.0.2
@@ -140,6 +170,7 @@ jobs:
             image-reference.txt
             image.json
             trivy.json
+            tor-version.json
           retention-days: 30
       - name: 📋 Record workflow outcome
         if: always()

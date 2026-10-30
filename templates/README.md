@@ -2,7 +2,9 @@
 
 [Documentation](../docs/README.md)
 
-## 🧪 v2.2.0 template checks
+## 🧪 v2.2.1 template checks
+
+These templates target the prepared source update. Versioned v2.2.1 images must not be deployed until publication and all Tor 0.4.9.15 candidate gates pass. See the [release preparation and torrc notes](../docs/releases/v2.2.1.md).
 
 All seven Cosmos JSON templates and five Compose templates are validated locally and in CI. Published aliases follow validated releases; a local candidate does not change them. Build the source locally for prepublication testing.
 
@@ -304,6 +306,6 @@ If you still see this error after updating to the latest version:
 
 ---
 
-**Version:** <!-- RELAY_VERSION -->v2.2.0<!-- /RELAY_VERSION -->
+**Version:** <!-- RELAY_VERSION -->v2.2.1<!-- /RELAY_VERSION -->
 **Last Updated:** 2026-03-02
 **Maintainer:** rE-Bo0t.bx1 <r3bo0tbx1@brokenbotnet.com>

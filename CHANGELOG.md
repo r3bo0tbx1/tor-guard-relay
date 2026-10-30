@@ -1,8 +1,28 @@
 # 📜 Changelog
 
-Current source: <!-- RELAY_VERSION -->v2.2.0<!-- /RELAY_VERSION -->. Historical entries below retain their original release context.
+Current source: <!-- RELAY_VERSION -->v2.2.1<!-- /RELAY_VERSION -->. Historical entries below retain their original release context.
 
 ## [Unreleased]
+
+### 🧅 v2.2.1 preparation: Tor 0.4.9.15
+
+- Raise the stable/edge Tor minimum to 0.4.9.15 for upstream's 28 October security release and its BEGIN_DIR/HSDir DoS defenses. Derive acceptance and component checks from the same authenticated source pin, reject builder/runtime drift, and assess published image digests against the current floor.
+- Include upstream's corrected release-note entries for TROVE-2026-072, channel-padding timeout handling and exit retry after a new consensus. Retain the authenticated release archive and link the immutable correction separately from the tagged notes.
+- Document consensus-controlled rate limiting, the consensus-only BEGIN_DIR limit, sticky HSDir eligibility and the new authority protocol requirements. Recommend prompt migration of every relay/bridge without claiming remote deployments were updated.
+- Update all three sample torrc files and ENV-generated comments. Leave new DoS settings unset and explain reviewing temporary `DirCache 0` workarounds after upgrading; preserve `DirPort 0`, operator-owned mounted config and identity state.
+- Prepare managed source/template versions for v2.2.1 and derive CI candidate labels from that source version. Preserve historical releases, diagrams, artwork and emoji presentation. Build Tor from authenticated upstream source on matching stable/edge Alpine bases; never relabel 0.4.9.14 as the new release.
+- Wait for reload readiness in the offline acceptance fixture under slow ARM64 startup while preserving the runtime process/SIGHUP safety guard.
+- Package verified Tor source as a locally signed APK on both architectures, retaining GeoIP, licenses and source provenance while keeping compilers/private signing material out of the runtime. Add six-hour stable-release detection and a verified local source-pin updater; preserve reviewed main rebuilds under existing image version tags and coordinate the project version bump with its initial release tag.
+- Include the latest merged Snowflake 2.15.3, KCP 5.7.1, SMUX 1.5.58 and Renovate validator 44.197.1 updates in the prepared release source.
+- Validate all three sample torrc files with reserved test addresses during image acceptance. Keep authentication failures visible in upstream-watch artifacts and preserve source pins when verification fails.
+- Guard Unix-only ownership operations during staged recovery and make its local rehearsal handle native Windows paths; preserve Linux root's UID 100/GID 101 handling, full archive verification and offline configuration validation.
+- Build and analyze hosted ARM64 candidates on native ARM64 runners, with an explicit architecture check. Preserve the existing four-candidate matrix, required check names and all security/recovery gates.
+- Reject unsupported build kernels before source downloads or compilation; preserve full upstream sandbox tests. Read the startup banner from actual image build metadata and require an explicit local image for recovery rehearsals.
+- Add an offline upgrade rehearsal for guard, exit and obfs4 bridge roles with ENV and mounted/include configurations. Check long-term relay/family/transport identity, unchanged mounted config, UID/GID and current-run readiness across container replacement.
+- Resolve bridge/exit diagnostics from Tor's effective configuration, including torrc includes, instead of treating only the root file as authoritative.
+- Prepare additive fleet-protection proposals from fresh, distinct Docker-engine inventories. Preserve existing rollback protection and cleanup windows; never renew stale evidence by rerunning the helper. Document local ARM64 testing with a full-system Linux VM while retaining all upstream sandbox and hosted candidate gates.
+
+See the [prepared v2.2.1 release notes](docs/releases/v2.2.1.md) for authenticated builds, future Tor updates, defaults, migration order and outstanding validation. No new mandatory torrc/ENV option or storage migration is introduced.
 
 ### 🛡️ Security and dependency maintenance
 

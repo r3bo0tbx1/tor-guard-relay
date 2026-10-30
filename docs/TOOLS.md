@@ -1,11 +1,11 @@
 # 🛠️ Tools Reference Guide
 
-**Tor Guard Relay 2.2.0** includes 9 essential diagnostic and operational tools built directly into the ultra-optimized container. All tools are busybox-compatible, executable without file extensions, and designed for production use.
+**Tor Guard Relay 2.2.1** retains 9 essential diagnostic and operational tools built directly into the ultra-optimized container. All tools are busybox-compatible, executable without file extensions, and designed for production use.
 
 ---
 
 > [!IMPORTANT]
-> 🧅 **v2.2.0 release candidate:** Tor must be **0.4.9.14 or newer**. Current-run health, validated configuration and encrypted recovery are described in the [release notes](releases/v2.2.0.md). Recreate from the validated image to update Tor; changing torrc alone does not upgrade the binary.
+> 🧅 **v2.2.1 preparation:** Tor must be **0.4.9.15 or newer**. Review the [release and torrc migration notes](releases/v2.2.1.md); Tor is built from authenticated upstream source on each matching Alpine base; publication requires all candidate gates. Recreate from the validated image to update Tor; changing torrc alone does not upgrade the binary.
 
 ## 📋 Tool Overview
 
@@ -103,7 +103,7 @@ docker exec tor-relay health | jq .status
   "errors": 0,
   "nickname": "MyGuardRelay",
   "fingerprint": "ABCD1234567890ABCDEF1234567890ABCDEFGHIJ",
-  "tor_version": "0.4.9.14",
+  "tor_version": "0.4.9.15",
   "relay_mode": "guard",
   "build_version": "2.2.0",
   "config_source": "environment",

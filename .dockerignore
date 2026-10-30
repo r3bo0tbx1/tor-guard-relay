@@ -36,3 +36,4 @@ config/
 !tools/
 !docker-entrypoint.sh
 !healthcheck.sh
+!build/tor/source.json

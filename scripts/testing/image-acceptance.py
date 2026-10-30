@@ -2,11 +2,14 @@
 """Offline image acceptance for local candidates and release jobs."""
 import argparse
 import json
+import importlib.util
 import os
+from pathlib import Path
 import shutil
 import subprocess as sp
 import time
 import uuid
+from sample_config import render_sample
 
 parser = argparse.ArgumentParser()
 parser.add_argument("image")
@@ -21,9 +24,19 @@ def run(*argv, check=True):
 def execute(name, *argv, check=True):
     return run("exec", name, *argv, check=check)
 
+spec = importlib.util.spec_from_file_location('component_checker', Path(__file__).with_name('check-image.py'))
+checker = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(checker)
 version = run("run", "--rm", "--platform", args.platform, "--network", "none", "--entrypoint", "tor", args.image, "--version").stdout
-parts = tuple(map(int, version.split("Tor version ")[1].split(".")[:3] + [version.split("Tor version ")[1].split(".")[3]]))
-assert parts >= (0,4,9,14), version
+checker.check_tor_version(version, checker.pins.inspect_pins(checker.ROOT)['tor_min_version'])
+for sample in sorted((checker.ROOT / 'examples').glob('relay-*.conf')):
+    result = sp.run([cli, 'run', '--rm', '-i', '--platform', args.platform, '--network', 'none',
+                     '--entrypoint', 'sh', args.image, '-ec',
+                     'cat > /tmp/sample.torrc; exec tor --verify-config -f /tmp/sample.torrc '
+                     '--DataDirectory /tmp/sample-data --Log "notice stdout"'],
+                    input=render_sample(sample.read_text(encoding='utf-8')), text=True, capture_output=True)
+    if result.returncode:
+        raise RuntimeError(f'{sample.name}: sample config validation failed: {result.stdout} {result.stderr}')
 for role in ("guard", "exit", "bridge"):
     name = "relay-accept-" + uuid.uuid4().hex[:10]
     try:
@@ -38,6 +51,7 @@ for role in ("guard", "exit", "bridge"):
                 health = json.loads(result.stdout); break
             time.sleep(0.2)
         assert health is not None, run("logs", name).stdout
+        assert ("Tor Guard Relay v" + health["build_version"] + " - Initialization") in run("logs", name).stdout
         assert health["liveness"] and health["config_valid"] and not health["readiness"], health
         assert health["config_path"] == "/etc/tor/test.conf" and health["config_source"] == "environment", health
         execute(name, "config", "validate")
@@ -46,6 +60,14 @@ for role in ("guard", "exit", "bridge"):
         assert execute(name, "config", "apply", "/tmp/invalid.torrc", check=False).returncode != 0
         assert execute(name, "sha256sum", "/etc/tor/test.conf").stdout == before_config
         execute(name, "sh", "-c", "cp /etc/tor/test.conf /tmp/valid.torrc")
+        # Liveness can precede Tor's signal handlers, especially under ARM64 emulation.
+        # Wait in the fixture; never weaken refresh's process/handler safety checks.
+        for _ in range(6):
+            result = execute(name, "refresh", check=False)
+            if result.returncode == 0:
+                break
+            time.sleep(0.2)
+        assert result.returncode == 0, result.stdout + result.stderr
         execute(name, "config", "apply", "/tmp/valid.torrc", "--reload")
         # Inject a current-run bootstrap event, then force a restart boundary.
         execute(name, "sh", "-c", "printf 'Bootstrapped 100%%\\n' >> /var/log/tor/notices.log")

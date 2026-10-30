@@ -14,6 +14,15 @@ RUN sha256sum go.mod > /tmp/go.mod.sha256 \
  && sha256sum -c /tmp/go.mod.sha256 \
  && CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -mod=readonly -trimpath -ldflags="-s -w" -o /usr/bin/lyrebird ./cmd/lyrebird
 
+FROM alpine:edge AS tor-builder
+RUN sed -i 's/http:/https:/g' /etc/apk/repositories \
+ && apk upgrade --no-cache \
+ && apk add --no-cache alpine-sdk python3 gnupg libcap-dev libevent-dev libseccomp-dev openssl-dev xz-dev zlib-dev zstd-dev \
+ && adduser -D -G abuild build
+COPY build/tor/ /build/tor/
+USER build
+RUN sh /build/tor/build.sh
+
 FROM alpine:edge
 
 ARG BUILD_DATE
@@ -21,7 +30,6 @@ ARG BUILD_VERSION
 ARG TARGETARCH
 ARG SOURCE_REVISION=unknown
 ARG LYREBIRD_REVISION=362a60bb4e3fa434130ef81a9990d83d6d8eaea5
-ARG TOR_MIN_VERSION=0.4.9.14
 
 LABEL maintainer="rE-Bo0t.bx1 <r3bo0tbx1@brokenbotnet.com>" \
       org.opencontainers.image.title="Tor Guard Relay (Edge)" \
@@ -40,15 +48,17 @@ LABEL maintainer="rE-Bo0t.bx1 <r3bo0tbx1@brokenbotnet.com>" \
 
 SHELL ["/bin/ash", "-eo", "pipefail", "-c"]
 
+COPY --from=tor-builder /home/build/output/ /tmp/tor-package/
 RUN set -eux \
  && sed -i 's/http:/https:/g' /etc/apk/repositories \
  && { deluser klogd || true; } \
  && addgroup -g 101 -S tor \
  && adduser -u 100 -S -D -H -h /var/lib/tor -G tor -s /sbin/nologin tor \
  && apk upgrade --no-cache \
- && apk add --no-cache \
-    "tor>=${TOR_MIN_VERSION}" \
-    tini \
+ && cp /tmp/tor-package/relay-tor-source.rsa.pub /etc/apk/keys/ \
+ && apk add --no-cache /tmp/tor-package/tor-*.apk tini \
+ && rm -f /etc/apk/keys/relay-tor-source.rsa.pub \
+ && rm -rf /tmp/tor-package \
  && mkdir -p /var/lib/tor /var/log/tor /run/tor /etc/tor \
  && chown -R tor:tor /var/lib/tor /var/log/tor /run/tor /etc/tor \
  && chmod 700 /var/lib/tor \

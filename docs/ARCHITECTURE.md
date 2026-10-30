@@ -3,7 +3,7 @@
 **Tor Guard Relay Container** - Technical Architecture & Design
 
 > [!IMPORTANT]
-> 🧅 **v2.2.0 release candidate:** Tor must be **0.4.9.14 or newer**. Current-run health, validated configuration and encrypted recovery are described in the [release notes](releases/v2.2.0.md). Recreate from the validated image to update Tor; changing torrc alone does not upgrade the binary.
+> 🧅 **v2.2.1 preparation:** Tor must be **0.4.9.15 or newer**. Review the [release and torrc migration notes](releases/v2.2.1.md); Tor is built from authenticated upstream source on each matching Alpine base; publication requires all candidate gates. Recreate from the validated image to update Tor; changing torrc alone does not upgrade the binary.
 
 ## 📋 Table of Contents
 
@@ -851,7 +851,7 @@ Use a Docker/Compose stop grace period longer than `TOR_SHUTDOWN_TIMEOUT`. Docke
 
 ## 🏗️ Build Process
 
-The native Go builder cross-compiles Lyrebird using a pinned source revision and independent module lock. No build tools or vulnerability scanner are copied into the runtime.
+The native Go builder cross-compiles Lyrebird using a pinned source revision and independent module lock. A separate Tor builder authenticates the locked upstream release, runs its tests and creates a signed APK on the same Alpine base as the target runtime. The runtime retains Tor's package/version and source provenance; compilers, source trees, private package-signing keys and scanners stay outside it.
 
 ```mermaid
 flowchart LR
@@ -859,10 +859,13 @@ flowchart LR
         Pin["🧅 Lyrebird source SHA"]
         Lock["🔒 Independent go.mod / go.sum"]
         Go["🐹 Go 1.27.3 builder digest"]
+        TorPin["🔐 Tor version, checksum and release keys"]
         Files["📜 POSIX libraries and tools"]
     end
     subgraph Build["🏗️ Candidate build"]
         Native["🔨 Native builder / target cross-compile"]
+        TorBuild["🧅 Authenticate source / build and test Tor"]
+        TorAPK["📦 Signed Tor APK and provenance"]
         Stable["🐧 Stable Alpine 3.24.3 digest"]
         Edge["🧪 Alpine edge"]
         Matrix["🌍 Stable / edge × AMD64 / ARM64"]
@@ -883,6 +886,9 @@ flowchart LR
     Lock --> Native
     Go --> Native
     Native --> Matrix
+    TorPin --> TorBuild --> TorAPK --> Matrix
+    Stable --> TorBuild
+    Edge --> TorBuild
     Stable --> Matrix
     Edge --> Matrix
     Files --> Matrix
@@ -900,7 +906,7 @@ flowchart LR
 - Manual dispatch on main with an empty `source_tag` selects the immutable dispatch commit and rebuilds both variants and architectures. Image tags use the latest release version, which must match main's version marker; Git tags and release notes remain unchanged.
 - Security policy and scanner come from current reviewed main, separately from selected source/lock/toolchain.
 - Every candidate must pass before any promotion. Promotion imports those same archives into a temporary OCI layout, verifies config IDs/checksums and publishes by digest; it never rebuilds or creates public staging tags.
-- A merged source or Go-lock change can ship through a validated manual main rebuild; subsequent schedules retain that merged fix. A version bump requires a new release tag.
+- A merged Tor source pin, Lyrebird source or Go-lock change can ship through a validated manual main rebuild; subsequent schedules retain that merged fix. A project version bump requires a new release tag. Tor's six-hour upstream watch prepares authenticated proposals without changing the pin or publishing.
 - Release jobs check out trusted main, validate both full commit SHAs against reviewed main ancestry, then materialize separate immutable source and policy worktrees. Publication credentials exist only in promotion; checkout credentials are not retained.
 - Registry inventory defaults to read-only retention review. Explicit v2.2.0 tag cleanup verifies and preserves released/rollback manifest graphs; referenced untagged architecture versions remain.
 - Explicit retired-version cleanup requires successful publication/audit evidence, protects current and retained v2.2.0 manifest graphs, verifies GitHub release assets remain unchanged, and shares a mutation lock with publication.
