@@ -25,6 +25,7 @@ class VersionSyncTests(unittest.TestCase):
         for name in ("docs/README.md", "docs/BACKUP.md", "docs/TOOLS.md",
                      "scripts/release/README.md"):
             self.write(name, "Alpine 3.24.2\n")
+        self.write("docs/DOCKERHUB.md", "<!-- RELAY_IMAGE_VERSION -->`2.2.0`<!-- /RELAY_IMAGE_VERSION -->\n")
         for number in range(20):
             self.write(f"docs/current-{number}.md", "docker run alpine:3.24.2 sh\n")
         self.release = ("<!-- RELAY_VERSION -->v2.2.0<!-- /RELAY_VERSION -->\n"
@@ -73,11 +74,22 @@ class VersionSyncTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("v2.3.0", (self.root / "README.md").read_text())
         self.assertIn("onion-relay:2.3.0", (self.root / "README.md").read_text())
+        self.assertEqual((self.root / "docs/DOCKERHUB.md").read_text(),
+                         "<!-- RELAY_IMAGE_VERSION -->`2.3.0`<!-- /RELAY_IMAGE_VERSION -->\n")
         self.assertEqual((self.root / "docs/releases/v2.2.0.md").read_text(), self.release)
         changelog = (self.root / "CHANGELOG.md").read_text()
         self.assertTrue(changelog.endswith(self.history))
         self.assertIn("Updated Alpine to 3.24.2.", changelog)
         self.assertIn("<!-- RELAY_VERSION -->v2.3.0<!-- /RELAY_VERSION -->", changelog)
+
+    def test_check_rejects_stale_dockerhub_image_version_without_writing(self):
+        self.assertEqual(self.run_check('--write').returncode, 0)
+        stale = '<!-- RELAY_IMAGE_VERSION -->`2.1.0`<!-- /RELAY_IMAGE_VERSION -->\n'
+        self.write('docs/DOCKERHUB.md', stale)
+        result = self.run_check()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('docs/DOCKERHUB.md', result.stderr)
+        self.assertEqual((self.root / 'docs/DOCKERHUB.md').read_text(), stale)
 
     def test_print_version_has_no_file_mutations_or_status_noise(self):
         before = (self.root / 'README.md').read_bytes()

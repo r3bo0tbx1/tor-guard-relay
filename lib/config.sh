@@ -98,7 +98,8 @@ ORPort ${TOR_ORPORT:-9001}
 SocksPort 0
 
 # Tor 0.4.9.15+ directory-request DoS defenses follow network consensus.
-# Leave DoSBeginDirRateEnabled/Rate/Burst/DefenseType unset.
+# Leave DoSBeginDirRateEnabled, DoSBeginDirRate, DoSBeginDirBurst and
+# DoSBeginDirDefenseType unset.
 # DoSBeginDirLimitEnabled is consensus-only, not a torrc option.
 # Review any temporary DirCache 0 workaround after upgrading the image.
 

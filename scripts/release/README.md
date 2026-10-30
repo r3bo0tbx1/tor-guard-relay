@@ -14,7 +14,7 @@ The release automation includes three main components:
 
 ## 🛠️ Local commands
 
-The prepared [v2.2.1 update](../../docs/releases/v2.2.1.md) builds Tor 0.4.9.15 from authenticated upstream source on each matching Alpine base. [build/tor/source.json](../../build/tor/source.json) is the version/checksum/signer pin and current Tor security floor; the pin checker rejects build-path or base drift. Current policy also applies to explicit older-tag rebuilds. A source-only pass never authorizes publication.
+The [v2.2.1 update](../../docs/releases/v2.2.1.md) builds Tor 0.4.9.15 from authenticated upstream source on each matching Alpine base. [build/tor/source.json](../../build/tor/source.json) is the version/checksum/signer pin and current Tor security floor; the pin checker rejects build-path or base drift. Current policy also applies to explicit older-tag rebuilds. A source-only pass never authorizes publication.
 
 ```sh
 sh scripts/release/update-version.sh 2.2.1 --dry-run
@@ -27,7 +27,7 @@ python3 scripts/release/render-release-notes.py --root . --version 2.2.1 --outpu
 sh scripts/release/generate-release-notes.sh 2.2.1 v2.2.0 --output /tmp/release-draft.md
 ```
 
-The version checker discovers tracked and nonignored documentation, scripts and workflows, synchronizing current Alpine references from the stable Dockerfile. `--write` applies changes; `--version X.Y.Z` also updates managed current project references. Published release notes and changelog dependency records retain their original versions. Historical migration release semantics are retained.
+The version checker discovers tracked and nonignored documentation, scripts and workflows, synchronizing current Alpine references from the stable Dockerfile. `--write` applies changes; `--version X.Y.Z` also updates managed current project references. `RELAY_VERSION` markers include the project version's `v` prefix; `RELAY_IMAGE_VERSION` markers keep image tags without that prefix, including the Docker Hub tag table. Published release notes and changelog dependency records retain their original versions. Historical migration release semantics are retained.
 
 The notes generator handles leading gitmoji, conventional scopes and multiline breaking-change bodies, and keeps emoji headings by default. Use `--no-emoji` or `--format plain` only when you want plain output. Its output is a review draft. The release workflow publishes the curated file at `docs/releases/vVERSION.md`.
 
@@ -145,7 +145,7 @@ Each published-image summary shows the version/source labels, exact scanned imag
 2. Push the branch yourself and open a PR; wait for all required checks on its latest revision.
 3. Merge through the repository's review and linear-history policy.
 4. Create and push the reviewed release tag yourself. Observe all four candidate gates before promotion.
-5. Verify both architectures and exact published digests in Docker Hub and GHCR; retain evidence and rollback references.
+5. Verify both architectures and exact published digests in Docker Hub and GHCR; retain evidence and rollback references. Refresh the Docker Hub overview from `docs/DOCKERHUB.md` with `sync-dockerhub-overview.py` and the authorized Docker Hub credentials. This metadata update is separate from image promotion.
 6. Upgrade the real relay deliberately after encrypted recovery rehearsal, then check fingerprint continuity, fresh bootstrap and public reachability.
 
 The release workflow uses immutable candidate evidence and promotes the same images. A main push does not publish a version; manual dispatch defaults to validation. Current reviewed policy is separate from tagged source. Trusted main verifies the full source and policy commit SHAs against reviewed ancestry before preparing separate immutable worktrees. Checkout credentials are not retained.
