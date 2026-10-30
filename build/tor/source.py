@@ -12,9 +12,12 @@ from urllib.request import Request, urlopen
 
 HERE = Path(__file__).resolve().parent
 DIST = 'https://dist.torproject.org/'
-# Authenticated against Tor's source-verification documentation. Key rotation is reviewed.
-TRUSTED_SIGNERS = ('B74417EDDF22AC9F9E90F49142E86A2A11F48D36',
-                   '514102454D0A87DB0767A1EBBE6A0531C18A9179')
+# Public release-key fingerprints, authenticated against Tor's source-verification docs.
+# These are identifiers, not signing keys or credentials; rotations require review.
+APPROVED_PUBLIC_FINGERPRINTS = (
+    'B74417EDDF22AC9F9E90F49142E86A2A11F48D36',
+    '514102454D0A87DB0767A1EBBE6A0531C18A9179',
+)
 
 
 def version_tuple(version):
@@ -30,7 +33,7 @@ def load_lock(path=HERE / 'source.json'):
     version_tuple(lock['version'])
     if not re.fullmatch(r'[a-f0-9]{64}', lock['sha256']):
         raise ValueError('Tor source checksum must be a complete SHA256')
-    if lock['signing_fingerprint'] not in TRUSTED_SIGNERS:
+    if lock['signing_fingerprint'] not in APPROVED_PUBLIC_FINGERPRINTS:
         raise ValueError('Tor source signer requires independent review')
     return lock
 
@@ -65,10 +68,11 @@ def verify_signature(signature, checksum):
     statuses = [line.split()[1:] for line in result.stdout.splitlines() if line.startswith('[GNUPG:] ')]
     if result.returncode or any(fields[0] in rejected for fields in statuses):
         raise ValueError('Tor checksum signature is invalid, expired, revoked or unverifiable')
-    signers = {fields[1] for fields in statuses if fields[0] == 'VALIDSIG'}
-    if not signers or not signers <= set(TRUSTED_SIGNERS):
+    verified_fingerprints = {fields[1] for fields in statuses if fields[0] == 'VALIDSIG'}
+    if not verified_fingerprints or not verified_fingerprints <= set(APPROVED_PUBLIC_FINGERPRINTS):
         raise ValueError('Tor checksum was not signed by a reviewed release signer')
-    return next(signer for signer in TRUSTED_SIGNERS if signer in signers)
+    return next(fingerprint for fingerprint in APPROVED_PUBLIC_FINGERPRINTS
+                if fingerprint in verified_fingerprints)
 
 
 def checksum_value(text, version):
@@ -88,9 +92,9 @@ def fetch_release(version, destination, expected=None):
     signature = destination / (checksum.name + '.asc')
     download(checksum.name, checksum, 16 * 1024)
     download(signature.name, signature, 64 * 1024)
-    signer = verify_signature(signature, checksum)
+    public_fingerprint = verify_signature(signature, checksum)
     digest = checksum_value(checksum.read_text(encoding='ascii'), version)
-    lock = {'version': version, 'sha256': digest, 'signing_fingerprint': signer}
+    lock = {'version': version, 'sha256': digest, 'signing_fingerprint': public_fingerprint}
     if expected is not None and lock != expected:
         raise ValueError('Authenticated Tor release differs from the reviewed source lock')
     download(archive.name, archive)

@@ -24,9 +24,9 @@ source = module('tor_source', ROOT / 'build/tor/source.py')
 updater = module('tor_updater', ROOT / 'scripts/release/update-tor-source.py')
 samples = module('sample_config', ROOT / 'scripts/testing/sample_config.py')
 preflight = module('tor_preflight', ROOT / 'build/tor/preflight.py')
-SIGNER = source.TRUSTED_SIGNERS[0]
+PUBLIC_FINGERPRINT = source.APPROVED_PUBLIC_FINGERPRINTS[0]
 DATA = b'fixture source archive'
-LOCK = {'version': '0.4.9.15', 'sha256': hashlib.sha256(DATA).hexdigest(), 'signing_fingerprint': SIGNER}
+LOCK = {'version': '0.4.9.15', 'sha256': hashlib.sha256(DATA).hexdigest(), 'signing_fingerprint': PUBLIC_FINGERPRINT}
 
 
 class TorSourceTests(unittest.TestCase):
@@ -65,15 +65,15 @@ class TorSourceTests(unittest.TestCase):
 
     def test_signature_requires_reviewed_fingerprint_and_no_failure_status(self):
         for status, code, valid in (
-                (f'[GNUPG:] VALIDSIG {SIGNER} fixture {SIGNER}\n', 0, True),
+                (f'[GNUPG:] VALIDSIG {PUBLIC_FINGERPRINT} fixture {PUBLIC_FINGERPRINT}\n', 0, True),
                 ('[GNUPG:] VALIDSIG ' + 'F' * 40 + ' fixture\n', 0, False),
-                (f'[GNUPG:] VALIDSIG {SIGNER} fixture\n[GNUPG:] EXPKEYSIG expired\n', 0, False),
-                (f'[GNUPG:] VALIDSIG {SIGNER} fixture\n', 2, False),
+                (f'[GNUPG:] VALIDSIG {PUBLIC_FINGERPRINT} fixture\n[GNUPG:] EXPKEYSIG expired\n', 0, False),
+                (f'[GNUPG:] VALIDSIG {PUBLIC_FINGERPRINT} fixture\n', 2, False),
                 ('[GNUPG:] GOODSIG short-key-id\n', 0, False)):
             with self.subTest(status=status), patch.object(source.shutil, 'which', return_value='gpg'), \
                     patch.object(source.sp, 'run', side_effect=[Mock(), Mock(stdout=status, returncode=code)]):
                 if valid:
-                    self.assertEqual(source.verify_signature('signature', 'checksum'), SIGNER)
+                    self.assertEqual(source.verify_signature('signature', 'checksum'), PUBLIC_FINGERPRINT)
                 else:
                     with self.assertRaises(ValueError): source.verify_signature('signature', 'checksum')
 
@@ -93,14 +93,14 @@ class TorSourceTests(unittest.TestCase):
     def test_matching_signed_archive_produces_exact_reviewed_provenance(self):
         with tempfile.TemporaryDirectory() as directory, \
                 patch.object(source, 'download', side_effect=self.download), \
-                patch.object(source, 'verify_signature', return_value=SIGNER):
+                patch.object(source, 'verify_signature', return_value=PUBLIC_FINGERPRINT):
             self.assertEqual(source.fetch_release('0.4.9.15', directory, expected=LOCK), LOCK)
             self.assertEqual(json.loads((Path(directory) / 'source.json').read_text()), LOCK)
 
     def test_changed_authenticated_checksum_blocks_before_archive_download(self):
         with tempfile.TemporaryDirectory() as directory, \
                 patch.object(source, 'download', side_effect=self.download) as download, \
-                patch.object(source, 'verify_signature', return_value=SIGNER):
+                patch.object(source, 'verify_signature', return_value=PUBLIC_FINGERPRINT):
             with self.assertRaisesRegex(ValueError, 'differs from the reviewed source lock'):
                 source.fetch_release('0.4.9.15', directory, expected={**LOCK, 'sha256': '0' * 64})
             self.assertEqual(download.call_count, 2)
@@ -112,7 +112,7 @@ class TorSourceTests(unittest.TestCase):
             if name.endswith('.tar.gz'): path.write_bytes(b'tampered')
         with tempfile.TemporaryDirectory() as directory, \
                 patch.object(source, 'download', side_effect=tamper), \
-                patch.object(source, 'verify_signature', return_value=SIGNER):
+                patch.object(source, 'verify_signature', return_value=PUBLIC_FINGERPRINT):
             with self.assertRaisesRegex(ValueError, 'authenticated checksum'):
                 source.fetch_release('0.4.9.15', directory, expected=LOCK)
             self.assertFalse((Path(directory) / 'source.json').exists())

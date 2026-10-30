@@ -34,6 +34,8 @@ jobs:
           python3 scripts/testing/check-dependency-pins.py
           python3 scripts/testing/check-templates.py
           python3 scripts/testing/check-docs.py
+          version=$(python3 scripts/release/check-versions.py --print-version)
+          python3 scripts/release/render-release-notes.py --root . --version "$version" --output "$RUNNER_TEMP/release-notes.md"
           shellcheck -S warning -x docker-entrypoint.sh healthcheck.sh lib/*.sh tools/* build/tor/build.sh scripts/utilities/relay-backup.sh scripts/utilities/relay-inventory.sh
           python3 -m unittest discover -s tests -v
       - name: 🧰 Install verified registry client

@@ -20,6 +20,8 @@ Current source: <!-- RELAY_VERSION -->v2.2.1<!-- /RELAY_VERSION -->. Historical 
 - Reject unsupported build kernels before source downloads or compilation; preserve full upstream sandbox tests. Read the startup banner from actual image build metadata and require an explicit local image for recovery rehearsals.
 - Add an offline upgrade rehearsal for guard, exit and obfs4 bridge roles with ENV and mounted/include configurations. Check long-term relay/family/transport identity, unchanged mounted config, UID/GID and current-run readiness across container replacement.
 - Resolve bridge/exit diagnostics from Tor's effective configuration, including torrc includes, instead of treating only the root file as authoritative.
+- Identify the public Tor release-key fingerprints explicitly in source verification and test fixtures. Preserve the fingerprint allowlist, signature/checksum enforcement and provenance schema without suppressing security analysis.
+- Validate repository documentation URLs and section anchors before candidate builds and release-note publication. Render portable links pinned to the selected release tag; preserve fenced examples, external references and release-body navigation.
 - Prepare additive fleet-protection proposals from fresh, distinct Docker-engine inventories. Preserve existing rollback protection and cleanup windows; never renew stale evidence by rerunning the helper. Document local ARM64 testing with a full-system Linux VM while retaining all upstream sandbox and hosted candidate gates.
 
 See the [prepared v2.2.1 release notes](docs/releases/v2.2.1.md) for authenticated builds, future Tor updates, defaults, migration order and outstanding validation. No new mandatory torrc/ENV option or storage migration is introduced.

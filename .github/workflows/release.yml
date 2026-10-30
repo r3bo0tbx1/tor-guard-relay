@@ -95,6 +95,15 @@ jobs:
           shellcheck -S warning -x docker-entrypoint.sh healthcheck.sh lib/*.sh tools/* build/tor/build.sh scripts/utilities/relay-backup.sh scripts/utilities/relay-inventory.sh
           python3 -m unittest discover -s tests -v
 
+      - name: 📝 Check release-note links before candidate builds
+        env:
+          VERSION: ${{ needs.source.outputs.version }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          python3 .release-policy/scripts/release/render-release-notes.py \
+            --root .release-source --version "$VERSION" \
+            --repository "$REPOSITORY" --output "$RUNNER_TEMP/release-notes.md"
+
       - name: 📋 Record workflow outcome
         if: always()
         env:
@@ -329,12 +338,14 @@ jobs:
           SOURCE_SHA: ${{ needs.source.outputs.sha }}
           POLICY_SHA: ${{ needs.source.outputs.policy_sha }}
         run: python3 scripts/release/prepare-source.py --source "$SOURCE_SHA" --policy "$POLICY_SHA"
-      - name: 📝 Select curated release notes
+      - name: 📝 Validate and render curated release notes
         env:
           VERSION: ${{ needs.source.outputs.version }}
+          REPOSITORY: ${{ github.repository }}
         run: |
-          test -s ".release-source/docs/releases/v$VERSION.md"
-          cp ".release-source/docs/releases/v$VERSION.md" release-notes.md
+          python3 .release-policy/scripts/release/render-release-notes.py \
+            --root .release-source --version "$VERSION" \
+            --repository "$REPOSITORY" --output release-notes.md
       - name: 📥 Download verified evidence
         uses: actions/download-artifact@v8.0.2
         with:

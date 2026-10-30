@@ -23,6 +23,7 @@ python3 scripts/release/check-versions.py --print-version
 python3 scripts/testing/check-dependency-pins.py
 python3 scripts/release/update-tor-source.py --output /tmp/tor-upstream.json
 python3 scripts/testing/check-docs.py
+python3 scripts/release/render-release-notes.py --root . --version 2.2.1 --output /tmp/v2.2.1-release-notes.md
 sh scripts/release/generate-release-notes.sh 2.2.1 v2.2.0 --output /tmp/release-draft.md
 ```
 
@@ -38,6 +39,8 @@ The upstream checker is read-only by default: it discovers stable releases direc
 For registry cleanup, `review-fleet-protection.py` prepares a separate additive policy proposal from fresh inventories of distinct Docker engines. It preserves existing rollback identities and automatic-retention settings, and never renews a review from stale reports. See the [fleet-review procedure](../../docs/REGISTRY-RETENTION.md#-prepare-a-fleet-review-proposal) before confirming complete coverage.
 
 Use the notes generator for a local review draft; the hosted release publishes `docs/releases/vVERSION.md`. The version synchronizer updates explicit current markers and validates examples against the stable Dockerfile, leaving historical changelog entries intact. No helper commits, pushes, signs or publishes automatically.
+
+`render-release-notes.py` validates local files and Markdown heading anchors against the selected source, even before its Git tag exists. It converts relative, GitHub root-relative and `main` documentation links to absolute `vVERSION` links, and uses raw tagged content for images. Explicit links to another source ref fail instead of drifting to the wrong documentation. External references, release-body anchors and fenced examples remain unchanged. The PR gate checks the rendered notes; the release pipeline checks them before building candidates and again before publishing the body. The publishing helper comes from the reviewed policy worktree. These offline checks do not claim that external websites or an unpublished release page are already available.
 
 ---
 
