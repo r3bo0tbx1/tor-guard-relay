@@ -61,7 +61,7 @@ require (
 	github.com/tjfoc/gmsm v1.4.1 // indirect
 	github.com/txthinking/runnergroup v0.0.0-20250224021307-5864ffeb65ae // indirect
 	github.com/wlynxg/anet v0.0.5 // indirect
-	github.com/xtaci/kcp-go/v5 v5.7.1 // indirect
+	github.com/xtaci/kcp-go/v5 v5.7.2 // indirect
 	github.com/xtaci/smux v1.5.58 // indirect
 	gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/ptutil v0.0.0-20250815012447-418f76dcf315 // indirect
 	golang.org/x/sys v0.49.0 // indirect
