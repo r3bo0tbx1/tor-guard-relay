@@ -107,6 +107,28 @@ class RebuildTests(unittest.TestCase):
         self.assertTrue(all(row['index_digest'] in self.plan()['protected']['manifests']
                             for row in self.fixture.catalog['publications'][0]['rows']))
 
+    def test_original_containerd_manifest_ids_preserve_indexes_and_both_architectures(self):
+        rows = self.fixture.catalog['publications'][0]['rows']
+        self.fixture.catalog['original_image_ids'] = [
+            child for row in rows for child in row['architectures'].values()]
+        report = self.plan()
+        protected = set(report['protected']['manifests'])
+        self.assertEqual(len(report['package_targets']), 12)
+        for row in rows:
+            self.assertIn(row['index_digest'], protected)
+            self.assertTrue(set(row['architectures'].values()) <= protected)
+
+    def test_original_containerd_index_ids_preserve_complete_pull_graphs(self):
+        rows = self.fixture.catalog['publications'][0]['rows']
+        self.fixture.catalog['original_image_ids'] = [
+            value for row in rows for value in (row['index_digest'], row['architectures']['amd64'])]
+        report = self.plan()
+        protected = set(report['protected']['manifests'])
+        self.assertEqual(len(report['package_targets']), 12)
+        for row in rows:
+            self.assertIn(row['index_digest'], protected)
+            self.assertTrue(set(row['architectures'].values()) <= protected)
+
     def test_deployed_config_protects_parent_index_and_both_architectures(self):
         row = self.fixture.catalog['publications'][1]['rows'][0]
         self.policy['protected_image_ids'] = [row['image_ids']['amd64']]

@@ -2,6 +2,12 @@
 
 This directory contains automation scripts for managing releases, version updates, and release notes generation.
 
+## 🔐 Verified image identities
+
+Docker's classic image store reports a configuration digest as the inspected image ID. Its containerd image store can report the image manifest digest instead. Promotion binds either representation to the exact imported archive, then checks the imported configuration's architecture, OS, version and source revision. A checksum or identity mismatch still blocks publication before registry uploads.
+
+Publication evidence stores canonical configuration digests in `image_ids` and preserves Docker's reported IDs in `inspected_image_ids`. Original-release retention accepts configuration, manifest and index IDs while protecting their parent indexes and architecture children. The immutable Git release tag and original release evidence remain unchanged when a reviewed main rebuild refreshes image tags.
+
 ## Overview
 
 The release automation includes three main components:

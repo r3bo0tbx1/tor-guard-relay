@@ -4,6 +4,11 @@ Current source: <!-- RELAY_VERSION -->v2.2.1<!-- /RELAY_VERSION -->. Historical 
 
 ## [Unreleased]
 
+### 🏷️ Registry publishing
+
+- Accept Docker classic config IDs and containerd manifest IDs only when they match the exact imported candidate. Validate the imported platform and release labels, retain both identity forms in publication evidence and keep checksum/identity failures blocking before uploads.
+- Preserve original-release pull graphs when their retained Docker IDs identify manifests or indexes rather than configurations.
+
 ## [v2.2.1] - 2026-10-30
 
 ### 🧅 Tor 0.4.9.15 and authenticated source builds

@@ -88,6 +88,76 @@ class PublicationTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'identity differs'):
                 prepare_archive(client, directory, 'stable', 'amd64', '2.2.0', '2' * 40)
 
+    def archive_client(self):
+        config = {'architecture': 'amd64', 'os': 'linux', 'config': {'Labels': {
+            'org.opencontainers.image.version': '2.2.0',
+            'org.opencontainers.image.revision': '2' * 40}}}
+        client = Mock()
+        client.manifest.return_value = {'config': {'digest': 'sha256:' + '1' * 64}}
+
+        def run(*args):
+            if args[:2] == ('image', 'import'):
+                return ''
+            if args[:2] == ('image', 'digest'):
+                return 'sha256:' + '4' * 64
+            if args[:2] == ('blob', 'get'):
+                return json.dumps(config)
+            raise AssertionError(args)
+
+        client.run.side_effect = run
+        return client, config
+
+    def test_classic_and_containerd_ids_resolve_to_same_config_identity(self):
+        for inspected_id in ('sha256:' + '1' * 64, 'sha256:' + '4' * 64):
+            with self.subTest(inspected_id=inspected_id), tempfile.TemporaryDirectory() as work:
+                directory = Path(work)
+                image = self.prepare_fixture(directory)
+                image['Id'] = inspected_id
+                (directory / 'image.json').write_text(json.dumps([image]))
+                client, _ = self.archive_client()
+                result = prepare_archive(client, directory, 'stable', 'amd64', '2.2.0', '2' * 40)
+                self.assertEqual(result['image_id'], 'sha256:' + '1' * 64)
+                self.assertEqual(result['inspected_image_id'], inspected_id)
+                self.assertEqual(result['digest'], 'sha256:' + '4' * 64)
+
+    def test_unrelated_inspected_id_is_rejected_even_with_correct_imported_labels(self):
+        with tempfile.TemporaryDirectory() as work:
+            directory = Path(work)
+            image = self.prepare_fixture(directory)
+            image['Id'] = 'sha256:' + '6' * 64
+            (directory / 'image.json').write_text(json.dumps([image]))
+            client, _ = self.archive_client()
+            with self.assertRaisesRegex(ValueError, 'identity differs'):
+                prepare_archive(client, directory, 'stable', 'amd64', '2.2.0', '2' * 40)
+
+    def test_actual_imported_configuration_must_match_for_both_id_forms(self):
+        for inspected_id in ('sha256:' + '1' * 64, 'sha256:' + '4' * 64):
+            for field, value in (('architecture', 'arm64'), ('os', 'windows'),
+                                 ('org.opencontainers.image.version', '2.2.1'),
+                                 ('org.opencontainers.image.revision', '3' * 40)):
+                with self.subTest(identity=inspected_id, field=field), tempfile.TemporaryDirectory() as work:
+                    directory = Path(work)
+                    image = self.prepare_fixture(directory)
+                    image['Id'] = inspected_id
+                    (directory / 'image.json').write_text(json.dumps([image]))
+                    client, config = self.archive_client()
+                    if field in ('architecture', 'os'):
+                        config[field] = value
+                    else:
+                        config['config']['Labels'][field] = value
+                    with self.assertRaisesRegex(ValueError, 'Imported configuration'):
+                        prepare_archive(client, directory, 'stable', 'amd64', '2.2.0', '2' * 40)
+
+    def test_missing_or_malformed_config_identity_is_rejected(self):
+        for config_id in (None, '', 'sha256:short'):
+            with self.subTest(config_id=config_id), tempfile.TemporaryDirectory() as work:
+                directory = Path(work)
+                self.prepare_fixture(directory)
+                client, _ = self.archive_client()
+                client.manifest.return_value = {'config': {'digest': config_id}}
+                with self.assertRaisesRegex(ValueError, 'Invalid imported image identity'):
+                    prepare_archive(client, directory, 'stable', 'amd64', '2.2.0', '2' * 40)
+
     def test_protected_manifest_change_fails_verification(self):
         client = Mock()
         client.run.return_value = 'sha256:' + '1' * 64
