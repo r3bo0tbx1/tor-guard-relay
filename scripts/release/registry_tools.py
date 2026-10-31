@@ -76,9 +76,23 @@ def prepare_archive(client, directory, variant, arch, version, source):
     digest = client.run('image', 'digest', local, '--platform', f'linux/{arch}')
     local = local.split(':local')[0] + '@' + digest
     manifest = client.manifest(local)
-    if manifest.get('config', {}).get('digest') != image['Id']:
+    config_id = manifest.get('config', {}).get('digest')
+    inspected_id = image.get('Id')
+    if any(not isinstance(value, str) or not re.fullmatch(r'sha256:[0-9a-f]{64}', value)
+           for value in (digest, config_id, inspected_id)):
+        raise ValueError('Invalid imported image identity')
+    # Classic Docker exposes the config digest as .Id; the containerd store can
+    # expose the manifest digest. Bind either form to this exact imported image.
+    if inspected_id not in (config_id, digest):
         raise ValueError('Imported image identity differs from the scanned candidate')
-    return {'variant': variant, 'arch': arch, 'local': local, 'digest': digest, 'image_id': image['Id']}
+    config = json.loads(client.run('blob', 'get', local, config_id))
+    imported_labels = config.get('config', {}).get('Labels', {})
+    if (config.get('architecture') != arch or config.get('os') != 'linux'
+            or imported_labels.get('org.opencontainers.image.version') != expected_version
+            or imported_labels.get('org.opencontainers.image.revision') != source):
+        raise ValueError('Imported configuration does not match the scanned candidate')
+    return {'variant': variant, 'arch': arch, 'local': local, 'digest': digest,
+            'image_id': config_id, 'inspected_image_id': inspected_id}
 
 
 def promote(client, prepared, registries, version, output):
@@ -116,6 +130,8 @@ def promote(client, prepared, registries, version, output):
                     raise ValueError('Published alias differs from its released index')
             evidence.append({'registry': registry, 'variant': variant, 'tags': tags,
                              'index_digest': index_digest, 'architectures': digests,
-                             'image_ids': {item['arch']: item['image_id'] for item in candidates}})
+                             'image_ids': {item['arch']: item['image_id'] for item in candidates},
+                             'inspected_image_ids': {item['arch']: item['inspected_image_id']
+                                                     for item in candidates}})
     Path(output).write_text(json.dumps(evidence, indent=2) + '\n', encoding='utf-8')
     return evidence
