@@ -203,10 +203,13 @@ def plan_registry(client, registry, catalog, policy, now, packages=None, legacy=
     if unresolved:
         raise ValueError('Deployed image identities cannot be resolved in the registry graph')
     protected_configs = set(originals) | (engine_ids & set(graph.configs))
+    # Original release evidence also retains Docker's raw .Id representation.
+    # A containerd manifest/index ID must protect its complete pull graph too.
+    protected_manifests = engine_ids | (set(originals) & set(graph.manifests))
     # Protect parents too, so a deployed child can still be pulled through its index.
     for digest in graph.manifests:
         closure = graph.closure([digest])
-        if closure & engine_ids or any(
+        if closure & protected_manifests or any(
                 graph.manifests[child].get('config', {}).get('digest') in protected_configs
                 for child in closure):
             retained.add(digest)
