@@ -71,7 +71,7 @@ gh workflow run release.yml --repo r3bo0tbx1/tor-guard-relay --ref main -f publi
 gh workflow run release.yml --repo r3bo0tbx1/tor-guard-relay --ref main -f source_tag=v2.2.0 -f publish=true
 ```
 
-Schedules also rebuild their captured main commit under the latest released version, keeping merged fixes in subsequent rebuilds rather than replacing them with older tagged code. Publishing helpers come from the immutable reviewed policy commit. Manual dispatch defaults to validation without publication. The retention workflow defaults to a read-only registry inventory. Its explicit `tidy-v2.2.0` operation removes only the released source's `validated-…` tags and Docker Hub's extra `2.2.0-edge` tag, preserving every other tagged manifest and its child graph before refreshing the overview from [docs/DOCKERHUB.md](../../docs/DOCKERHUB.md).
+Schedules also rebuild their captured main commit under the latest released version, keeping merged fixes in subsequent rebuilds rather than replacing them with older tagged code. Publishing helpers come from the immutable reviewed policy commit. Manual dispatch defaults to validation without publication. The retention workflow defaults to a read-only registry inventory. Use its unified `rebuild-plan` operation to review recorded legacy images and superseded rebuilds against the latest audited publication; release-specific maintenance operations are no longer exposed.
 
 The promotion job needs Docker Hub credentials and GitHub package permissions. Cross-registry promotion must be observed in the first maintainer-triggered run; local testing does not establish remote registry behavior.
 
@@ -96,14 +96,16 @@ The cleanup helper defaults to planning. With `--apply`, it checks the retained 
 
 For superseded rebuilds of the **same version**, see [🛡️ Registry storage and image protection](../../docs/REGISTRY-RETENTION.md). `rebuild-plan` uses publication evidence instead of a hardcoded release version. `rebuild-apply` requires a fresh complete deployment review and the exact preview SHA256. Weekly maintenance runs preview only; a daily eligibility gate enables automatic cleanup at most every 14 days after the published notice window. Both automatic and manual apply require the notice contract and fresh protection. Exact legacy Hub graphs are recorded in `build/retired-image-builds.json`; unknown content remains protected.
 
-The **🗑️🧹** workflow keeps `inventory` as its read-only default. `prune-old-plan` retains its historical read-only view of **2.0.0 and 2.1.0**. The former `prune-old-apply` operation is retired; actual deletion uses the unified notice-gated `rebuild-apply` or `automatic-run` path. They require a completed publication, its later successful full **🔒🧅** audit and matching retained publication evidence. Active release runs block retirement. Publication and cleanup share a registry mutation lock.
+The **🗑️🧹** workflow keeps `inventory` as its read-only default. `rebuild-plan` reviews both recorded legacy images and superseded rebuilds without hardcoding the current version. Actual deletion uses the unified notice-gated `rebuild-apply` or `automatic-run` path. They require a completed publication, its later successful full **🔒🧅** audit and matching retained publication evidence. Active release runs block retirement. Publication and cleanup share a registry mutation lock.
+
+Registry maintenance authenticates the pinned `regctl` client directly using password stdin, rather than depending on Docker CLI credential discovery. The job uses an isolated credential file in the runner's temporary directory, verifies both configured registry identities and removes the file even after a failure. Credentials are excluded from retained evidence. Authentication and rate-limit errors remain blocking; they are never interpreted as missing images or permission to delete.
 
 The unified retention helper plans both registries before changing either. Docker Hub removes only unreferenced, recorded rebuild manifests and exact reviewed legacy graphs. GHCR removes eligible untagged package versions. Current aliases, complete architecture graphs, two recent builds, original-release images, deployment/rollback pins and unknown images are preserved. It rechecks identities during removal and verifies retained manifests/configs/layers and GitHub release records/assets afterward. Durable deployment records block blind retries after partial failures or lost runners.
 
 GitHub releases **v2.0.0, v2.1.0 and v2.2.0**, their notes, source tags and downloadable SBOM/security assets remain available. Retired container tags no longer pull; the release assets are metadata/evidence rather than saved container images. Retained v2.2.0 digests provide rollback builds. Do not bulk-delete untagged versions or the container package itself.
 
 ```sh
-gh workflow run cleanup.yml --repo r3bo0tbx1/tor-guard-relay --ref main -f operation=prune-old-plan
+gh workflow run cleanup.yml --repo r3bo0tbx1/tor-guard-relay --ref main -f operation=rebuild-plan
 gh workflow run cleanup.yml --repo r3bo0tbx1/tor-guard-relay --ref main -f operation=automatic-run
 ```
 

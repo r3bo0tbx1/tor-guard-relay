@@ -56,12 +56,13 @@ def visit_optional(graph, digest):
     if digest in graph.manifests:
         return True
     try:
-        graph.client.manifest(graph.registry + '@' + digest)
+        graph.visit(digest)
     except sp.CalledProcessError as error:
-        if not missing(error):
+        # A present parent with a missing child is an incomplete graph, not an
+        # already-retired root. Keep every non-404 error blocking as well.
+        if digest in graph.manifests or not missing(error):
             raise
         return False
-    graph.visit(digest)
     return True
 
 

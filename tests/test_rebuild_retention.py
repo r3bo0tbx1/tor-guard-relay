@@ -1,5 +1,6 @@
 """Verify rebuild cleanup preserves pull graphs and fails closed on ambiguity."""
 import copy
+from collections import Counter
 from datetime import datetime, timedelta, timezone
 import importlib.util
 import io
@@ -81,6 +82,21 @@ class RebuildTests(unittest.TestCase):
         report = self.plan()
         self.assertEqual(len(report['package_targets']), 12)
         self.assertEqual(len(report['protected']['manifests']), 18)
+        self.assertFalse(self.fixture.deletions)
+
+    def test_preview_reads_each_manifest_once_instead_of_probing_then_fetching(self):
+        with mock.patch.object(self.fixture, 'manifest', wraps=self.fixture.manifest) as read:
+            self.plan()
+        counts = Counter(call.args[0] for call in read.call_args_list)
+        self.assertTrue(counts)
+        self.assertEqual(set(counts.values()), {1})
+
+    def test_optional_root_with_missing_child_remains_an_error(self):
+        root = self.fixture.catalog['publications'][1]['rows'][0]['index_digest']
+        self.fixture.manifests[root]['manifests'][0]['digest'] = digest('missing-child')
+        graph = rebuild.prune.Graph(self.fixture, REGISTRY)
+        with self.assertRaises(sp.CalledProcessError):
+            rebuild.visit_optional(graph, root)
         self.assertFalse(self.fixture.deletions)
 
     def test_docker_hub_deletes_actual_manifests_parent_first_and_preserves_pulls(self):
