@@ -98,9 +98,16 @@ def history(repository, current_run, acknowledged, fetch=api):
 
 def evaluate(repository, policy, legacy, url, now, current_run=0, fetch=api):
     validate_settings(policy)
+    protection = {'reviewed_at': policy.get('deployment_reviewed_at'), 'ready': True,
+                  'reason': 'Complete deployment protection was reviewed within seven days'}
+    try:
+        rebuild.validate_policy(policy, now, apply=True)
+    except ValueError as error:
+        protection.update(ready=False, reason=str(error))
     if not policy['automatic']['enabled']:
-        return {'due': False, 'reason': 'Automatic retention is disabled'}
+        return {'due': False, 'reason': 'Automatic retention is disabled', 'deployment_protection': protection}
     result = check_notice(repository, url, policy, legacy, now, fetch)
+    result['deployment_protection'] = protection
     if not result['due']:
         return result
     last, blocked = history(repository, current_run, policy['automatic']['acknowledged_failed_deployments'], fetch)
@@ -113,10 +120,8 @@ def evaluate(repository, policy, legacy, url, now, current_run=0, fetch=api):
         result['next_cleanup_at'] = next_run.isoformat()
         if now < next_run:
             return {**result, 'due': False, 'reason': 'Waiting for the 14-day cleanup interval'}
-    try:
-        rebuild.validate_policy(policy, now, apply=True)
-    except ValueError as error:
-        return {**result, 'due': False, 'reason': str(error)}
+    if not protection['ready']:
+        return {**result, 'due': False, 'reason': protection['reason']}
     return {**result, 'reason': 'Notice, interval and deployment protection permit a fresh cleanup plan'}
 
 
@@ -195,6 +200,10 @@ def main():
             stream.write('## 🧹 Automatic retirement gate\n\n' + result['reason'] + '\n\n')
             if result.get('not_before'):
                 stream.write('Notice deadline (UTC): `' + result['not_before'] + '`\n')
+            protection = result['deployment_protection']
+            stream.write('\nDeployment protection: ' + protection['reason'] + '\n')
+            if protection['reviewed_at']:
+                stream.write('Fleet reviewed (UTC): `' + protection['reviewed_at'] + '`\n')
 
 
 if __name__ == '__main__':

@@ -137,6 +137,25 @@ class AutomaticClockTests(unittest.TestCase):
         self.policy['deployment_review_complete'] = False
         self.assertFalse(self.evaluate()['due'])
 
+    def test_notice_wait_also_reports_stale_or_incomplete_protection(self):
+        self.api.issue['updated_at'] = (NOW - timedelta(days=1)).isoformat()
+        for complete, reviewed in ((True, NOW - timedelta(days=8)), (False, NOW)):
+            with self.subTest(complete=complete):
+                self.policy.update(deployment_review_complete=complete,
+                                   deployment_reviewed_at=reviewed.isoformat())
+                result = self.evaluate()
+                self.assertFalse(result['due'])
+                self.assertIn('notice window', result['reason'])
+                self.assertFalse(result['deployment_protection']['ready'])
+                self.assertEqual(result['deployment_protection']['reviewed_at'], reviewed.isoformat())
+                self.assertFalse(any('/deployments?' in path for path in self.api.calls))
+
+    def test_valid_protection_does_not_shorten_notice_window(self):
+        self.api.issue['updated_at'] = (NOW - timedelta(days=1)).isoformat()
+        result = self.evaluate()
+        self.assertTrue(result['deployment_protection']['ready'])
+        self.assertFalse(result['due'])
+
     def test_successful_cleanup_interval_is_fourteen_full_days(self):
         self.api.record(1)
         self.assertFalse(self.evaluate(NOW - timedelta(seconds=1))['due'])

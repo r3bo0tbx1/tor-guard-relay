@@ -3,10 +3,10 @@ on:
   workflow_dispatch:
     inputs:
       operation:
-        description: 'Inventory, scoped legacy cleanup, or evidence-backed rebuild retention'
+        description: 'Inventory or notice-gated retention of reviewed legacy images and rebuilds'
         type: choice
         default: inventory
-        options: [inventory, tidy-v2.2.0, prune-old-plan, rebuild-plan, rebuild-apply, automatic-run]
+        options: [inventory, rebuild-plan, rebuild-apply, automatic-run]
       plan_sha256:
         description: 'For rebuild-apply only: SHA256 from the reviewed rebuild-plan artifact'
         type: string
@@ -85,20 +85,32 @@ jobs:
             --policy build/registry-retention.json --legacy build/retired-image-builds.json --output automatic-gate.json
       - name: 🧰 Install verified registry client
         if: steps.gate.outputs.due == 'true'
-        run: python3 scripts/release/install-regctl.py
+        run: |
+          python3 scripts/release/install-regctl.py
+          printf 'REGCTL_CONFIG=%s/relay-retention-regctl.json\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
       - name: 🔑 Authenticate Docker Hub
         if: steps.gate.outputs.due == 'true'
-        uses: docker/login-action@v4.7.0
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+        env:
+          REGISTRY_USER: ${{ secrets.DOCKERHUB_USERNAME }}
+          REGISTRY_PASSWORD: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          umask 077
+          : "${REGISTRY_USER:?Missing registry username}" "${REGISTRY_PASSWORD:?Missing registry token}"
+          regctl config set --docker-cred=false
+          printf '%s' "$REGISTRY_PASSWORD" | regctl registry login docker.io --user "$REGISTRY_USER" --pass-stdin
+          regctl registry whoami docker.io >/dev/null
       - name: 🔑 Authenticate GHCR
         if: steps.gate.outputs.due == 'true'
-        uses: docker/login-action@v4.7.0
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+        env:
+          REGISTRY_USER: ${{ github.actor }}
+          REGISTRY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          umask 077
+          : "${REGISTRY_USER:?Missing registry username}" "${REGISTRY_PASSWORD:?Missing registry token}"
+          printf '%s' "$REGISTRY_PASSWORD" | regctl registry login ghcr.io --user "$REGISTRY_USER" --pass-stdin
+          regctl registry whoami ghcr.io >/dev/null
       - name: 🛡️ Require successful publication and its full security audit
         if: steps.gate.outputs.due == 'true'
         run: python3 scripts/release/check-retention-ready.py --repository "$REPOSITORY" --output retention-readiness.json
@@ -144,6 +156,10 @@ jobs:
             retention-builds.json
             retention-publication/published-manifests.json
           retention-days: 90
+      - name: 🔐 Remove temporary registry credentials
+        if: always()
+        run: |
+          if [ -n "${REGCTL_CONFIG:-}" ]; then rm -f -- "$REGCTL_CONFIG"; fi
   rebuild-retention:
     name: 🛡️ Preserve deployed images and review old rebuilds
     if: github.event.schedule == '43 5 * * 1' || inputs.operation == 'rebuild-plan'
@@ -164,18 +180,30 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - name: 🧰 Install verified registry client
-        run: python3 scripts/release/install-regctl.py
+        run: |
+          python3 scripts/release/install-regctl.py
+          printf 'REGCTL_CONFIG=%s/relay-retention-regctl.json\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
       - name: 🔑 Authenticate Docker Hub
-        uses: docker/login-action@v4.7.0
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+        env:
+          REGISTRY_USER: ${{ secrets.DOCKERHUB_USERNAME }}
+          REGISTRY_PASSWORD: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          umask 077
+          : "${REGISTRY_USER:?Missing registry username}" "${REGISTRY_PASSWORD:?Missing registry token}"
+          regctl config set --docker-cred=false
+          printf '%s' "$REGISTRY_PASSWORD" | regctl registry login docker.io --user "$REGISTRY_USER" --pass-stdin
+          regctl registry whoami docker.io >/dev/null
       - name: 🔑 Authenticate GHCR
-        uses: docker/login-action@v4.7.0
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+        env:
+          REGISTRY_USER: ${{ github.actor }}
+          REGISTRY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          umask 077
+          : "${REGISTRY_USER:?Missing registry username}" "${REGISTRY_PASSWORD:?Missing registry token}"
+          printf '%s' "$REGISTRY_PASSWORD" | regctl registry login ghcr.io --user "$REGISTRY_USER" --pass-stdin
+          regctl registry whoami ghcr.io >/dev/null
       - name: 🛡️ Require completed publication and its successful full audit
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -213,6 +241,10 @@ jobs:
             rebuild-retention.json
             retention-publication/published-manifests.json
           retention-days: 90
+      - name: 🔐 Remove temporary registry credentials
+        if: always()
+        run: |
+          if [ -n "${REGCTL_CONFIG:-}" ]; then rm -f -- "$REGCTL_CONFIG"; fi
   rebuild-apply:
     name: 🧹 Apply verified rebuild retention
     if: github.event_name == 'workflow_dispatch' && inputs.operation == 'rebuild-apply'
@@ -228,126 +260,6 @@ jobs:
       group: registry-publishing
       cancel-in-progress: false
     steps: *rebuild_retention_steps
-  tidy-release:
-    name: 🏷️ Tidy v2.2.0 registry tags
-    if: inputs.operation == 'tidy-v2.2.0'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-    concurrency:
-      group: registry-publishing
-      cancel-in-progress: false
-    steps:
-      - name: 📥 Check out maintenance source
-        uses: actions/checkout@v7.0.1
-        with:
-          persist-credentials: false
-      - name: 🧰 Install verified registry client
-        run: python3 scripts/release/install-regctl.py
-      - name: 🔑 Authenticate Docker Hub
-        uses: docker/login-action@v4.7.0
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - name: 🔑 Authenticate GHCR
-        uses: docker/login-action@v4.7.0
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: 🛡️ Plan tag-only cleanup before changing either registry
-        env:
-          SOURCE: 4a87b4308bfa5b61922f1b506594819379f77922
-          OWNER: ${{ github.repository_owner }}
-        run: |
-          python3 scripts/release/tidy-release-tags.py --registry r3bo0tbx1/onion-relay \
-            --version 2.2.0 --source "$SOURCE" --output dockerhub-cleanup-plan.json
-          python3 scripts/release/tidy-release-tags.py --registry "ghcr.io/$OWNER/onion-relay" \
-            --version 2.2.0 --source "$SOURCE" --output ghcr-cleanup-plan.json
-      - name: 🧹 Remove unwanted tags and verify retained release manifests
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SOURCE: 4a87b4308bfa5b61922f1b506594819379f77922
-          OWNER: ${{ github.repository_owner }}
-        run: |
-          python3 scripts/release/tidy-release-tags.py --registry r3bo0tbx1/onion-relay \
-            --version 2.2.0 --source "$SOURCE" --output dockerhub-cleanup-result.json --apply
-          python3 scripts/release/tidy-release-tags.py --registry "ghcr.io/$OWNER/onion-relay" \
-            --version 2.2.0 --source "$SOURCE" --output ghcr-cleanup-result.json --apply
-      - name: 🧅 Refresh branded Docker Hub overview
-        env:
-          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
-        run: python3 scripts/release/sync-dockerhub-overview.py
-      - name: 📎 Retain cleanup plans and verification evidence
-        if: always()
-        uses: actions/upload-artifact@v7.0.2
-        with:
-          name: registry-tag-cleanup
-          path: |
-            *-cleanup-*.json
-            dockerhub-overview-before.json
-          retention-days: 30
-  prune-old:
-    name: 🧹 Retire older registry images
-    if: inputs.operation == 'prune-old-plan'
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    permissions:
-      contents: read
-      actions: read
-      packages: read
-    concurrency:
-      group: registry-publishing
-      cancel-in-progress: false
-    steps:
-      - name: 📥 Check out reviewed maintenance source
-        uses: actions/checkout@v7.0.1
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-      - name: 🧰 Install verified registry client
-        run: python3 scripts/release/install-regctl.py
-      - name: 🔑 Authenticate Docker Hub
-        uses: docker/login-action@v4.7.0
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - name: 🔑 Authenticate GHCR
-        uses: docker/login-action@v4.7.0
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: 🛡️ Require completed publication and its successful audit
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          REPOSITORY: ${{ github.repository }}
-        run: python3 scripts/release/check-retention-ready.py --repository "$REPOSITORY" --output retention-readiness.json
-      - name: 🛡️ Preview retired images or apply verified removal
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          OWNER: ${{ github.repository_owner }}
-          OPERATION: ${{ inputs.operation }}
-        run: |
-          set -euo pipefail
-          args=()
-          python3 scripts/release/prune-old-images.py --owner "$OWNER" --keep-version 2.2.0 \
-            --remove-version 2.0.0 --remove-version 2.1.0 \
-            --publication-evidence retention-publication/published-manifests.json \
-            --output retention-result.json "${args[@]}"
-      - name: 📎 Retain readiness, deletion plan and preservation evidence
-        if: always()
-        uses: actions/upload-artifact@v7.0.2
-        with:
-          name: registry-retirement
-          path: |
-            retention-readiness.json
-            retention-result.json
-            retention-publication/published-manifests.json
-            dockerhub-overview-before.json
-          retention-days: 30
   inventory:
     name: 🗂️ Review registry retention
     if: inputs.operation == 'inventory' || github.event.schedule == '43 5 * * 1'

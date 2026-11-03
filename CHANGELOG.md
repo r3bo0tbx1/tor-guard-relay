@@ -4,6 +4,12 @@ Current source: <!-- RELAY_VERSION -->v2.2.1<!-- /RELAY_VERSION -->. Historical 
 
 ## [Unreleased]
 
+### 🗑️ Registry retention
+
+- Authenticate the pinned registry client directly for Docker Hub and GHCR using isolated temporary credentials. Keep authentication and rate-limit errors blocking before deletion, and remove credentials after each maintenance job.
+- Avoid duplicate manifest fetches while building the retention graph; missing children and authentication/rate-limit errors still block planning.
+- Remove obsolete v2.2.0-specific workflow operations; use the current publication evidence and the unified notice-gated retention plan instead. Report stale deployment protection alongside the notice deadline without shortening either safeguard.
+
 ### 🏷️ Registry publishing
 
 - Accept Docker classic config IDs and containerd manifest IDs only when they match the exact imported candidate. Validate the imported platform and release labels, retain both identity forms in publication evidence and keep checksum/identity failures blocking before uploads.
