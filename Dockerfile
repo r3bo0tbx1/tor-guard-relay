@@ -3,7 +3,7 @@ FROM --platform=$BUILDPLATFORM golang:1.27.3-alpine3.24@sha256:d200d2dd76b03a99b
 ENV GOTOOLCHAIN=local
 RUN sed -i 's/http:/https:/g' /etc/apk/repositories && apk add --no-cache git
 WORKDIR /go/src/lyrebird
-ARG LYREBIRD_REVISION=362a60bb4e3fa434130ef81a9990d83d6d8eaea5
+ARG LYREBIRD_REVISION=59ac7e400c384773f5584dbe366516ad04a33d9f
 RUN git init . && git remote add origin https://gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/lyrebird.git \
  && git fetch --depth 1 origin "$LYREBIRD_REVISION" && git checkout --detach FETCH_HEAD
 COPY build/lyrebird/go.mod build/lyrebird/go.sum ./
@@ -29,7 +29,7 @@ ARG BUILD_DATE
 ARG BUILD_VERSION
 ARG TARGETARCH
 ARG SOURCE_REVISION=unknown
-ARG LYREBIRD_REVISION=362a60bb4e3fa434130ef81a9990d83d6d8eaea5
+ARG LYREBIRD_REVISION=59ac7e400c384773f5584dbe366516ad04a33d9f
 
 LABEL maintainer="rE-Bo0t.bx1 <r3bo0tbx1@brokenbotnet.com>" \
       org.opencontainers.image.title="Tor Guard Relay (Latest)" \
