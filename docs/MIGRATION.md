@@ -114,7 +114,7 @@ Check the [reviewed source pin](../build/tor/source.json) and the selected publi
 
 ### 🧅 Tor 0.4.9.16 source update
 
-The Tor 0.4.9.16 update targets the v2.2.1 rebuild series. The original v2.2.1 release and its retained evidence describe Tor 0.4.9.15.
+Tor 0.4.9.16 can ship in the v2.2.1 rebuild series once its source update is reviewed, merged and published. The original v2.2.1 release and its retained evidence describe Tor 0.4.9.15.
 
 The [4 November upstream announcement](https://forum.torproject.org/t/security-release-0-4-9-16/22372) describes an emergency update aimed at directory authorities. Older clients were restarting and repeatedly requesting directory information after the previous protocol changes. Authorities now permit those older clients again to reduce that load. Upstream recommends upgrading, with no urgency for operators who are not running a directory authority.
 

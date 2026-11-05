@@ -98,6 +98,7 @@ def main():
         except ValueError as error:
             assessment.update(passed=False, reason=str(error))
             message = '🚨 ' + str(error)
+            print(message, file=sys.stderr)
         print(json.dumps(assessment))
         if args.summary:
             with args.summary.open('a', encoding='utf-8', newline='\n') as output:

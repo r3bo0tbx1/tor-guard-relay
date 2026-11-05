@@ -53,4 +53,6 @@ Select a stable version that actually exists. Explicitly selecting the already r
 
 After review, validate all four candidates, recovery and source/image security gates. Merge the update and run the existing main rebuild with publication enabled only when authorized. Scheduled rebuilds also pick up merged pins. They keep the reviewed Tor version until an update is merged; they do not fetch a floating latest Tor binary. An explicit older Git tag still selects that tag's original source and may fail newer security floors or the source-build contract.
 
+After a merge raises the Tor floor, published-image audits flag older digests until a validated rebuild replaces them. Publish the reviewed rebuild before running a manual post-update audit. A successful publishing run also triggers the audit automatically.
+
 Tor API/config or packaging changes that affect operators warrant a new project release rather than silently changing compatibility under `2.2.1`.
