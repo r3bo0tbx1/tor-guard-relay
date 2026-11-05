@@ -14,21 +14,21 @@ require (
 )
 
 require (
-	github.com/andybalholm/brotli v1.2.7 // indirect
-	github.com/aws/aws-sdk-go-v2 v1.47.5 // indirect
-	github.com/aws/aws-sdk-go-v2/config v1.33.13 // indirect
-	github.com/aws/aws-sdk-go-v2/credentials v1.20.13 // indirect
-	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.20.5 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/configsources v1.5.8 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.8.8 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/v4a v1.5.8 // indirect
-	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.13.23 // indirect
-	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.14.8 // indirect
-	github.com/aws/aws-sdk-go-v2/service/signin v1.12.1 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sqs v1.52.8 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sso v1.39.1 // indirect
-	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.44.1 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sts v1.51.6 // indirect
+	github.com/andybalholm/brotli v1.2.8 // indirect
+	github.com/aws/aws-sdk-go-v2 v1.47.6 // indirect
+	github.com/aws/aws-sdk-go-v2/config v1.33.14 // indirect
+	github.com/aws/aws-sdk-go-v2/credentials v1.20.14 // indirect
+	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.20.6 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/configsources v1.5.9 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.8.9 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/v4a v1.5.9 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.13.24 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.14.9 // indirect
+	github.com/aws/aws-sdk-go-v2/service/signin v1.12.2 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sqs v1.52.9 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sso v1.39.2 // indirect
+	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.44.2 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sts v1.51.7 // indirect
 	github.com/aws/smithy-go v1.28.8 // indirect
 	github.com/golang/mock v1.6.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
@@ -61,7 +61,7 @@ require (
 	github.com/tjfoc/gmsm v1.4.1 // indirect
 	github.com/txthinking/runnergroup v0.0.0-20250224021307-5864ffeb65ae // indirect
 	github.com/wlynxg/anet v0.0.5 // indirect
-	github.com/xtaci/kcp-go/v5 v5.7.2 // indirect
+	github.com/xtaci/kcp-go/v5 v5.7.3 // indirect
 	github.com/xtaci/smux v1.5.58 // indirect
 	gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/ptutil v0.0.0-20250815012447-418f76dcf315 // indirect
 	golang.org/x/sys v0.49.0 // indirect
