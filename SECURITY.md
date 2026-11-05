@@ -2,7 +2,7 @@
 SPDX-License-Identifier: MIT
 
 > [!IMPORTANT]
-> 🧅 **v2.2.1:** Tor must be **0.4.9.15 or newer**. Review the [release and torrc migration notes](docs/releases/v2.2.1.md); Tor is built from authenticated upstream source on each matching Alpine base; publication requires all candidate gates. Recreate from the validated image to update Tor; changing torrc alone does not upgrade the binary.
+> 🧅 **v2.2.1 source:** Builds use the [reviewed Tor source pin](build/tor/source.json) from authenticated upstream source on each matching Alpine base. Review the [source-update and torrc guidance](docs/MIGRATION.md#-reviewed-tor-source-updates) and the [original release notes](docs/releases/v2.2.1.md). Publication requires all candidate gates. Recreate from the validated image to update Tor; changing torrc alone does not upgrade the binary.
 
 ## Scope
 
@@ -271,7 +271,7 @@ The [supported-version policy](#supported-versions) follows the latest published
 
 The previous [Tor 0.4.9.14 security release](https://forum.torproject.org/t/security-release-0-4-9-14/22241) addressed high-severity issues affecting clients, onion services, authorities and relays. Those fixes remain required; use the newer minimum below. Detailed issue tickets were initially withheld under upstream's disclosure policy; do not infer undisclosed exploit details.
 
-The current source requires **Tor >= 0.4.9.15**, upstream's [28 October security release](https://gitlab.torproject.org/tpo/core/tor/-/blob/tor-0.4.9.15/ChangeLog) with directory-request DoS defenses. The authenticated source lock, acceptance and component checks enforce the same minimum; published-image monitoring reports older binaries until replacement digests pass. Both variants build Tor from the same authenticated upstream source, with matching Alpine runtime libraries. The source lock, package provenance and complete candidate security gates must be verified before publication. See the [v2.2.1 release and migration notes](docs/releases/v2.2.1.md).
+Acceptance and component checks enforce the minimum in [the reviewed Tor source pin](build/tor/source.json). For Tor 0.4.9.16, upstream's [4 November announcement](https://forum.torproject.org/t/security-release-0-4-9-16/22372) describes an authority-focused emergency update and reports no upgrade urgency for operators who are not directory authorities. Tor 0.4.9.15 introduced the directory-request DoS defenses and remains the original v2.2.1 release's version. Published-image monitoring uses the current source floor and reports older binaries until replacement digests pass; a new source pin is not proof of a rebuilt or deployed image. Both variants use the same authenticated source and matching Alpine runtime libraries. Verify source provenance and all candidate security gates before publication. See the [current source-update guidance](docs/MIGRATION.md#-reviewed-tor-source-updates) and [original v2.2.1 notes](docs/releases/v2.2.1.md).
 
 Operators must recreate the container from a validated updated image to replace Tor; torrc edits and SIGHUP do not update binaries. Leave the new rate-limit settings unset for consensus control, and review temporary `DirCache 0` workarounds only after upgrading. The existing `DirPort 0` default remains valid. Mounted configuration and relay identity material are never silently rewritten or replaced by this update.
 

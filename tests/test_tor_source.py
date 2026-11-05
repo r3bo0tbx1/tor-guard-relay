@@ -9,6 +9,7 @@ import subprocess as sp
 import tempfile
 import unittest
 from unittest.mock import Mock, patch
+from urllib.error import HTTPError
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -125,10 +126,29 @@ class TorSourceTests(unittest.TestCase):
 
 
 class TorUpdateTests(unittest.TestCase):
+    def published_fixture(self, directory, version='0.4.9.16'):
+        for registry in ('dockerhub', 'ghcr'):
+            repository = ('ghcr.io/' if registry == 'ghcr' else '') + 'fixture/onion-relay'
+            for variant in ('stable', 'edge'):
+                for arch in ('amd64', 'arm64'):
+                    name = f'watched-{registry}-{variant}-{arch}'
+                    work = Path(directory) / name
+                    work.mkdir(parents=True)
+                    digest = 'sha256:' + hashlib.sha256(name.encode()).hexdigest()
+                    image = repository + '@' + digest
+                    (work / 'manifest.json').write_text(json.dumps({'manifests': [{
+                        'digest': digest, 'platform': {'os': 'linux', 'architecture': arch}}]}))
+                    (work / 'image-reference.txt').write_text(image + '\n')
+                    (work / 'tor-version.json').write_text(json.dumps({
+                        'tor': f'Tor version {version}.', 'image': image, 'architecture': arch,
+                        'tor_min_version': LOCK['version'], 'passed': True}))
+        return Path(directory)
+
     def run_updater(self, *argv, version='0.4.9.15'):
         with patch('sys.argv', ['update-tor-source.py', *argv]), \
                 patch.object(updater.source, 'load_lock', return_value=LOCK), \
                 patch.object(updater.source, 'latest_release', return_value=version), \
+                patch.dict(updater.os.environ, {'GITHUB_STEP_SUMMARY': ''}), \
                 redirect_stdout(io.StringIO()):
             return updater.main()
 
@@ -136,6 +156,89 @@ class TorUpdateTests(unittest.TestCase):
         with patch.object(updater.source, 'fetch_release') as fetch:
             self.assertEqual(self.run_updater('--write'), 0)
             fetch.assert_not_called()
+
+    def test_explicit_equal_version_is_authenticated_against_the_existing_lock(self):
+        with patch.object(updater.source, 'fetch_release', return_value=LOCK) as fetch:
+            self.assertEqual(self.run_updater('--version', LOCK['version']), 0)
+            self.assertEqual(fetch.call_args.args[0], LOCK['version'])
+            self.assertEqual(fetch.call_args.kwargs['expected'], LOCK)
+
+    def test_explicit_invalid_or_prerelease_version_never_downloads(self):
+        for version in ('0.4.9.16-alpha', '0.4.9', '0.4.9.16; command'):
+            with self.subTest(version=version), patch.object(updater.source, 'fetch_release') as fetch:
+                with self.assertRaisesRegex(ValueError, 'stable four-component'):
+                    self.run_updater('--version', version)
+                fetch.assert_not_called()
+
+    def test_explicit_nonexistent_release_does_not_change_pin(self):
+        with tempfile.TemporaryDirectory() as directory, patch.object(updater, 'ROOT', Path(directory)):
+            target = Path(directory) / 'build/tor/source.json'
+            target.parent.mkdir(parents=True)
+            target.write_text(json.dumps(LOCK))
+            before = target.read_bytes()
+            with patch.object(updater.source, 'fetch_release', side_effect=HTTPError('https://fixture.invalid', 404, 'missing', {}, None)):
+                with self.assertRaises(HTTPError):
+                    self.run_updater('--version', '0.4.9.999', '--write')
+            self.assertEqual(target.read_bytes(), before)
+
+    def test_highest_installed_version_in_any_registry_variant_or_architecture_blocks_downgrade(self):
+        with tempfile.TemporaryDirectory() as directory:
+            reports = self.published_fixture(directory)
+            report = reports / 'watched-ghcr-edge-arm64/tor-version.json'
+            data = json.loads(report.read_text())
+            data['tor'] = 'Tor version 0.4.9.17.'
+            report.write_text(json.dumps(data))
+            with patch.object(updater.source, 'fetch_release') as fetch:
+                with self.assertRaisesRegex(ValueError, 'already installed'):
+                    self.run_updater('--version', '0.4.9.16', '--published-reports', str(reports), '--owner', 'fixture', '--write')
+                fetch.assert_not_called()
+
+    def test_complete_installed_reports_allow_equal_or_newer_requests(self):
+        with tempfile.TemporaryDirectory() as directory:
+            reports = self.published_fixture(directory)
+            for version in ('0.4.9.16', '0.4.9.17'):
+                with self.subTest(version=version), patch.object(updater.source, 'fetch_release', return_value={**LOCK, 'version': version}):
+                    result = Path(directory) / 'request.json'
+                    self.assertEqual(self.run_updater('--version', version, '--published-reports', str(reports),
+                                                     '--owner', 'fixture', '--output', str(result)), 1)
+                    data = json.loads(result.read_text())
+                    self.assertEqual(len(data['installed']), 8)
+                    self.assertEqual(data['minimum_allowed_version'], '0.4.9.16')
+                    self.assertEqual(data['verified']['version'], version)
+
+    def test_missing_or_mismatched_installed_identity_never_authorizes_a_request(self):
+        cases = ('missing', 'wrong-reference', 'wrong-arch', 'invalid-digest', 'duplicate-arch', 'invalid-version')
+        for case in cases:
+            with self.subTest(case=case), tempfile.TemporaryDirectory() as directory:
+                reports = self.published_fixture(directory)
+                work = reports / 'watched-dockerhub-stable-amd64'
+                if case == 'missing':
+                    (work / 'tor-version.json').unlink()
+                elif case == 'wrong-reference':
+                    (work / 'image-reference.txt').write_text('foreign/onion-relay@sha256:' + '1' * 64)
+                elif case in ('wrong-arch', 'invalid-version'):
+                    data = json.loads((work / 'tor-version.json').read_text())
+                    data.update({'architecture': 'arm64'} if case == 'wrong-arch' else {'tor': 'Tor version 0.4.9.16-alpha.'})
+                    (work / 'tor-version.json').write_text(json.dumps(data))
+                else:
+                    data = json.loads((work / 'manifest.json').read_text())
+                    if case == 'invalid-digest': data['manifests'][0]['digest'] = 'invalid'
+                    else: data['manifests'].append(data['manifests'][0])
+                    (work / 'manifest.json').write_text(json.dumps(data))
+                with patch.object(updater.source, 'fetch_release') as fetch:
+                    with self.assertRaises((ValueError, FileNotFoundError)):
+                        self.run_updater('--version', '0.4.9.16', '--published-reports', str(reports), '--owner', 'fixture')
+                    fetch.assert_not_called()
+
+    def test_an_old_published_image_failing_the_new_floor_still_provides_its_installed_version(self):
+        with tempfile.TemporaryDirectory() as directory:
+            reports = self.published_fixture(directory, LOCK['version'])
+            for path in reports.glob('*/tor-version.json'):
+                data = json.loads(path.read_text())
+                data.update(passed=False, reason='below new source floor')
+                path.write_text(json.dumps(data))
+            with patch.object(updater.source, 'fetch_release', return_value=LOCK):
+                self.assertEqual(self.run_updater('--version', LOCK['version'], '--published-reports', str(reports), '--owner', 'fixture'), 0)
 
     def test_downgrade_is_rejected_before_downloading(self):
         with patch.object(updater.source, 'fetch_release') as fetch:
@@ -150,6 +253,16 @@ class TorUpdateTests(unittest.TestCase):
             report = Path(directory) / 'report.json'
             self.assertEqual(self.run_updater('--output', str(report), version='0.4.9.16'), 1)
             self.assertEqual(json.loads(report.read_text())['proposed'], proposed)
+
+    def test_proposal_only_preserves_authenticated_evidence_and_passes_for_pr_job(self):
+        proposed = {**LOCK, 'version': '0.4.9.16'}
+        with tempfile.TemporaryDirectory() as directory, \
+                patch.object(updater.source, 'fetch_release', return_value=proposed):
+            report = Path(directory) / 'report.json'
+            self.assertEqual(self.run_updater('--proposal-only', '--output', str(report), version='0.4.9.16'), 0)
+            evidence = json.loads(report.read_text())
+            self.assertEqual(evidence['verified'], proposed)
+            self.assertEqual(evidence['proposed'], proposed)
 
     def test_write_changes_only_the_pin_after_verification(self):
         proposed = {**LOCK, 'version': '0.4.9.16'}

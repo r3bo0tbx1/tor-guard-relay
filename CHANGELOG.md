@@ -4,6 +4,14 @@ Current source: <!-- RELAY_VERSION -->v2.2.1<!-- /RELAY_VERSION -->. Historical 
 
 ## [Unreleased]
 
+### 🧅 Tor 0.4.9.16 source update
+
+- Pin Tor 0.4.9.16 and its authenticated archive checksum for stable/edge source builds. The project remains v2.2.1; existing image tags can receive the reviewed rebuild without moving the original Git release tag.
+- Document upstream's [4 November authority-focused emergency release](https://forum.torproject.org/t/security-release-0-4-9-16/22372): dummy TAP keys and consensus method 38, restored Desc/Microdesc protocol requirements for older clients, refreshed fallback directories and larger authority vote fetches. Upstream recommends upgrading but reports no urgency for operators who do not run a directory authority.
+- Preserve consensus-controlled DoS settings and existing relay identity/configuration. Tor 0.4.9.16 introduces no new mandatory torrc lines. Require maintainer review for authenticated proposals and keep verification failures blocking.
+- Add an exact-version manual security-watch input. Authenticate the selected release, including equal versions, and reject downgrades below the reviewed pin or any Tor binary observed in the eight same-run published-image assessments. Bind reports to registry digests/architectures, reject incomplete evidence, retain review proposals and keep deployment/publication separate.
+- Maintain one draft Tor source PR with a repository-scoped GitHub App. Reuse the authenticated proposal and installed-version evidence, protect concurrent branch edits, and preserve declined versions. Update only the source lock and link the upstream changelog for maintainer review.
+
 ### 🗑️ Registry retention
 
 - Authenticate the pinned registry client directly for Docker Hub and GHCR using isolated temporary credentials. Keep authentication and rate-limit errors blocking before deletion, and remove credentials after each maintenance job.

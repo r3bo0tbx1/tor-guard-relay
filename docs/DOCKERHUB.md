@@ -20,11 +20,13 @@
 
 ## 🆕 v2.2.1: Tor directory-request DoS defenses
 
-Current release: <!-- RELAY_VERSION -->v2.2.1<!-- /RELAY_VERSION -->. Stable and edge images include **Tor 0.4.9.15**, built from authenticated upstream source for **AMD64 and ARM64**. Upgrade existing relays and bridges promptly, recreate the container and verify the running Tor binary.
+Current release: <!-- RELAY_VERSION -->v2.2.1<!-- /RELAY_VERSION -->. Original stable and edge images shipped **Tor 0.4.9.15**, built from authenticated upstream source for **AMD64 and ARM64**. Current source builds use the [reviewed Tor pin](https://github.com/r3bo0tbx1/tor-guard-relay/blob/main/build/tor/source.json) for the next validated rebuild of the same image tags. Check the selected publication's evidence, recreate the container and verify the running Tor binary.
+
+Tor 0.4.9.16 is an [authority-focused emergency update](https://forum.torproject.org/t/security-release-0-4-9-16/22372); upstream recommends upgrading but reports no urgency for operators who do not run a directory authority. No new mandatory torrc lines are introduced. See the [current migration guidance](https://github.com/r3bo0tbx1/tor-guard-relay/blob/main/docs/MIGRATION.md#-reviewed-tor-source-updates).
 
 | Feature | What it gives you |
 | --- | --- |
-| 🛡️ Tor 0.4.9.15 or newer | Directory-request DoS defenses and an enforced minimum for both variants |
+| 🛡️ Reviewed Tor source | Directory-request DoS defenses and a shared source/acceptance pin for both variants |
 | 🏗️ Authenticated Tor builds | Verified upstream source packaged as an APK for the matching Alpine base |
 | 🔎 Current-run diagnostics | Health, readiness, `doctor` and redacted config checks |
 | ⚙️ Validated configuration | Atomic changes and reloads that preserve the Tor process |

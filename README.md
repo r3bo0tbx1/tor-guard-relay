@@ -25,7 +25,7 @@
 Current source version: <!-- RELAY_VERSION -->v2.2.1<!-- /RELAY_VERSION -->.
 
 > [!IMPORTANT]
-> 🛡️ Tor **0.4.9.15 or newer** is required. **v2.2.1** builds Tor from authenticated upstream source instead of waiting for Alpine’s Tor package. Read the [v2.2.1 upgrade and torrc guidance](docs/releases/v2.2.1.md). Deploy a validated published image, recreate the container and verify the running binary; an image tag alone does not establish a successful upgrade.
+> 🛡️ Current **v2.2.1 source builds** use the [reviewed Tor source pin](build/tor/source.json). The original release shipped Tor 0.4.9.15; subsequent validated rebuilds can refresh the existing image tags. Tor comes from authenticated upstream source instead of waiting for Alpine’s Tor package. Read the [upgrade and torrc guidance](docs/MIGRATION.md#-reviewed-tor-source-updates). Deploy a validated published image, recreate the container and verify the running binary; an image tag alone does not establish a successful upgrade.
 
 **📝 torrc:** Leave `DoSBeginDirRateEnabled`, `DoSBeginDirRate`, `DoSBeginDirBurst` and `DoSBeginDirDefenseType` unset so the network consensus controls them. No new torrc lines are required. After upgrading, review any temporary `DirCache 0` workaround. Keep `DirPort 0` if it is part of your deployment. The [sample configs](examples/) document this without forcing thresholds.
 
