@@ -27,8 +27,12 @@ def version_tuple(version):
 
 
 def load_lock(path=HERE / 'source.json'):
-    lock = json.loads(Path(path).read_text(encoding='utf-8'))
-    if set(lock) != {'version', 'sha256', 'signing_fingerprint'}:
+    return validate_lock(json.loads(Path(path).read_text(encoding='utf-8')))
+
+
+def validate_lock(lock):
+    if (not isinstance(lock, dict) or set(lock) != {'version', 'sha256', 'signing_fingerprint'}
+            or any(not isinstance(value, str) for value in lock.values())):
         raise ValueError('Unexpected Tor source lock fields')
     version_tuple(lock['version'])
     if not re.fullmatch(r'[a-f0-9]{64}', lock['sha256']):

@@ -1,6 +1,12 @@
 name: 🔒🧅
 on:
   workflow_dispatch:
+    inputs:
+      tor_version:
+        description: 'Exact stable Tor version to authenticate; blank discovers the latest release'
+        type: string
+        required: false
+        default: ''
   workflow_run:
     workflows: ['🚀✨']
     types: [completed]
@@ -12,6 +18,8 @@ on:
       - 'Dockerfile*'
       - 'build/**'
       - 'scripts/testing/**'
+      - 'scripts/release/update-tor-source.py'
+      - 'scripts/release/propose-tor-update.py'
       - '.github/renovate.json'
       - '.github/workflows/security.yml'
 permissions:
@@ -23,21 +31,125 @@ concurrency:
 jobs:
   tor-upstream:
     name: 🧅 Watch stable Tor releases
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.tor_version == '')
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - name: 📥 Check out source
         uses: actions/checkout@v7.0.1
       - name: 🔎 Detect and authenticate newer stable Tor source
-        run: python3 scripts/release/update-tor-source.py --output tor-upstream.json
+        run: python3 scripts/release/update-tor-source.py --proposal-only --output tor-upstream.json
       - name: 📎 Retain upstream status and any authenticated proposed pin
         if: always()
         uses: actions/upload-artifact@v7.0.2
         with:
           name: tor-upstream
           path: tor-upstream.json
+          overwrite: true
           retention-days: 30
+
+  tor-request:
+    name: 🧅 Validate requested Tor release
+    needs: published
+    if: always() && github.event_name == 'workflow_dispatch' && inputs.tor_version != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: 📥 Check out source
+        uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - name: 📚 Collect this run's installed Tor identities
+        uses: actions/download-artifact@v8.0.2
+        with:
+          pattern: watched-*-*-*
+          path: published-assessments
+      - name: 🔐 Authenticate the exact release and reject downgrades
+        env:
+          TOR_VERSION: ${{ inputs.tor_version }}
+          OWNER: ${{ github.repository_owner }}
+        run: |
+          python3 scripts/release/update-tor-source.py --proposal-only --version "$TOR_VERSION" \
+            --published-reports published-assessments --owner "$OWNER" --output tor-upstream.json
+      - name: 📎 Retain the source request and verification result
+        if: always()
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: tor-upstream
+          path: tor-upstream.json
+          overwrite: true
+          retention-days: 30
+
+  tor-update-pr:
+    name: 📝 Maintain the Tor source update PR
+    needs: [tor-upstream, tor-request, published]
+    if: >-
+      always() && !cancelled() && github.ref == 'refs/heads/main' &&
+      (needs.tor-upstream.result == 'success' || needs.tor-request.result == 'success')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: 📥 Check out the assessed main revision
+        uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: 📚 Collect the authenticated source proposal
+        uses: actions/download-artifact@v8.0.2
+        with:
+          name: tor-upstream
+          path: ${{ runner.temp }}/tor-update
+      - name: 🔎 Check whether the source proposal needs image evidence
+        id: proposal
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          report = json.loads((Path(os.environ['RUNNER_TEMP']) / 'tor-update/tor-upstream.json').read_text())
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              output.write('changed=' + str(report.get('update_available') is True).lower() + '\n')
+          PY
+      - name: 📚 Collect this run's installed Tor identities
+        if: steps.proposal.outputs.changed == 'true'
+        uses: actions/download-artifact@v8.0.2
+        with:
+          pattern: watched-*-*-*
+          path: ${{ runner.temp }}/tor-update/images
+      - name: 🛡️ Check the proposal against the reviewed pin and published images
+        id: prepare
+        run: |
+          python3 scripts/release/propose-tor-update.py --repository "$GITHUB_REPOSITORY" \
+            --report "$RUNNER_TEMP/tor-update/tor-upstream.json" \
+            --published-reports "$RUNNER_TEMP/tor-update/images" --plan "$RUNNER_TEMP/tor-update/plan.json"
+      - name: 🔑 Check GitHub App configuration
+        if: steps.prepare.outputs.ready == 'true'
+        env:
+          APP_CLIENT_ID: ${{ vars.TOR_UPDATE_APP_CLIENT_ID }}
+        run: |
+          if [ -z "$APP_CLIENT_ID" ]; then
+            echo '::error::Configure TOR_UPDATE_APP_CLIENT_ID and TOR_UPDATE_APP_PRIVATE_KEY to open Tor update PRs. The authenticated proposal is available in the tor-upstream artifact.'
+            exit 1
+          fi
+      - name: 🔑 Get a repository-scoped GitHub App token
+        if: steps.prepare.outputs.ready == 'true'
+        id: app
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ vars.TOR_UPDATE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.TOR_UPDATE_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+      - name: 📝 Open or refresh the single draft proposal
+        if: steps.prepare.outputs.ready == 'true'
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+          APP_SLUG: ${{ steps.app.outputs.app-slug }}
+        run: |
+          python3 scripts/release/propose-tor-update.py --repository "$GITHUB_REPOSITORY" \
+            --plan "$RUNNER_TEMP/tor-update/plan.json" --app-slug "$APP_SLUG"
 
   source:
     name: 🛡️ Go source (${{ matrix.arch }})

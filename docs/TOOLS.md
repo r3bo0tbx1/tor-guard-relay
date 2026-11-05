@@ -5,7 +5,7 @@
 ---
 
 > [!IMPORTANT]
-> 🧅 **v2.2.1:** Tor must be **0.4.9.15 or newer**. Review the [release and torrc migration notes](releases/v2.2.1.md); Tor is built from authenticated upstream source on each matching Alpine base; publication requires all candidate gates. Recreate from the validated image to update Tor; changing torrc alone does not upgrade the binary.
+> 🧅 **v2.2.1 source:** Builds use the [reviewed Tor source pin](../build/tor/source.json) from authenticated upstream source on each matching Alpine base. Review the [source-update and torrc guidance](MIGRATION.md#-reviewed-tor-source-updates) and the [original release notes](releases/v2.2.1.md). Publication requires all candidate gates. Recreate from the validated image to update Tor; changing torrc alone does not upgrade the binary.
 
 ## 📋 Tool Overview
 
@@ -103,7 +103,7 @@ docker exec tor-relay health | jq .status
   "errors": 0,
   "nickname": "MyGuardRelay",
   "fingerprint": "ABCD1234567890ABCDEF1234567890ABCDEFGHIJ",
-  "tor_version": "0.4.9.15",
+  "tor_version": "0.4.9.16",
   "relay_mode": "guard",
   "build_version": "2.2.1",
   "config_source": "environment",

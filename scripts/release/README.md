@@ -20,7 +20,7 @@ The release automation includes three main components:
 
 ## 🛠️ Local commands
 
-The [v2.2.1 update](../../docs/releases/v2.2.1.md) builds Tor 0.4.9.15 from authenticated upstream source on each matching Alpine base. [build/tor/source.json](../../build/tor/source.json) is the version/checksum/signer pin and current Tor security floor; the pin checker rejects build-path or base drift. Current policy also applies to explicit older-tag rebuilds. A source-only pass never authorizes publication.
+The original [v2.2.1 release](../../docs/releases/v2.2.1.md) shipped Tor 0.4.9.15. Current source builds use the reviewed pin for a rebuild of the same project version. See the [source update and migration guidance](../../docs/MIGRATION.md#-reviewed-tor-source-updates). [build/tor/source.json](../../build/tor/source.json) is the version/checksum/signer pin and current acceptance floor; the pin checker rejects build-path or base drift. Current policy also applies to explicit older-tag rebuilds. A source-only pass never authorizes publication.
 
 ```sh
 sh scripts/release/update-version.sh 2.2.1 --dry-run
@@ -37,7 +37,9 @@ The version checker discovers tracked and nonignored documentation, scripts and 
 
 The notes generator handles leading gitmoji, conventional scopes and multiline breaking-change bodies, and keeps emoji headings by default. Use `--no-emoji` or `--format plain` only when you want plain output. Its output is a review draft. The release workflow publishes the curated file at `docs/releases/vVERSION.md`.
 
-The upstream checker is read-only by default: it discovers stable releases directly from Tor, authenticates any newer archive and retains a proposed source pin without committing or publishing. Missing assets, invalid signatures, unknown signers and checksum failures block updates. Use `--version VERSION --write` to prepare a verified local pin, review operator guidance and run all gates. Compatible Tor updates can refresh existing 2.2.1 image tags through main rebuilds; the Git release tag stays unchanged. See [Tor source maintenance](../../build/tor/README.md).
+The upstream checker discovers stable releases directly from Tor and authenticates any newer archive. On main, the proposal job checks all eight published-image assessments and maintains a draft PR that updates the source lock. Missing assets, invalid signatures, unknown signers and checksum failures block the proposal. Use `--version VERSION --write` for a verified local pin. Compatible Tor updates can refresh existing 2.2.1 image tags through reviewed main rebuilds. [Tor source maintenance](../../build/tor/README.md)
+
+For an exact manual request, use **Actions → 🔒🧅 → Run workflow → tor_version**. The workflow authenticates that release and rejects requests below the reviewed pin or the highest installed version across this run's published images. A verified equal version passes. A verified newer version on main follows the draft PR path. [Manual source-check procedure](../../build/tor/README.md#-check-an-exact-release-manually)
 
 
 ### 📝 Curated notes and version markers
@@ -139,7 +141,7 @@ The read-only `🔒🧅 Security watch` workflow checks current pinned source/Go
 
 This separates merge validation from audits of registry images that the merge has not replaced. A main-triggered source check can pass while the most recent published-image audit remains blocked. Its summary identifies that scope; it is not evidence that published findings are fixed. Scheduled, manual and post-release audits still fail on HIGH/CRITICAL findings or secrets. Candidate image security remains blocking in the main/PR validation pipeline.
 
-The published-image lane performs package/secret assessment; source reachability is reported for the current checkout, which may differ from a published release. GitHub schedules and advisory ingestion can be delayed. Monitoring never publishes images, changes a live relay, opens issues or sends third-party messages.
+The published-image lane performs package and secret assessment. Source reachability describes the current checkout, which can differ from a published release. GitHub schedules and advisory ingestion can be delayed. Tor source updates go through the reviewed draft PR and the existing publication workflow.
 
 Each published-image summary shows the version/source labels, exact scanned image, HIGH/CRITICAL packages, installed versions and reported fixes. A main merge can pass candidate validation while the monitor flags older registry images. Publish the reviewed release tag, verify the replacement digests, then rescan them. The monitor retains its failure status while blocking findings remain; an unfixed finding requires exposure assessment and mitigation.
 

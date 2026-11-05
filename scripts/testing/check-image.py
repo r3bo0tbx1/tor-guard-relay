@@ -90,7 +90,8 @@ def main():
     tor = run(cli, *command, '--entrypoint', 'tor', image, '--version').decode()
     minimum = pins.inspect_pins(ROOT)['tor_min_version']
     if args.tor_only:
-        assessment = {'tor': tor.strip(), 'tor_min_version': minimum, 'passed': True}
+        assessment = {'tor': tor.strip(), 'tor_min_version': minimum, 'passed': True,
+                      'image': image, 'architecture': arch}
         try:
             version = check_tor_version(tor, minimum)
             message = f'✅ Tor {version} meets the required minimum {minimum}.'

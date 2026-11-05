@@ -16,22 +16,40 @@ An ephemeral APK key signs the local package. The runtime trusts its public half
 
 ## 🔄 Future releases while the project stays on 2.2.1
 
+The reviewed version is recorded in [source.json](source.json). Tor 0.4.9.16 was an authority-focused emergency release with no new mandatory torrc settings or urgency for ordinary relay and bridge operators. The original v2.2.1 release shipped Tor 0.4.9.15. [Migration guidance](../../docs/MIGRATION.md#-reviewed-tor-source-updates) · [Tor 0.4.9.16 announcement](https://forum.torproject.org/t/security-release-0-4-9-16/22372)
+
 The project version and Tor version are different. A compatible Tor security update can refresh `2.2.1`, `latest` and `edge` images without moving the Git `v2.2.1` tag or changing the project's version marker. GHCR also keeps `2.2.1-edge`. Image labels and retained publication evidence identify the actual main commit; deploy by digest for an immutable build.
 
 GitHub release notes/assets retain the original release's evidence. A later main rebuild retains its own source record, SBOMs and scan/publication artifacts; inspect those and the actual image when checking a refreshed tag. Candidate artifacts include `tor-source.json` with the authenticated version/checksum/signer record.
 
-Once this workflow change is merged, **🔒🧅** checks upstream stable releases every six hours and on manual dispatch. It ignores alpha/RC/dev archives and compares all four version components. An equal version is a no-op after discovery; a lower version is rejected. A newer release is downloaded and authenticated, its proposed lock is retained in `tor-upstream.json`, and the watch check fails to request maintainer review. Network/authentication failures also fail; they never advance the source pin. Monitoring does not commit, open a PR, merge or publish automatically.
+**🔒🧅** checks upstream stable releases every six hours and on manual dispatch. It ignores alpha/RC/dev archives and compares all four version components. An equal version is a no-op after discovery. For a newer release, the watcher authenticates the archive and saves a proposal in `tor-upstream.json`. On `main`, a separate job checks the proposal against this run's published images and maintains the update PR. Authentication, download and downgrade failures stop the proposal.
+
+### 📝 Automatic update PR
+
+The workflow opens a draft from the reserved `build/tor-source-update` branch and refreshes that same open PR when a newer release arrives. The commit changes only `build/tor/source.json`. Its PR body records the checksum, signer, highest observed installed version and upstream changelog. Review that changelog and add any required operator guidance before merging. The existing PR checks run on each changed revision.
+
+A repeat of the same proposal on the same main revision leaves the PR head alone. When main advances, the bot refreshes its own commit on the new base. The branch update checks the exact remote head so a concurrent edit is preserved. Maintainer commits on the bot branch stop automation until the branch is reviewed. Closing a proposal without merging suppresses that release and older requests. Reopen it manually to resume review. Later releases can open another draft. GitHub's normal merged-branch cleanup applies.
+
+Register a repository-scoped GitHub App with **Contents: read and write** and **Pull requests: read and write**, and install it only on `tor-guard-relay`. Set `TOR_UPDATE_APP_CLIENT_ID` in Actions variables and `TOR_UPDATE_APP_PRIVATE_KEY` in Actions secrets. The workflow requests a short-lived installation token only for the PR step. A missing App configuration leaves the authenticated proposal in the artifact and reports the setup error. App-authored PR events can start the existing PR checks. [GitHub App token setup](https://github.com/actions/create-github-app-token/tree/v3.3.0) · [Workflow trigger details](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow#triggering-a-workflow-from-a-workflow)
+
+### 🖱️ Check an exact release manually
+
+In **Actions → 🔒🧅 → Run workflow**, select the reviewed branch (normally `main`) and enter a stable four-component release such as `0.4.9.16` in **tor_version**. Leave it blank for normal latest-release discovery.
+
+An exact request waits for this run's published-image assessments from Docker Hub and GHCR, stable and edge, AMD64 and ARM64. Each assessment runs the image's actual `tor --version` and records the resolved image digest and architecture. The request is rejected if it is below the reviewed source pin **or any of those eight installed versions**. Missing reports, mismatched identities, invalid/prerelease versions and authentication/download failures block the request. An image failing the new source floor still supplies its observed version; its separate audit remains failed.
+
+Even an explicitly selected equal version authenticates its signed checksum and archive against the existing lock. Equal verified versions pass without a proposal. A newer verified version on `main` follows the draft PR path above. The assessments cover the published images resolved during that run. Private VPS containers and custom images require separate inventories before deployment.
 
 From the repository root, with Python 3.11+ and GnuPG available:
 
 ```sh
 # Read-only discovery. A verified newer release exits 1 and retains its proposal.
 python3 scripts/release/update-tor-source.py --output /tmp/tor-upstream.json
-# Prepare a local reviewed update. This changes only build/tor/source.json.
-python3 scripts/release/update-tor-source.py --version 0.4.9.16 --write
+# Authenticate the latest stable release and prepare its local source lock.
+python3 scripts/release/update-tor-source.py --write
 ```
 
-The example future version must actually exist. The update command verifies its signatures and archive before writing; it never downgrades or blindly accepts a checksum change for an existing pinned version. Review upstream compatibility, torrc guidance, source keys, release notes and current security documentation alongside the pin. No partial version-only Renovate update is enabled: the authenticated checksum and version move together through this command.
+Select a stable version that actually exists. Explicitly selecting the already reviewed version reauthenticates it without changing the pin. Automatic discovery of an equal version skips archive downloads. A newer version is authenticated before writing; the helper never downgrades or blindly accepts a checksum change for an existing pinned version. Direct local CLI use compares against the reviewed pin; `--published-reports DIRECTORY --owner OWNER` also enforces the complete same-run image baseline, as the manual workflow does. Review upstream compatibility, torrc guidance, source keys, release notes and current security documentation alongside the pin. No partial version-only Renovate update is enabled: the authenticated checksum and version move together through this command.
 
 After review, validate all four candidates, recovery and source/image security gates. Merge the update and run the existing main rebuild with publication enabled only when authorized. Scheduled rebuilds also pick up merged pins. They keep the reviewed Tor version until an update is merged; they do not fetch a floating latest Tor binary. An explicit older Git tag still selects that tag's original source and may fail newer security floors or the source-build contract.
 

@@ -108,6 +108,20 @@ Create and verify an [encrypted backup](BACKUP.md), then rehearse restore into a
 
 ## 🚀 Upgrade an existing deployment
 
+### 🧅 Reviewed Tor source updates
+
+Check the [reviewed source pin](../build/tor/source.json) and the selected publication's evidence before recreating a container. Verify the running `tor --version`, original fingerprint and fresh readiness after the upgrade. Each source update PR links its upstream changelog for compatibility and torrc review.
+
+### 🧅 Tor 0.4.9.16 source update
+
+The Tor 0.4.9.16 update targets the v2.2.1 rebuild series. The original v2.2.1 release and its retained evidence describe Tor 0.4.9.15.
+
+The [4 November upstream announcement](https://forum.torproject.org/t/security-release-0-4-9-16/22372) describes an emergency update aimed at directory authorities. Older clients were restarting and repeatedly requesting directory information after the previous protocol changes. Authorities now permit those older clients again to reduce that load. Upstream recommends upgrading, with no urgency for operators who are not running a directory authority.
+
+The [tagged release notes](https://gitlab.torproject.org/tpo/core/tor/-/blob/tor-0.4.9.16/ReleaseNotes) introduce a dummy TAP key and consensus method 38, restore the required `Desc`/`Microdesc` protocol versions from 3 to 2, refresh fallback directories and increase allowed authority fetch sizes. These are upstream protocol and authority changes; do not add TAP keys or consensus-method settings to a normal relay's torrc.
+
+**No new mandatory torrc lines are needed.** Retain the consensus-controlled DoS guidance below, mounted configuration, data/keys and the existing fingerprint. Recreate one relay at a time from a fully validated image, then confirm Tor 0.4.9.16, fingerprint continuity, fresh readiness and external reachability. Do not move the Git `v2.2.1` tag or discard protected rollback images just because the source pin changed.
+
 ### 🧅 Tor 0.4.9.15 security update
 
 All relay and bridge modes should migrate to a validated published image containing Tor **0.4.9.15 or newer** as soon as possible. The [v2.2.1 release notes](releases/v2.2.1.md) record the upstream changes and the authenticated source-build gate; a new tag or a configuration reload alone does not establish an upgraded binary.
@@ -118,7 +132,7 @@ Leave the four new `DoSBeginDirRateEnabled`, `DoSBeginDirRate`, `DoSBeginDirBurs
 2. Validate torrc and Compose/template syntax.
 3. Stop the old relay and confirm no other writer shares the data.
 4. Recreate with the validated image, retaining the original data and include mounts.
-5. Confirm Tor 0.4.9.15 or newer and the original fingerprint.
+5. Confirm the reviewed Tor version from `build/tor/source.json` and the original fingerprint.
 6. Check fresh bootstrap evidence and public listeners independently.
 7. Keep the previous image/deployment and backup until the new relay is verified.
 
