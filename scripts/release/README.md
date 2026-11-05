@@ -39,6 +39,8 @@ The notes generator handles leading gitmoji, conventional scopes and multiline b
 
 The upstream checker discovers stable releases directly from Tor and authenticates any newer archive. On main, the proposal job checks all eight published-image assessments and maintains a draft PR that updates the source lock. Missing assets, invalid signatures, unknown signers and checksum failures block the proposal. Use `--version VERSION --write` for a verified local pin. Compatible Tor updates can refresh existing 2.2.1 image tags through reviewed main rebuilds. [Tor source maintenance](../../build/tor/README.md)
 
+After reviewing the upstream changes, the repository owner can react 👍 on the bot's comment for the current commit. On its next scheduled or manual run, 🔒🧅 completes the checklist and marks the draft ready if all required checks have passed. The maintainer handles the merge. [Automatic update PR](../../build/tor/README.md#-automatic-update-pr)
+
 For an exact manual request, use **Actions → 🔒🧅 → Run workflow → tor_version**. The workflow authenticates that release and rejects requests below the reviewed pin or the highest installed version across this run's published images. A verified equal version passes. A verified newer version on main follows the draft PR path. [Manual source-check procedure](../../build/tor/README.md#-check-an-exact-release-manually)
 
 

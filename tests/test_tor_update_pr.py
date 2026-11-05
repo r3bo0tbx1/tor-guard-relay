@@ -72,6 +72,9 @@ class PublishTests(unittest.TestCase):
         mock = patch.object(proposer, 'api', self.api)
         mock.start()
         self.addCleanup(mock.stop)
+        review = patch.object(proposer, 'process_review')
+        self.review = review.start()
+        self.addCleanup(review.stop)
 
     def api(self, path, method='GET', body=None):
         if method != 'GET':
@@ -100,7 +103,9 @@ class PublishTests(unittest.TestCase):
     def existing(self):
         self.head = HEAD
         self.open = [{'head': {'sha': HEAD, 'repo': {'full_name': REPO}}, 'base': {'ref': 'main'},
-                      'user': {'login': BOT}, 'body': proposer.PR_MARKER + '\n<!-- tor-source-update:version=0.4.9.16 -->',
+                      'user': {'login': BOT}, 'draft': True,
+                      'body': proposer.PR_MARKER + f'\n<!-- tor-source-head:{HEAD} -->'
+                              + '\n<!-- tor-source-update:version=0.4.9.16 -->',
                       'title': '⬆️ build(deps): update authenticated Tor source to 0.4.9.16',
                       'number': 1, 'html_url': 'https://fixture.invalid/pull/1'}]
 
@@ -123,10 +128,20 @@ class PublishTests(unittest.TestCase):
         self.existing()
         self.run_publish()
         self.assertFalse(self.push_calls() or self.writes)
+        self.review.assert_called_once_with(f'repos/{REPO}', REPO, self.open[0], HEAD, BOT)
         self.pending = {**LOCK, 'version': '0.4.9.15'}
         self.run_publish()
         self.assertIn(f'--force-with-lease=refs/heads/{proposer.BRANCH}:{HEAD}', self.push_calls()[0])
         self.assertEqual([(method, path) for method, path, _ in self.writes], [('PATCH', f'repos/{REPO}/pulls/1')])
+
+    def test_refresh_returns_a_ready_pr_to_draft(self):
+        self.existing()
+        self.open[0]['draft'] = False
+        self.pending = LOCK
+        with patch.object(proposer, 'github') as github:
+            self.run_publish()
+        github.assert_called_once_with(['pr', 'ready', '1', '--repo', REPO, '--undo'])
+        self.assertIn('- [ ]', self.writes[0][2]['body'])
 
     def test_partial_push_can_create_missing_pr_without_rewriting_branch(self):
         self.head = HEAD
@@ -163,3 +178,54 @@ class PublishTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'main-branch workflow'):
                 self.run_publish()
         self.assertFalse(self.push_calls() or self.writes)
+
+
+class ReviewTests(unittest.TestCase):
+    def setUp(self):
+        self.prefix = f'repos/{REPO}'
+        self.path = f'{self.prefix}/pulls/1'
+        self.comment_path = f'{self.prefix}/issues/1/comments'
+        self.owner = {'content': '+1', 'user': {'id': 123}}
+        self.pull = {'number': 1, 'state': 'open', 'draft': True, 'head': {'sha': HEAD},
+                     'user': {'login': BOT}, 'base': {'ref': 'main'},
+                     'body': f'{proposer.PR_MARKER}\n<!-- tor-source-head:{HEAD} -->\n'
+                             + ''.join(f'- [ ] {item}\n' for item in proposer.REVIEW_ITEMS)}
+        self.comment = {'id': 7, 'user': {'login': BOT}, 'body': f'<!-- tor-source-review:{HEAD} -->'}
+        env = patch.dict(proposer.os.environ, {'GH_REVIEW_READ_TOKEN': 'fixture', 'GITHUB_REPOSITORY_OWNER_ID': '123'})
+        env.start()
+        self.addCleanup(env.stop)
+
+    def run_review(self, responses, checks='[{"bucket":"pass"}]', exit_code=0):
+        with patch.object(proposer, 'api', side_effect=responses) as api, \
+                patch.object(proposer, 'github', return_value=Mock(stdout=checks, returncode=exit_code)) as github:
+            proposer.process_review(self.prefix, REPO, self.pull, HEAD, BOT)
+        return api, github
+
+    def test_posts_a_new_comment_only_for_the_current_bot_revision(self):
+        stale = {**self.comment, 'body': f'<!-- tor-source-review:{BASE} -->'}
+        imitation = {**self.comment, 'user': {'login': 'someone'}}
+        api, github = self.run_review([[stale, imitation], {}])
+        self.assertEqual(api.call_args.args[:2], (self.comment_path, 'POST'))
+        self.assertIn(self.comment['body'], api.call_args.args[2]['body'])
+        github.assert_not_called()
+
+    def test_requires_the_owner_and_all_required_checks(self):
+        api, github = self.run_review([[self.comment], [{'content': '+1', 'user': {'id': 999}}]])
+        self.assertEqual(api.call_count, 2)
+        github.assert_not_called()
+        for checks in ('[]', '[{"bucket":"pending"}]', '[{"bucket":"fail"}]'):
+            with self.subTest(checks=checks):
+                api, github = self.run_review([[self.comment], [self.owner]], checks)
+                self.assertEqual(api.call_count, 2)
+                github.assert_called_once()
+
+    def test_checks_both_boxes_and_marks_ready_only_for_the_verified_head(self):
+        api, github = self.run_review([[self.comment], [self.owner], self.pull, {}])
+        self.assertEqual(api.call_args.args[:2], (self.path, 'PATCH'))
+        self.assertEqual(api.call_args.args[2]['body'].count('- [x] '), 2)
+        self.assertEqual(github.call_args.args[0], ['pr', 'ready', '1', '--repo', REPO])
+
+    def test_head_change_blocks_writes(self):
+        changed = {**self.pull, 'head': {'sha': BASE}}
+        with self.assertRaisesRegex(ValueError, 'changed while checking'):
+            self.run_review([[self.comment], [self.owner], changed])

@@ -15,6 +15,10 @@ LOCK = 'build/tor/source.json'
 BRANCH = 'build/tor-source-update'
 MARKER = 'Tor-Source-Update: managed-v1'
 PR_MARKER = '<!-- tor-source-update:managed-v1 -->'
+REVIEW_ITEMS = (
+    'Review upstream changes and add any operator or torrc guidance this release requires.',
+    'Confirm all required checks pass on this revision before merging.',
+)
 spec = importlib.util.spec_from_file_location('updater', Path(__file__).with_name('update-tor-source.py'))
 updater = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(updater)
@@ -38,17 +42,25 @@ def prepare(report, assessments, owner, current):
     return {'current': current, 'proposed': proposed, 'highest_installed': highest}
 
 
-def api(path, method='GET', body=None):
-    command = ['gh', 'api', '--method', method, path]
-    if body is not None:
-        command.extend(['--input', '-'])
-    response = sp.run(command, input=None if body is None else json.dumps(body),
-                      capture_output=True, encoding='utf-8', timeout=60)
-    if response.returncode:
+def github(args, body=None, token=None, accepted=(0,)):
+    env = {**os.environ, 'GH_TOKEN': token} if token is not None else None
+    response = sp.run(['gh', *args], input=None if body is None else json.dumps(body),
+                      capture_output=True, encoding='utf-8', timeout=60, env=env)
+    if response.returncode not in accepted:
         detail = next((line for line in response.stderr.splitlines() if line.startswith('gh: ')),
                       f'exit code {response.returncode}')
-        raise RuntimeError(f'GitHub {method} {path} failed: {detail}')
-    return json.loads(response.stdout)
+        raise RuntimeError(f'GitHub {args[0]} failed: {detail}')
+    return response
+
+
+def api(path, method='GET', body=None, *, paginate=False, token=None):
+    command = ['api', '--method', method, path]
+    if body is not None:
+        command.extend(['--input', '-'])
+    if paginate:
+        command.extend(['--paginate', '--slurp'])
+    data = json.loads(github(command, body, token).stdout)
+    return [row for page in data for row in page] if paginate else data
 
 
 def git(*args, env=None):
@@ -102,6 +114,63 @@ def declined_version(prefix, owner, bot, read=api):
     return marker[1] if PR_MARKER in body and marker else None
 
 
+def process_review(prefix, repository, pull, head, bot):
+    if not pull['draft']:
+        return
+    if pull['head']['sha'] != head:
+        raise ValueError('The Tor update PR head changed before processing review')
+    number = str(pull['number'])
+    read_token = os.environ['GH_REVIEW_READ_TOKEN']
+    if not read_token:
+        raise ValueError('Missing the read-only GitHub token for Tor update review')
+    comments_path = f'{prefix}/issues/{number}/comments'
+    marker = f'<!-- tor-source-review:{head} -->'
+    comments = api(f'{comments_path}?per_page=100', paginate=True, token=read_token)
+    review_comments = [row for row in comments if (row.get('user') or {}).get('login') == bot
+                       and marker in (row.get('body') or '').splitlines()]
+    if len(review_comments) > 1:
+        raise ValueError('Expected one bot review comment for this Tor update revision')
+    if not review_comments:
+        api(comments_path, 'POST', {'body': (
+            f'{marker}\n\n'
+            f'### 🧅 Review Tor update `{head[:12]}`\n\n'
+            'After reviewing the upstream changes and any operator guidance, react 👍 on this comment. '
+            'On the next scheduled or manual 🔒🧅 run, I’ll check that this revision passed the required '
+            'checks, tick both boxes and mark the draft ready for review. The squash merge is yours.'
+        )})
+        return
+    comment_id = review_comments[0]['id']
+    reactions = api(f'{prefix}/issues/comments/{comment_id}/reactions?content=%2B1&per_page=100',
+                    paginate=True, token=read_token)
+    owner_id = int(os.environ['GITHUB_REPOSITORY_OWNER_ID'])
+    if not any(reaction['content'] == '+1' and (reaction.get('user') or {}).get('id') == owner_id
+               for reaction in reactions):
+        print('Waiting for the repository owner’s 👍 on the current Tor update revision.')
+        return
+    result = github(['pr', 'checks', number, '--repo', repository, '--required', '--json', 'bucket'],
+                    token=read_token, accepted=(0, 1, 8))
+    checks = json.loads(result.stdout) if result.stdout.strip() else []
+    if result.returncode or not checks or any(check['bucket'] != 'pass' for check in checks):
+        print('Waiting for every required check to pass on the Tor update PR.')
+        return
+    pull_path = f'{prefix}/pulls/{number}'
+    current = api(pull_path)
+    if (current['state'] != 'open' or not current['draft'] or current['head']['sha'] != head
+            or current['user']['login'] != bot or current['base']['ref'] != 'main'
+            or f'<!-- tor-source-head:{head} -->' not in (current.get('body') or '').splitlines()
+            or PR_MARKER not in (current.get('body') or '').splitlines()):
+        raise ValueError('The managed Tor update PR changed while checking review readiness')
+    body = current['body']
+    for item in REVIEW_ITEMS:
+        body, count = re.subn(r'(?m)^- \[[ xX]\] ' + re.escape(item) + '$', f'- [x] {item}', body)
+        if count != 1:
+            raise ValueError('Expected the two Tor update review checklist items')
+    if body != current['body']:
+        api(pull_path, 'PATCH', {'body': body})
+    github(['pr', 'ready', number, '--repo', repository])
+    print('Tor update checklist complete. The draft is ready for review.')
+
+
 def publish(plan, repository, app_slug):
     if (os.environ.get('GITHUB_ACTIONS') != 'true' or os.environ.get('GITHUB_REF') != 'refs/heads/main'
             or os.environ.get('GITHUB_REPOSITORY') != repository
@@ -137,8 +206,8 @@ def publish(plan, repository, app_slug):
             f'- Approved signing fingerprint: `{proposed["signing_fingerprint"]}`\n'
             f'- [Upstream changelog](https://gitlab.torproject.org/tpo/core/tor/-/blob/tor-{version}/ChangeLog)\n'
             f'- [Verification run](https://github.com/{repository}/actions/runs/{os.environ["GITHUB_RUN_ID"]})\n\n'
-            '- [ ] Review upstream changes and add any operator or torrc guidance this release requires.\n'
-            '- [ ] Confirm all required checks pass on this revision before merging.\n')
+            'React 👍 on the bot’s review comment for this revision when your upstream review is complete.\n\n'
+            + ''.join(f'- [ ] {item}\n' for item in REVIEW_ITEMS))
     changed = parent != base or pending != proposed
     if changed:
         if git('status', '--porcelain'):
@@ -155,13 +224,20 @@ def publish(plan, repository, app_slug):
         ref = f'refs/heads/{BRANCH}'
         if api(f'{prefix}/git/ref/heads/main')['object']['sha'] != base:
             raise ValueError('Main advanced before the branch update. Run the check again on current main.')
+        if pull and not pull['draft']:
+            github(['pr', 'ready', str(pull['number']), '--repo', repository, '--undo'])
         git('-c', 'credential.helper=', '-c', 'credential.helper=!gh auth git-credential', 'push',
             f'--force-with-lease={ref}:{head}', f'https://github.com/{repository}.git', f'HEAD:{ref}', env=env)
+        head = git('rev-parse', 'HEAD')
+    head_marker = f'<!-- tor-source-head:{head} -->'
+    body = head_marker + '\n' + body
     if pull is None:
         pull = api(f'{prefix}/pulls', 'POST', {'title': title, 'body': body, 'base': 'main',
                                               'head': BRANCH, 'draft': True})
-    elif changed or pull['title'] != title or version_marker not in (pull.get('body') or ''):
+    elif (changed or pull['title'] != title
+          or not {head_marker, version_marker}.issubset((pull.get('body') or '').splitlines())):
         pull = api(f'{prefix}/pulls/{pull["number"]}', 'PATCH', {'title': title, 'body': body})
+    process_review(prefix, repository, pull, head, bot)
     print(f'Tor source proposal: {pull["html_url"]}')
 
 
