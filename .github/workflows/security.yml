@@ -90,6 +90,10 @@ jobs:
     timeout-minutes: 10
     permissions:
       contents: read
+      checks: read
+      issues: read
+      pull-requests: read
+      statuses: read
     steps:
       - name: 📥 Check out the assessed main revision
         uses: actions/checkout@v7.0.1
@@ -146,6 +150,7 @@ jobs:
         if: steps.prepare.outputs.ready == 'true'
         env:
           GH_TOKEN: ${{ steps.app.outputs.token }}
+          GH_REVIEW_READ_TOKEN: ${{ github.token }}
           APP_SLUG: ${{ steps.app.outputs.app-slug }}
         run: |
           python3 scripts/release/propose-tor-update.py --repository "$GITHUB_REPOSITORY" \
