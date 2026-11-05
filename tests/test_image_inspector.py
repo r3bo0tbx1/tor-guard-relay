@@ -1,6 +1,6 @@
 """Registry failures may retry; component inspection must still fail closed."""
 import importlib.util
-from contextlib import redirect_stdout
+from contextlib import redirect_stderr, redirect_stdout
 import io
 import json
 from pathlib import Path
@@ -60,17 +60,21 @@ class InspectorTests(unittest.TestCase):
 
     def test_published_old_tor_failure_retains_json_and_actionable_summary(self):
         output = io.StringIO()
+        errors = io.StringIO()
         with tempfile.TemporaryDirectory() as directory:
             summary = Path(directory) / 'summary.md'
             with patch.object(checker.sys, 'argv', ['check-image.py', 'fixture:local', '--tor-only', '--summary', str(summary)]), \
                     patch.object(checker.shutil, 'which', return_value='docker'), \
                     patch.object(checker, 'run', side_effect=[b'amd64\n', b'Tor version 0.4.9.14.\n']), \
-                    patch.object(checker, 'inspect_transport') as transport, redirect_stdout(output):
+                    patch.object(checker, 'inspect_transport') as transport, \
+                    redirect_stdout(output), redirect_stderr(errors):
                 with self.assertRaises(SystemExit) as stopped:
                     checker.main()
             self.assertEqual(stopped.exception.code, 1)
             self.assertFalse(json.loads(output.getvalue())['passed'])
-            self.assertIn('below the required minimum', summary.read_text(encoding='utf-8'))
+            reason = json.loads(output.getvalue())['reason']
+            self.assertIn(reason, errors.getvalue())
+            self.assertIn(reason, summary.read_text(encoding='utf-8'))
             transport.assert_not_called()
 
     def test_exact_local_native_pin_needs_no_registry(self):
