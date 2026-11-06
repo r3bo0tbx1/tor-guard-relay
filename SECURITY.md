@@ -277,7 +277,7 @@ Operators must recreate the container from a validated updated image to replace 
 
 ## 📦 Dependency policy
 
-Stable Alpine 3.24.3 and Go 1.27.3 are pinned by digest. Lyrebird source is pinned and its Go module graph is checked in. Pion STUN is 3.1.7, above the 3.1.5 security floor for [CVE-2026-54909](https://github.com/advisories/GHSA-34rh-wp3j-6cxc). The actual transport binary is inspected during candidate validation.
+Stable Alpine 3.24.4 and Go 1.27.3 are pinned by digest. Lyrebird source is pinned and its Go module graph is checked in. Pion STUN is 3.1.7, above the 3.1.5 security floor for [CVE-2026-54909](https://github.com/advisories/GHSA-34rh-wp3j-6cxc). The actual transport binary is inspected during candidate validation.
 
 OpenSSL's installed libssl3 must be at least 3.5.9. Container updates do not patch the host kernel; operators remain responsible for host security updates.
 
@@ -493,7 +493,7 @@ docker stats tor-relay --no-stream
 
 ```dockerfile
 # Always specify explicit base version
-FROM alpine:3.24.3  # Pinned version for reproducibility
+FROM alpine:3.24.4  # Pinned version for reproducibility
 
 # Run as non-root user
 USER tor

@@ -46,7 +46,7 @@ Tor 0.4.9.16 is an [authority-focused emergency update](https://forum.torproject
 | <!-- RELAY_IMAGE_VERSION -->`2.2.1`<!-- /RELAY_IMAGE_VERSION --> | Stable version series | AMD64 / ARM64 |
 | `edge` | Alpine edge, for testing | AMD64 / ARM64 |
 
-Stable uses **Alpine 3.24.3**. Validated manual and scheduled rebuilds from main include merged fixes and fresh packages; version tags can receive those rebuilds. Pin an image digest when you need an exact build.
+Stable uses **Alpine 3.24.4**. Validated manual and scheduled rebuilds from main include merged fixes and fresh packages; version tags can receive those rebuilds. Pin an image digest when you need an exact build.
 
 Retired container tags can be removed while [historical GitHub releases and their SBOM/security assets](https://github.com/r3bo0tbx1/tor-guard-relay/releases) remain available. Keep a verified current image digest for rollback.
 

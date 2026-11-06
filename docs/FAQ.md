@@ -51,14 +51,14 @@ The validator's Node runtime follows its declared engine range. Node 26 is exclu
 - **Exit relay** - Last hop (requires legal preparation)
 - **Bridge relay** - Helps users bypass censorship (obfs4 support)
 
-Built on Alpine Linux 3.24.3 with a minimal runtime, nine POSIX shell tools and automated security rebuilds.
+Built on Alpine Linux 3.24.4 with a minimal runtime, nine POSIX shell tools and automated security rebuilds.
 
 ### What makes this different from the official Tor images?
 
 | Feature | This Project | Official Images |
 |---------|--------------|-----------------|
 | **Image size** | Varies by variant and architecture | Varies by image |
-| **Base** | Alpine 3.24.3 | Debian |
+| **Base** | Alpine 3.24.4 | Debian |
 | **Built-in tools** | 9 POSIX shell tools + JSON health and validated torrc reloads | None |
 | **Multi-mode** | Guard/Exit/Bridge in one image | Separate images |
 | **Weekly rebuilds** | ✅ Automated | ❌ Manual |
@@ -326,10 +326,10 @@ docker logs tor-bridge | grep "bridge line"
 **Fix:**
 ```bash
 # Alpine uses UID 100 (tor user)
-docker run --rm -v tor-data:/data alpine:3.24.3 chown -R 100:101 /data
+docker run --rm -v tor-data:/data alpine:3.24.4 chown -R 100:101 /data
 
 # Verify fix
-docker run --rm -v tor-data:/data alpine:3.24.3 ls -ldn /data
+docker run --rm -v tor-data:/data alpine:3.24.4 ls -ldn /data
 # Should show: drwx------ X 100 101 ...
 ```
 
@@ -526,7 +526,7 @@ docker exec tor-relay fingerprint
 
 **Security features:**
 - ✅ Non-root execution (tor user, UID 100, GID 101)
-- ✅ Ultra-minimal image (~variant-dependent image size, Alpine 3.24.3)
+- ✅ Ultra-minimal image (~variant-dependent image size, Alpine 3.24.4)
 - ✅ Busybox-only (no bash, python, or unnecessary binaries)
 - ✅ No exposed monitoring ports (diagnostics via `docker exec` only)
 - ✅ Weekly automated security rebuilds (Sundays 18:30 UTC)

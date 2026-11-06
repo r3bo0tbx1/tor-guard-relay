@@ -866,7 +866,7 @@ flowchart LR
         Native["🔨 Native builder / target cross-compile"]
         TorBuild["🧅 Authenticate source / build and test Tor"]
         TorAPK["📦 Signed Tor APK and provenance"]
-        Stable["🐧 Stable Alpine 3.24.3 digest"]
+        Stable["🐧 Stable Alpine 3.24.4 digest"]
         Edge["🧪 Alpine edge"]
         Matrix["🌍 Stable / edge × AMD64 / ARM64"]
     end

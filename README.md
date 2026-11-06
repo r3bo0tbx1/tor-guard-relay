@@ -38,7 +38,7 @@ Current source version: <!-- RELAY_VERSION -->v2.2.1<!-- /RELAY_VERSION -->.
 | 🏗️ Build-once release gates | Validate all four candidates before promoting their exact images | [Release process](scripts/release/README.md) |
 | 🛡️ Independent security updates | Reviewed Lyrebird pins, direct/indirect Go fixes and six-hour read-only scans | [Security policy](SECURITY.md) |
 
-**Stable runtime:** Alpine 3.24.3 pinned by digest. **Builder:** Go 1.27.3. The independent lock includes Pion STUN 3.1.7 and `klauspost/compress` 1.20.3. Both variants build the reviewed [Tor source pin](build/tor/README.md) and enforce its security floor.
+**Stable runtime:** Alpine 3.24.4 pinned by digest. **Builder:** Go 1.27.3. The independent lock includes Pion STUN 3.1.7 and `klauspost/compress` 1.20.3. Both variants build the reviewed [Tor source pin](build/tor/README.md) and enforce its security floor.
 
 Generated torrc is regenerated from ENV on restart. Persist operator changes in deployment ENV or mount a torrc. Verify an encrypted backup and compare fingerprints before a real upgrade; never activate two copies of one relay identity.
 
@@ -186,7 +186,7 @@ Each current tag supports AMD64 and ARM64. Retired container versions can be rem
 
 ### Stable Variant (Recommended)
 
-**Base:** Alpine 3.24.3 | **Recommended for:** Production relays
+**Base:** Alpine 3.24.4 | **Recommended for:** Production relays
 
 - ✅ Battle-tested Alpine stable release
 - ✅ Weekly automated rebuilds with latest security patches
@@ -725,7 +725,7 @@ The shared workflow rebuilds both variants for AMD64 and ARM64 every Sunday at 1
 
 **Stable Variant** (`:latest`)
 - **Schedule:** Both shared schedules above
-- **Includes:** Reviewed Tor source pin + Alpine 3.24.3 library updates
+- **Includes:** Reviewed Tor source pin + Alpine 3.24.4 library updates
 - **Strategy:** Rebuilds the captured `main` source and authenticated Tor package with updated runtime libraries
 - **Tags Updated:** `:latest` and the current release version in both registries
 
