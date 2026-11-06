@@ -370,7 +370,7 @@ def main():
             verify(client, report, prune.Packages(report['registry']) if is_ghcr(report['registry']) else None)
             verify_layers(client, report)
         deployment = None
-        if automatic:
+        if automatic and any(report['manifest_targets'] or report['package_targets'] for report in reports):
             # This durable intent survives a killed runner and expired artifacts.
             # A later run cannot blindly retry a partially applied plan.
             deployment = automatic.start(repository, fingerprint, gate['contract_sha256'])

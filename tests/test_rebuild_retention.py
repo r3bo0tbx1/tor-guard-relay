@@ -339,6 +339,29 @@ class RebuildTests(unittest.TestCase):
 
 
 class EvidenceTests(unittest.TestCase):
+    def test_current_publication_and_audit_survive_a_lagging_history_list(self):
+        source = '1' * 40
+        completed = '2026-10-10T06:00:00Z'
+        repository = 'fixture/tor-guard-relay'
+        publication = {'id': 10, 'status': 'completed', 'conclusion': 'success', 'head_sha': source,
+                       'updated_at': completed, 'path': '.github/workflows/release.yml'}
+        audit = {'id': 11, 'status': 'completed', 'conclusion': 'success', 'head_sha': source,
+                 'created_at': '2026-10-10T06:00:01Z', 'event': 'workflow_run',
+                 'path': '.github/workflows/security.yml'}
+        readiness = {'publication_run': 10, 'audit_run': 11, 'publication_source': source,
+                     'publication_completed': completed}
+        with mock.patch.object(collect.ready, 'api', side_effect=[publication, audit]) as direct, \
+                mock.patch.object(collect, 'api', side_effect=[
+                    [{'workflow_runs': [{'id': 9}]}], [{'workflow_runs': []}]]):
+            self.assertEqual(collect.evidence_runs(repository, readiness), ([publication, {'id': 9}], [audit]))
+        self.assertEqual(direct.call_args_list, [
+            mock.call(f'repos/{repository}/actions/runs/10'), mock.call(f'repos/{repository}/actions/runs/11')])
+        with mock.patch.object(collect.ready, 'api', side_effect=[publication, {**audit, 'path': 'other.yml'}]), \
+                mock.patch.object(collect, 'api') as history:
+            with self.assertRaisesRegex(ValueError, 'changed after the readiness check'):
+                collect.evidence_runs(repository, readiness)
+            history.assert_not_called()
+
     def test_original_archive_is_read_without_extracting_and_requires_all_four_images(self):
         source = '1' * 40
         with tempfile.TemporaryDirectory() as work:

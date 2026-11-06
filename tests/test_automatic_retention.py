@@ -326,6 +326,18 @@ class AutomaticApplyTests(unittest.TestCase):
         self.assertEqual(len(self.hub.deletions), 12)
         self.assertEqual(len(self.ghcr.deletions), 12)
 
+    def test_empty_plan_does_not_create_cleanup_history(self):
+        policy_path = self.directory / 'policy.json'
+        settings = json.loads(policy_path.read_text())
+        settings['keep_builds'] = len(self.hub.catalog['publications'])
+        policy_path.write_text(json.dumps(settings))
+        arguments, automatic = self.prepare()
+        self.invoke(arguments, automatic)
+        automatic.start.assert_not_called()
+        automatic.finish.assert_not_called()
+        self.assertFalse(self.hub.deletions or self.ghcr.deletions)
+        self.assertTrue(json.loads((self.directory / 'result.json').read_text())['completed'])
+
     def test_changed_confirmation_never_records_intent_or_deletes(self):
         arguments, automatic = self.prepare()
         arguments[-1] = '0' * 64

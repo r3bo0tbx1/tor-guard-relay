@@ -257,3 +257,18 @@ class ReadinessTests(unittest.TestCase):
     def test_no_successful_publication_blocks_retirement(self):
         with self.assertRaisesRegex(ValueError, 'successful publication'):
             ready.choose([{**self.release, 'conclusion': 'failure'}], [self.audit])
+
+    def test_successful_manual_preview_does_not_replace_publication(self):
+        preview = {**self.release, 'id': 12, 'event': 'workflow_dispatch', 'head_sha': '2' * 40}
+        publication = {**self.release, 'event': 'schedule'}
+        skipped = {'jobs': [{'name': '📦 Promote verified image archives', 'conclusion': 'skipped'}]}
+        is_preview = lambda run: ready.is_preview('fixture/tor-guard-relay', run, fetch=lambda path: skipped)
+        self.assertEqual(ready.choose([preview, publication], [self.audit], preview=is_preview),
+                         (publication, self.audit))
+
+    def test_manual_run_with_unknown_or_successful_promotion_is_not_skipped(self):
+        manual = {**self.release, 'event': 'workflow_dispatch', 'head_sha': '2' * 40}
+        for jobs in ([], [{'name': '📦 Promote verified image archives', 'conclusion': 'success'}]):
+            with self.subTest(jobs=jobs):
+                self.assertFalse(ready.is_preview('fixture/tor-guard-relay', manual,
+                                                  fetch=lambda path: {'jobs': jobs}))

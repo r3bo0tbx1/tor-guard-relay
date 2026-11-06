@@ -11,13 +11,21 @@ def api(path):
     return json.loads(sp.check_output(['gh', 'api', path], text=True, encoding='utf-8'))
 
 
-def choose(releases, audits):
+def is_preview(repository, run, fetch=api):
+    if run['event'] != 'workflow_dispatch':
+        return False
+    jobs = fetch(f'repos/{repository}/actions/runs/{run["id"]}/jobs?per_page=100')['jobs']
+    promotion = [job for job in jobs if job['name'] == '📦 Promote verified image archives']
+    return len(promotion) == 1 and promotion[0]['conclusion'] == 'skipped'
+
+
+def choose(releases, audits, preview=None):
     if any(run['status'] in ('queued', 'in_progress', 'waiting', 'requested', 'pending') for run in releases):
         raise ValueError('Wait for active release runs before registry retirement')
-    completed = [run for run in releases if run['status'] == 'completed' and run['conclusion'] == 'success']
-    if not completed:
+    release = next((run for run in releases if run['status'] == 'completed' and run['conclusion'] == 'success'
+                    and (preview is None or not preview(run))), None)
+    if release is None:
         raise ValueError('A successful publication is required')
-    release = completed[0]
     matching = [run for run in audits if run['event'] == 'workflow_run'
                 and run['status'] == 'completed' and run['conclusion'] == 'success'
                 and run['head_sha'] == release['head_sha']
@@ -36,7 +44,8 @@ def main():
         raise ValueError('Expected the tor-guard-relay repository')
     prefix = f'repos/{args.repository}/actions/workflows/'
     release, audit = choose(api(prefix + 'release.yml/runs?per_page=30')['workflow_runs'],
-                            api(prefix + 'security.yml/runs?per_page=100')['workflow_runs'])
+                            api(prefix + 'security.yml/runs?per_page=100')['workflow_runs'],
+                            preview=lambda run: is_preview(args.repository, run))
     sp.run(['git', 'merge-base', '--is-ancestor', release['head_sha'], 'origin/main'], check=True)
     result = {'publication_run': release['id'], 'publication_source': release['head_sha'],
               'audit_run': audit['id'], 'publication_completed': release['updated_at']}

@@ -169,6 +169,8 @@ jobs:
       contents: read
       actions: read
       packages: read
+      issues: read
+      deployments: read
     concurrency:
       group: registry-publishing
       cancel-in-progress: false
@@ -179,6 +181,15 @@ jobs:
           ref: ${{ inputs.operation == 'rebuild-apply' && 'main' || github.sha }}
           fetch-depth: 0
           persist-credentials: false
+      - name: ⏳ Show notice and fleet readiness alongside the preview
+        if: inputs.operation != 'rebuild-apply'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
+          REGISTRY_RETIREMENT_NOTICE_URL: ${{ vars.REGISTRY_RETIREMENT_NOTICE_URL }}
+        run: |
+          python3 scripts/release/automatic-retention.py --repository "$REPOSITORY" \
+            --policy build/registry-retention.json --legacy build/retired-image-builds.json --output automatic-gate.json
       - name: 🧰 Install verified registry client
         run: |
           python3 scripts/release/install-regctl.py
@@ -236,6 +247,7 @@ jobs:
         with:
           name: rebuild-retention
           path: |
+            automatic-gate.json
             retention-readiness.json
             retention-builds.json
             rebuild-retention.json
