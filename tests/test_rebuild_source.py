@@ -1,5 +1,6 @@
 """Prove main rebuilds include merged fixes without moving release tags."""
 import importlib.util
+import json
 from pathlib import Path
 import subprocess as sp
 import tempfile
@@ -36,8 +37,20 @@ class RebuildSourceTests(unittest.TestCase):
         return sp.check_output(['git', '-C', str(self.root), *args],
                               text=True, stderr=sp.DEVNULL).strip()
 
-    def select(self, event='workflow_dispatch', ref='main', revision=None, tag='', publish=False):
-        return selection.select(self.root, event, ref, revision or self.main, tag, publish)
+    def select(self, event='workflow_dispatch', ref='main', revision=None, tag='', publish=False, previous=''):
+        return selection.select(self.root, event, ref, revision or self.main, tag, publish, previous)
+
+    def pin_tor(self, version):
+        path = self.root / selection.LOCK
+        path.parent.mkdir(parents=True, exist_ok=True)
+        lock = {'version': version, 'sha256': 'a' * 64,
+                'signing_fingerprint': selection.tor_source.APPROVED_PUBLIC_FINGERPRINTS[0]}
+        path.write_text(json.dumps(lock), encoding='utf-8')
+        self.git('add', selection.LOCK)
+        self.git('commit', '--allow-empty', '-m', 'fixture Tor pin')
+        revision = self.git('rev-parse', 'HEAD')
+        self.git('update-ref', 'refs/remotes/origin/main', revision)
+        return revision
 
     def test_default_manual_build_uses_main_and_preserves_tag(self):
         result = self.select(publish=True)
@@ -78,6 +91,31 @@ class RebuildSourceTests(unittest.TestCase):
         self.assertEqual(result['sha'], self.tagged)
         self.assertEqual(result['publish'], 'true')
         self.assertEqual(result['release'], 'true')
+
+    def test_merged_tor_upgrade_publishes_exact_commit_under_existing_release(self):
+        before = self.pin_tor('0.4.9.15')
+        merged = self.pin_tor('0.4.9.16')
+        self.git('commit', '--allow-empty', '-m', 'main advances after event')
+        self.git('update-ref', 'refs/remotes/origin/main', self.git('rev-parse', 'HEAD'))
+        result = self.select(event='push', revision=merged, previous=before)
+        self.assertEqual((result['sha'], result['source_ref'], result['version']), (merged, 'main', '2.2.0'))
+        self.assertEqual((result['build'], result['publish'], result['release']), ('true', 'true', 'false'))
+
+    def test_equal_version_and_downgrade_do_not_build_or_publish(self):
+        current = self.pin_tor('0.4.9.16')
+        for version in ('0.4.9.16', '0.4.9.15'):
+            with self.subTest(version=version):
+                updated = self.pin_tor(version)
+                result = self.select(event='push', revision=updated, previous=current)
+                self.assertEqual((result['build'], result['publish']), ('false', 'false'))
+
+    def test_automatic_rebuild_requires_previous_main_commit(self):
+        with self.assertRaisesRegex(ValueError, 'previous main commit SHA'):
+            self.select(event='push')
+        before = self.pin_tor('0.4.9.15')
+        after = self.pin_tor('0.4.9.16')
+        with self.assertRaises(sp.CalledProcessError):
+            self.select(event='push', revision=before, previous=after)
 
     def test_feature_branch_cannot_publish_as_main(self):
         with self.assertRaises(ValueError):

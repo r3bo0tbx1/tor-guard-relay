@@ -182,7 +182,7 @@ We offer **two build variants** to match your risk tolerance and requirements:
 
 Each current tag supports AMD64 and ARM64. Retired container versions can be removed while historical GitHub releases and their downloadable assets remain available. Retained v2.2.0 builds can be selected by digest for rollback. Validated package rebuilds can refresh version tags; use a digest to select an exact build. Publishing intermediates are addressed by digest and do not need public tags. The branded [Docker Hub overview](docs/DOCKERHUB.md) is maintained separately from this full guide.
 
-🔄 To rebuild both variants with merged fixes, run **🚀✨** on branch **main**, leave `source_tag` empty and enable **Publish validated candidates**. All four candidates must pass before publishing. An explicit `source_tag` rebuilds that release's original code. See the [rebuild commands and source policy](scripts/release/README.md#-candidate-pipeline).
+🔄 Merging a newer Tor source pin into **main** starts **🚀✨** automatically. For other merged fixes or a retry, run it on **main**, leave `source_tag` empty and enable **Publish validated candidates**. All four candidates must pass before publishing. An explicit `source_tag` rebuilds that release's original code. See the [rebuild commands and source policy](scripts/release/README.md#-candidate-pipeline).
 
 ### Stable Variant (Recommended)
 
@@ -735,7 +735,7 @@ The shared workflow rebuilds both variants for AMD64 and ARM64 every Sunday at 1
 - **Strategy:** Rebuilds the same captured `main` source against Alpine edge
 - **Tags Updated:** Docker Hub `:edge`; GHCR `:edge` and the current release's `-edge` tag
 
-For a manual rebuild, select `main`, leave `source_tag` empty and enable `publish`. An explicit `source_tag` instead rebuilds that exact release. A source merge alone does not replace published images or running relays. See the [release procedure](scripts/release/README.md) for validation and publication details.
+A newer reviewed Tor pin merged into `main` queues a validated rebuild. Pull the published image and recreate the relay to use the new binary. For a manual rebuild, select `main`, leave `source_tag` empty and enable `publish`. An explicit `source_tag` rebuilds that exact release. See the [release procedure](scripts/release/README.md) for validation and publication details.
 
 The six-hour **🔒🧅** upstream watch detects stable Tor releases and retains authenticated proposed pins for review. After a compatible Tor update is merged and validated, rebuild the current project version without moving its Git tag. Scheduled rebuilds never adopt an unreviewed floating Tor version. See [Tor source maintenance](build/tor/README.md).
 
