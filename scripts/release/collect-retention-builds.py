@@ -20,6 +20,29 @@ def api(path):
                                      text=True, encoding='utf-8'))
 
 
+def evidence_runs(repository, readiness):
+    prefix = f'repos/{repository}/actions/'
+    publication_id = readiness['publication_run']
+    audit_id = readiness['audit_run']
+    if any(type(run_id) is not int or run_id <= 0 for run_id in (publication_id, audit_id)):
+        raise ValueError('Expected numeric publication and audit run IDs')
+    publication, audit = ready.choose([ready.api(f'{prefix}runs/{publication_id}')],
+                                      [ready.api(f'{prefix}runs/{audit_id}')])
+    if (publication['id'] != publication_id or audit['id'] != audit_id
+            or publication.get('path') != '.github/workflows/release.yml'
+            or audit.get('path') != '.github/workflows/security.yml'
+            or publication['head_sha'] != readiness['publication_source']
+            or publication['updated_at'] != readiness['publication_completed']):
+        raise ValueError('Publication or audit changed after the readiness check')
+    # Search results can lag the run and artifact endpoints. Always include the
+    # directly verified publication and audit, even when listing history omits them.
+    releases = [publication, *(run for page in api(prefix + 'workflows/release.yml/runs?per_page=100')
+                               for run in page['workflow_runs'] if run['id'] != publication_id)]
+    audits = [audit, *(run for page in api(prefix + 'workflows/security.yml/runs?event=workflow_run&status=success&per_page=100')
+                       for run in page['workflow_runs'] if run['id'] != audit_id)]
+    return releases, audits
+
+
 def original_ids(archive, version, source):
     expected = {f'candidate-{variant}-{arch}/image.json': (variant, arch)
                 for variant in ('stable', 'edge') for arch in ('amd64', 'arm64')}
@@ -61,13 +84,12 @@ def main():
     latest = json.loads(args.readiness.read_text(encoding='utf-8'))
     publications, skipped = [], []
     cutoff = datetime.now(timezone.utc) - timedelta(days=90)
-    pages = api(f'repos/{args.repository}/actions/workflows/release.yml/runs?status=completed&per_page=100')
-    audits = [run for page in api(f'repos/{args.repository}/actions/workflows/security.yml/runs?event=workflow_run&status=success&per_page=100')
-              for run in page['workflow_runs']]
+    releases, audits = evidence_runs(args.repository, latest)
     with tempfile.TemporaryDirectory(prefix='relay-retention-evidence-') as work:
         work = Path(work)
-        for run in (run for page in pages for run in page['workflow_runs']):
-            if run['conclusion'] != 'success' or datetime.fromisoformat(run['updated_at'].replace('Z', '+00:00')) < cutoff:
+        for run in releases:
+            if (run['status'] != 'completed' or run['conclusion'] != 'success'
+                    or datetime.fromisoformat(run['updated_at'].replace('Z', '+00:00')) < cutoff):
                 continue
             try:
                 ready.choose([run], audits)
