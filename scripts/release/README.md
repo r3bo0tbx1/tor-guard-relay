@@ -58,13 +58,15 @@ Use the notes generator for a local review draft; the hosted release publishes `
 
 ## 🏗️ Candidate pipeline
 
-1. Resolve the triggering release tag, or the selected immutable main commit for manual and scheduled rebuilds. An explicit manual `source_tag` selects the original release source. Require source and release-version ancestry on main. Resolve the current reviewed main security-policy SHA separately.
+1. Resolve the triggering release tag or the immutable main commit for a merged Tor upgrade, manual rebuild or scheduled rebuild. An explicit manual `source_tag` selects the original release source. Require source and release-version ancestry on main. Resolve the current reviewed main security-policy SHA separately.
 2. Build stable and edge candidates for AMD64 and ARM64, without publishing.
 3. Run offline behavior tests and component security floors against each loaded image.
 4. Analyze Go source reachability with the selected source/lock/toolchain, proving that the transport matches the candidate byte for byte. Generate SBOMs and run blocking vulnerability/secret scans. Use current main security policy and component floors even when rebuilding an older tag.
 5. Save each validated image, checksum, inspect metadata and scan evidence.
 6. Verify those same archives and their config identities, import them into a temporary OCI layout, publish architecture manifests by digest, and assemble version/alias manifests from those digests. No public architecture staging tags are created.
-7. Publish curated release notes and attach security evidence only after promotion succeeds.
+7. For a release tag push, publish curated release notes and attach security evidence after promotion succeeds.
+
+When a merge advances the Tor version in `build/tor/source.json` on `main`, **🚀✨** runs automatically with publication enabled. The release job verifies that the reviewed Tor lock still matches current main before it promotes images. The resulting publication triggers the full **🔒🧅** image audit.
 
 Manual rebuilds with an empty `source_tag` use the main commit captured when the workflow is dispatched. Select branch `main` and enable `publish` to publish both stable and edge for AMD64 and ARM64 after all gates pass. The latest released version supplies the image tag namespace; main's managed version marker must still match it. A version bump requires a new release tag. Rebuilds record their actual source SHA in image labels and never move Git tags or create/edit a GitHub release.
 

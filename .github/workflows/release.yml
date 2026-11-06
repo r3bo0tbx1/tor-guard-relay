@@ -1,7 +1,9 @@
 name: 🚀✨
 on:
   push:
+    branches: [main]
     tags: ['v*.*.*']
+    paths: ['build/tor/source.json']
   workflow_dispatch:
     inputs:
       source_tag:
@@ -18,13 +20,14 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: release-${{ github.ref }}
+  group: release-${{ github.ref }}${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && '-tor' || '' }}
   cancel-in-progress: false
 jobs:
   source:
     name: 🧭 Select reviewed build source
     runs-on: ubuntu-latest
     outputs:
+      build: ${{ steps.source.outputs.build }}
       sha: ${{ steps.source.outputs.sha }}
       policy_sha: ${{ steps.source.outputs.policy_sha }}
       version: ${{ steps.source.outputs.version }}
@@ -44,11 +47,13 @@ jobs:
           REF_NAME: ${{ github.ref_name }}
           INPUT_TAG: ${{ inputs.source_tag }}
           INPUT_PUBLISH: ${{ inputs.publish }}
-          DISPATCH_SHA: ${{ github.sha }}
+          SOURCE_SHA: ${{ github.sha }}
+          PREVIOUS_SHA: ${{ github.event.before }}
         run: |
           set -euo pipefail
           python3 scripts/release/select-source.py --event "$EVENT" --ref-name "$REF_NAME" \
-            --revision "$DISPATCH_SHA" --source-tag "$INPUT_TAG" --publish "$INPUT_PUBLISH" \
+            --revision "$SOURCE_SHA" --previous-revision "$PREVIOUS_SHA" \
+            --source-tag "$INPUT_TAG" --publish "$INPUT_PUBLISH" \
             --output "$GITHUB_OUTPUT"
 
       - name: 📋 Record workflow outcome
@@ -70,6 +75,7 @@ jobs:
   source-validation:
     name: 🔍 Validate immutable release source
     needs: source
+    if: needs.source.outputs.build == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: 📥 Check out source
@@ -288,10 +294,19 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: 🚀 Promote validated images without rebuilding
         env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
           VERSION: ${{ needs.source.outputs.version }}
           SOURCE: ${{ needs.source.outputs.sha }}
           OWNER: ${{ github.repository_owner }}
         run: |
+          set -euo pipefail
+          validated_pin=$(git rev-parse HEAD:build/tor/source.json)
+          current_pin=$(gh api "repos/$REPOSITORY/contents/build/tor/source.json?ref=main" --jq '.sha')
+          if [ "$validated_pin" != "$current_pin" ]; then
+            echo '::error::The Tor source pin changed while these candidates were building. Rebuild from current main.'
+            exit 1
+          fi
           python3 scripts/release/promote-images.py --candidates candidates \
             --version "$VERSION" --source "$SOURCE" --owner "$OWNER"
       - name: 📎 Retain build evidence

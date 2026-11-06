@@ -13,6 +13,7 @@ Current source: <!-- RELAY_VERSION -->v2.2.1<!-- /RELAY_VERSION -->. Historical 
 - Maintain one draft Tor source PR with a repository-scoped GitHub App. Reuse the authenticated proposal and installed-version evidence, protect concurrent branch edits, and preserve declined versions. Update only the source lock and link the upstream changelog for maintainer review.
 - Complete the bot PR checklist and mark the draft ready when the repository owner reacts 👍 on the current revision's review comment and its required checks pass. The maintainer handles the merge.
 - Show the detected Tor version and required floor directly in failed published-image job logs, alongside the retained JSON assessment.
+- Automatically rebuild and publish the existing image tags after a reviewed Tor version increase lands on main and all release gates pass.
 
 ### 🗑️ Registry retention
 
