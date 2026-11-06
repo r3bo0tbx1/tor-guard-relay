@@ -151,6 +151,8 @@ github.com/gopherjs/gopherjs v1.21.0 h1:5HEGrz+XhpCchubMGzuyLuGoCTlL/yCT7sGsT5Se
 github.com/gopherjs/gopherjs v1.21.0/go.mod h1:R2HIOen3IzYSzvmvkeD8WOfiLN9wueR/T5Y+6z326Ck=
 github.com/jtolds/gls v4.20.0+incompatible h1:xdiiI2gbIgH/gLH7ADydsJ1uDOEzR8yvV7C0MuV77Wo=
 github.com/jtolds/gls v4.20.0+incompatible/go.mod h1:QJZ7F/aHp+rZTRtaJ1ow/lLfFfVYBRgL+9YlvaHOwJU=
+github.com/juju/ratelimit v1.0.2 h1:sRxmtRiajbvrcLQT7S+JbqU0ntsb9W2yhSdNN8tWfaI=
+github.com/juju/ratelimit v1.0.2/go.mod h1:qapgC/Gy+xNh9UxzV13HGGl/6UXNN+ct+vwSgWNm/qk=
 github.com/klauspost/compress v1.20.1 h1:T7kKElXUMXrUJ2E9QhQhxFtcK5rPyLdsGZvdbLMPdiQ=
 github.com/klauspost/compress v1.20.1/go.mod h1:LUdAzn7YLVvxLpc7y3V1m40wESHTgc1422pwwBSKYuI=
 github.com/klauspost/compress v1.20.3/go.mod h1:LUdAzn7YLVvxLpc7y3V1m40wESHTgc1422pwwBSKYuI=
@@ -243,6 +245,7 @@ github.com/xtaci/kcp-go/v5 v5.6.73/go.mod h1:FRqA8EUPgnBlP4UcXlcCWZ9if7XaqmZMfXO
 github.com/xtaci/kcp-go/v5 v5.7.1/go.mod h1:tXYlQXw19yWQBPaJAiFokXoxbjzfuzyXWfvS0JtJKBs=
 github.com/xtaci/kcp-go/v5 v5.7.2/go.mod h1:tXYlQXw19yWQBPaJAiFokXoxbjzfuzyXWfvS0JtJKBs=
 github.com/xtaci/kcp-go/v5 v5.7.3/go.mod h1:ylcb7JPexm1k7jyirTQoqur6rYZYOxdVU6kET92zm9M=
+github.com/xtaci/kcp-go/v5 v5.7.4 h1:P+tLEWIIm1tkDc+7pEl3ybUVHwxuRKxTrlAQzquRIe4=
 github.com/xtaci/kcp-go/v5 v5.7.4/go.mod h1:sAA/oSJSLnDzO7LkfdZaVY65KnIbBJOjr9Z5hvBGaY4=
 github.com/xtaci/lossyconn v0.0.0-20190602105132-8df528c0c9ae h1:J0GxkO96kL4WF+AIT3M4mfUVinOCPgf2uUWYFUzN0sM=
 github.com/xtaci/lossyconn v0.0.0-20190602105132-8df528c0c9ae/go.mod h1:gXtu8J62kEgmN++bm9BVICuT/e8yiLI2KFobd/TRFsE=
