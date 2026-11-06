@@ -190,7 +190,7 @@ jobs:
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: relay-candidate:${{ matrix.variant }}-${{ matrix.arch }}
-          version: v0.76.1
+          version: v0.76.2
           format: json
           output: trivy.json
           scanners: vuln,secret
@@ -370,7 +370,7 @@ jobs:
         run: |
           tar -czf release-evidence.tar.gz --exclude=image.tar --exclude=image.tar.sha256 -C evidence .
       - name: 🚀 Attach release notes and evidence
-        uses: softprops/action-gh-release@v3.0.3
+        uses: softprops/action-gh-release@v3.0.4
         with:
           body_path: release-notes.md
           tag_name: v${{ needs.source.outputs.version }}
