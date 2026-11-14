@@ -79,7 +79,8 @@ class PublishTests(unittest.TestCase):
     def api(self, path, method='GET', body=None):
         if method != 'GET':
             self.writes.append((method, path, body))
-            return {'html_url': 'https://fixture.invalid/pull/1'}
+            return {'html_url': 'https://fixture.invalid/pull/1', 'number': 1,
+                    'assignees': [{'login': 'fixture'}]}
         if '/matching-refs/' in path:
             return [{'ref': f'refs/heads/{proposer.BRANCH}', 'object': {'sha': self.head}}] if self.head else []
         if 'state=open' in path:
@@ -107,6 +108,7 @@ class PublishTests(unittest.TestCase):
                       'body': proposer.PR_MARKER + f'\n<!-- tor-source-head:{HEAD} -->'
                               + '\n<!-- tor-source-update:version=0.4.9.16 -->',
                       'title': '⬆️ build(deps): update authenticated Tor source to 0.4.9.16',
+                      'assignees': [{'login': 'fixture'}],
                       'number': 1, 'html_url': 'https://fixture.invalid/pull/1'}]
 
     def run_publish(self):
@@ -124,11 +126,20 @@ class PublishTests(unittest.TestCase):
         self.assertIn(f'--force-with-lease=refs/heads/{proposer.BRANCH}:', self.push_calls()[0])
         self.assertEqual(json.loads(self.lock.read_text()), NEW)
 
+    def test_assigns_unassigned_draft_to_owner(self):
+        self.existing()
+        self.open[0]['assignees'] = []
+        self.run_publish()
+        self.assertEqual(self.writes, [('POST', f'repos/{REPO}/issues/1/assignees', {'assignees': ['fixture']})])
+        self.review.assert_called_once()
+
     def test_same_proposal_is_a_noop_and_newer_proposal_updates_in_place(self):
         self.existing()
         self.run_publish()
         self.assertFalse(self.push_calls() or self.writes)
-        self.review.assert_called_once_with(f'repos/{REPO}', REPO, self.open[0], HEAD, BOT)
+        self.review.assert_called_once_with(f'repos/{REPO}', REPO, self.open[0], HEAD, BOT,
+                                            self.open[0]['title'],
+                                            'Update the reviewed Tor source from 0.4.9.15 to 0.4.9.16.')
         self.pending = {**LOCK, 'version': '0.4.9.15'}
         self.run_publish()
         self.assertIn(f'--force-with-lease=refs/heads/{proposer.BRANCH}:{HEAD}', self.push_calls()[0])
@@ -185,12 +196,15 @@ class ReviewTests(unittest.TestCase):
         self.prefix = f'repos/{REPO}'
         self.path = f'{self.prefix}/pulls/1'
         self.comment_path = f'{self.prefix}/issues/1/comments'
+        self.title = '⬆️ build(deps): update authenticated Tor source to 0.4.9.16'
+        self.message = 'Update the reviewed Tor source from 0.4.9.15 to 0.4.9.16.'
+        self.bot_account = {'login': BOT, 'type': 'Bot', 'id': 456}
         self.owner = {'content': '+1', 'user': {'id': 123}}
         self.pull = {'number': 1, 'state': 'open', 'draft': True, 'head': {'sha': HEAD},
                      'user': {'login': BOT}, 'base': {'ref': 'main'},
                      'body': f'{proposer.PR_MARKER}\n<!-- tor-source-head:{HEAD} -->\n'
                              + ''.join(f'- [ ] {item}\n' for item in proposer.REVIEW_ITEMS)}
-        self.comment = {'id': 7, 'user': {'login': BOT}, 'body': f'<!-- tor-source-review:{HEAD} -->'}
+        self.comment = {'id': 7, 'user': {'login': BOT}, 'body': f'<!-- tor-source-merge-approval:{HEAD} -->'}
         env = patch.dict(proposer.os.environ, {'GH_REVIEW_READ_TOKEN': 'fixture', 'GITHUB_REPOSITORY_OWNER_ID': '123'})
         env.start()
         self.addCleanup(env.stop)
@@ -198,13 +212,14 @@ class ReviewTests(unittest.TestCase):
     def run_review(self, responses, checks='[{"bucket":"pass"}]', exit_code=0):
         with patch.object(proposer, 'api', side_effect=responses) as api, \
                 patch.object(proposer, 'github', return_value=Mock(stdout=checks, returncode=exit_code)) as github:
-            proposer.process_review(self.prefix, REPO, self.pull, HEAD, BOT)
+            proposer.process_review(self.prefix, REPO, self.pull, HEAD, BOT, self.title, self.message)
         return api, github
 
     def test_posts_a_new_comment_only_for_the_current_bot_revision(self):
-        stale = {**self.comment, 'body': f'<!-- tor-source-review:{BASE} -->'}
+        stale = {**self.comment, 'body': f'<!-- tor-source-merge-approval:{BASE} -->'}
         imitation = {**self.comment, 'user': {'login': 'someone'}}
-        api, github = self.run_review([[stale, imitation], {}])
+        previous_policy = {**self.comment, 'body': f'<!-- tor-source-review:{HEAD} -->'}
+        api, github = self.run_review([[stale, imitation, previous_policy], {}])
         self.assertEqual(api.call_args.args[:2], (self.comment_path, 'POST'))
         self.assertIn(self.comment['body'], api.call_args.args[2]['body'])
         github.assert_not_called()
@@ -219,11 +234,22 @@ class ReviewTests(unittest.TestCase):
                 self.assertEqual(api.call_count, 2)
                 github.assert_called_once()
 
-    def test_checks_both_boxes_and_marks_ready_only_for_the_verified_head(self):
-        api, github = self.run_review([[self.comment], [self.owner], self.pull, {}])
-        self.assertEqual(api.call_args.args[:2], (self.path, 'PATCH'))
-        self.assertEqual(api.call_args.args[2]['body'].count('- [x] '), 2)
+    def test_checks_boxes_marks_ready_and_squash_merges_the_verified_head(self):
+        api, github = self.run_review([[self.comment], [self.owner], self.pull, self.bot_account, {}, {'merged': True}])
+        patch_call, merge_call = api.call_args_list[-2:]
+        self.assertEqual(patch_call.args[:2], (self.path, 'PATCH'))
+        self.assertEqual(patch_call.args[2]['body'].count('- [x] '), 2)
         self.assertEqual(github.call_args.args[0], ['pr', 'ready', '1', '--repo', REPO])
+        self.assertEqual(merge_call.args, (f'{self.path}/merge', 'PUT', {
+            'sha': HEAD, 'merge_method': 'squash', 'commit_title': self.title,
+            'commit_message': f'{self.message}\n\nCo-authored-by: {BOT} <456+{BOT}@users.noreply.github.com>'}))
+
+    def test_retries_a_merge_after_the_pr_was_marked_ready(self):
+        ready = {**self.pull, 'draft': False, 'body': self.pull['body'].replace('[ ]', '[x]')}
+        self.pull = ready
+        api, github = self.run_review([[self.comment], [self.owner], ready, self.bot_account, {'merged': True}])
+        self.assertEqual(api.call_args.args[:2], (f'{self.path}/merge', 'PUT'))
+        self.assertEqual(github.call_count, 1)
 
     def test_head_change_blocks_writes(self):
         changed = {**self.pull, 'head': {'sha': BASE}}

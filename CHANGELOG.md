@@ -11,7 +11,7 @@ Current source: <!-- RELAY_VERSION -->v2.2.1<!-- /RELAY_VERSION -->. Historical 
 - Preserve consensus-controlled DoS settings and existing relay identity/configuration. Tor 0.4.9.16 introduces no new mandatory torrc lines. Require maintainer review for authenticated proposals and keep verification failures blocking.
 - Add an exact-version manual security-watch input. Authenticate the selected release, including equal versions, and reject downgrades below the reviewed pin or any Tor binary observed in the eight same-run published-image assessments. Bind reports to registry digests/architectures, reject incomplete evidence, retain review proposals and keep deployment/publication separate.
 - Maintain one draft Tor source PR with a repository-scoped GitHub App. Reuse the authenticated proposal and installed-version evidence, protect concurrent branch edits, and preserve declined versions. Update only the source lock and link the upstream changelog for maintainer review.
-- Complete the bot PR checklist and mark the draft ready when the repository owner reacts 👍 on the current revision's review comment and its required checks pass. The maintainer handles the merge.
+- Assign Tor update drafts to the repository owner. When the owner reacts 👍 on the current revision's review comment and its required checks pass, complete the checklist, mark the draft ready and squash merge it with the project’s commit style.
 - Show the detected Tor version and required floor directly in failed published-image job logs, alongside the retained JSON assessment.
 - Automatically rebuild and publish the existing image tags after a reviewed Tor version increase lands on main and all release gates pass.
 
