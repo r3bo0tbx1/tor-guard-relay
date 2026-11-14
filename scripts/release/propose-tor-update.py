@@ -114,9 +114,14 @@ def declined_version(prefix, owner, bot, read=api):
     return marker[1] if PR_MARKER in body and marker else None
 
 
-def process_review(prefix, repository, pull, head, bot):
-    if not pull['draft']:
-        return
+def bot_email(bot):
+    account = api('users/' + bot)
+    if account['login'] != bot or account['type'] != 'Bot' or type(account['id']) is not int:
+        raise ValueError('Could not confirm the GitHub App bot identity')
+    return f'{account["id"]}+{bot}@users.noreply.github.com'
+
+
+def process_review(prefix, repository, pull, head, bot, title, merge_message):
     if pull['head']['sha'] != head:
         raise ValueError('The Tor update PR head changed before processing review')
     number = str(pull['number'])
@@ -124,7 +129,8 @@ def process_review(prefix, repository, pull, head, bot):
     if not read_token:
         raise ValueError('Missing the read-only GitHub token for Tor update review')
     comments_path = f'{prefix}/issues/{number}/comments'
-    marker = f'<!-- tor-source-review:{head} -->'
+    # Earlier review comments explicitly left the squash merge to the owner.
+    marker = f'<!-- tor-source-merge-approval:{head} -->'
     comments = api(f'{comments_path}?per_page=100', paginate=True, token=read_token)
     review_comments = [row for row in comments if (row.get('user') or {}).get('login') == bot
                        and marker in (row.get('body') or '').splitlines()]
@@ -134,9 +140,10 @@ def process_review(prefix, repository, pull, head, bot):
         api(comments_path, 'POST', {'body': (
             f'{marker}\n\n'
             f'### 🧅 Review Tor update `{head[:12]}`\n\n'
-            'After reviewing the upstream changes and any operator guidance, react 👍 on this comment. '
+            'After reviewing the upstream changes and any operator guidance, react 👍 on this comment '
+            'to authorize the squash merge. '
             'On the next scheduled or manual 🔒🧅 run, I’ll check that this revision passed the required '
-            'checks, tick both boxes and mark the draft ready for review. The squash merge is yours.'
+            'checks, tick both boxes, mark the draft ready and squash merge it.'
         )})
         return
     comment_id = review_comments[0]['id']
@@ -155,7 +162,7 @@ def process_review(prefix, repository, pull, head, bot):
         return
     pull_path = f'{prefix}/pulls/{number}'
     current = api(pull_path)
-    if (current['state'] != 'open' or not current['draft'] or current['head']['sha'] != head
+    if (current['state'] != 'open' or current['head']['sha'] != head
             or current['user']['login'] != bot or current['base']['ref'] != 'main'
             or f'<!-- tor-source-head:{head} -->' not in (current.get('body') or '').splitlines()
             or PR_MARKER not in (current.get('body') or '').splitlines()):
@@ -165,10 +172,17 @@ def process_review(prefix, repository, pull, head, bot):
         body, count = re.subn(r'(?m)^- \[[ xX]\] ' + re.escape(item) + '$', f'- [x] {item}', body)
         if count != 1:
             raise ValueError('Expected the two Tor update review checklist items')
+    attribution = f'Co-authored-by: {bot} <{bot_email(bot)}>'
     if body != current['body']:
         api(pull_path, 'PATCH', {'body': body})
-    github(['pr', 'ready', number, '--repo', repository])
-    print('Tor update checklist complete. The draft is ready for review.')
+    if current['draft']:
+        github(['pr', 'ready', number, '--repo', repository])
+    result = api(f'{pull_path}/merge', 'PUT', {'sha': head, 'merge_method': 'squash',
+                                             'commit_title': title,
+                                             'commit_message': f'{merge_message}\n\n{attribution}'})
+    if result.get('merged') is not True:
+        raise RuntimeError(f'GitHub did not merge Tor update PR #{number}')
+    print(f'Tor update checklist complete. Squash merged PR #{number}.')
 
 
 def publish(plan, repository, app_slug):
@@ -206,18 +220,15 @@ def publish(plan, repository, app_slug):
             f'- Approved signing fingerprint: `{proposed["signing_fingerprint"]}`\n'
             f'- [Upstream changelog](https://gitlab.torproject.org/tpo/core/tor/-/blob/tor-{version}/ChangeLog)\n'
             f'- [Verification run](https://github.com/{repository}/actions/runs/{os.environ["GITHUB_RUN_ID"]})\n\n'
-            'React 👍 on the bot’s review comment for this revision when your upstream review is complete.\n\n'
+            'React 👍 on the bot’s merge approval comment for this revision after your upstream review.\n\n'
             + ''.join(f'- [ ] {item}\n' for item in REVIEW_ITEMS))
     changed = parent != base or pending != proposed
     if changed:
         if git('status', '--porcelain'):
             raise ValueError('Expected a clean checkout before preparing the bot commit')
-        account = api('users/' + bot)
-        if account['login'] != bot or account['type'] != 'Bot' or type(account['id']) is not int:
-            raise ValueError('Could not confirm the GitHub App bot identity')
+        email = bot_email(bot)
         env = {**os.environ, 'GIT_AUTHOR_NAME': bot, 'GIT_COMMITTER_NAME': bot,
-               'GIT_AUTHOR_EMAIL': f'{account["id"]}+{bot}@users.noreply.github.com',
-               'GIT_COMMITTER_EMAIL': f'{account["id"]}+{bot}@users.noreply.github.com', 'GIT_TERMINAL_PROMPT': '0'}
+               'GIT_AUTHOR_EMAIL': email, 'GIT_COMMITTER_EMAIL': email, 'GIT_TERMINAL_PROMPT': '0'}
         (ROOT / LOCK).write_text(json.dumps(proposed, indent=2) + '\n', encoding='utf-8', newline='\n')
         git('add', '--', LOCK)
         git('-c', 'commit.gpgsign=false', 'commit', '-m', title, '-m', MARKER, env=env)
@@ -237,7 +248,13 @@ def publish(plan, repository, app_slug):
     elif (changed or pull['title'] != title
           or not {head_marker, version_marker}.issubset((pull.get('body') or '').splitlines())):
         pull = api(f'{prefix}/pulls/{pull["number"]}', 'PATCH', {'title': title, 'body': body})
-    process_review(prefix, repository, pull, head, bot)
+    owner = repository.split('/')[0]
+    if not any(row['login'].lower() == owner.lower() for row in pull['assignees']):
+        assigned = api(f'{prefix}/issues/{pull["number"]}/assignees', 'POST', {'assignees': [owner]})
+        if not any(row['login'].lower() == owner.lower() for row in assigned['assignees']):
+            raise RuntimeError('GitHub did not assign the Tor update PR to the repository owner')
+    merge_message = f'Update the reviewed Tor source from {current["version"]} to {version}.'
+    process_review(prefix, repository, pull, head, bot, title, merge_message)
     print(f'Tor source proposal: {pull["html_url"]}')
 
 

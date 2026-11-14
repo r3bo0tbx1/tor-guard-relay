@@ -146,7 +146,7 @@ jobs:
           private-key: ${{ secrets.TOR_UPDATE_APP_PRIVATE_KEY }}
           permission-contents: write
           permission-pull-requests: write
-      - name: 📝 Open or refresh the single draft proposal
+      - name: 📝 Maintain and merge the owner-approved Tor update
         if: steps.prepare.outputs.ready == 'true'
         env:
           GH_TOKEN: ${{ steps.app.outputs.token }}
