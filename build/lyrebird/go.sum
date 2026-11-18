@@ -207,6 +207,7 @@ github.com/pion/dtls/v3 v3.1.10/go.mod h1:iKFQNYrjsN2TiA2YKKMqB9MOZaFpjFULBI/A4s
 github.com/pion/dtls/v3 v3.1.12/go.mod h1:iKFQNYrjsN2TiA2YKKMqB9MOZaFpjFULBI/A4sW0eyc=
 github.com/pion/dtls/v3 v3.1.14/go.mod h1:iKFQNYrjsN2TiA2YKKMqB9MOZaFpjFULBI/A4sW0eyc=
 github.com/pion/dtls/v3 v3.1.15/go.mod h1:iKFQNYrjsN2TiA2YKKMqB9MOZaFpjFULBI/A4sW0eyc=
+github.com/pion/dtls/v3 v3.1.16/go.mod h1:iKFQNYrjsN2TiA2YKKMqB9MOZaFpjFULBI/A4sW0eyc=
 github.com/pion/ice/v4 v4.4.2 h1:asS17nbHJrzlVQl8fiSJaipxrxSY3Dq6DWgmB+0VwpI=
 github.com/pion/ice/v4 v4.4.2/go.mod h1:YZgNFOyJWXpLpLj0mb4ccqNAWRo9C2RtqKwuVTEz0Sc=
 github.com/pion/interceptor v0.1.49 h1:iyBsNHRoLNNXZiJA/DdGvJgdyfS8YWDCzxIAlVjt5nY=
@@ -340,6 +341,7 @@ golang.org/x/net v0.10.0/go.mod h1:0qNGK6F8kojg2nk9dLZ2mShWaEBan6FAoqfSigmmuDg=
 golang.org/x/net v0.61.0 h1:RR+6j/BTBCrggOLugxa+66R8FvoN6MHlzDlZIbN9YFw=
 golang.org/x/net v0.61.0/go.mod h1:WgDCOTH8iwtB66T4/GfI94AHo/hhdb7Hah9NDseQfiI=
 golang.org/x/net v0.62.0/go.mod h1:WgDCOTH8iwtB66T4/GfI94AHo/hhdb7Hah9NDseQfiI=
+golang.org/x/net v0.63.0/go.mod h1:15JLg3IX1bLjHK264EZQEbIpTiR/KVLuo9CTRWd0pig=
 golang.org/x/oauth2 v0.0.0-20180821212333-d2e6202438be/go.mod h1:N/0e6XlmueqKjAGxoOufVs8QHGRruUQn6yWY3a++T0U=
 golang.org/x/sync v0.0.0-20180314180146-1d60e4601c6f/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
 golang.org/x/sync v0.0.0-20181108010431-42b317875d0f/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
