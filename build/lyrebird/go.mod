@@ -30,12 +30,14 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.44.5 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.53.0 // indirect
 	github.com/aws/smithy-go v1.28.9 // indirect
+	github.com/emmansun/gmsm v0.45.3 // indirect
 	github.com/golang/mock v1.6.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/juju/ratelimit v1.0.2 // indirect
 	github.com/klauspost/compress v1.20.5 // indirect
 	github.com/klauspost/cpuid/v2 v2.4.2 // indirect
 	github.com/klauspost/reedsolomon v1.14.2 // indirect
+	github.com/kr/pretty v0.3.1 // indirect
 	github.com/miekg/dns v1.1.73 // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/pion/datachannel v1.6.4 // indirect
@@ -57,9 +59,9 @@ require (
 	github.com/pion/turn/v5 v5.1.0 // indirect
 	github.com/pion/webrtc/v4 v4.2.20 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
+	github.com/puzpuzpuz/xsync/v4 v4.5.0 // indirect
 	github.com/realclientip/realclientip-go v1.0.0 // indirect
 	github.com/theodorsm/covert-dtls v1.5.1 // indirect
-	github.com/tjfoc/gmsm v1.4.1 // indirect
 	github.com/txthinking/runnergroup v0.0.0-20250224021307-5864ffeb65ae // indirect
 	github.com/wlynxg/anet v0.0.5 // indirect
 	github.com/xtaci/kcp-go/v5 v5.7.8 // indirect
