@@ -65,9 +65,9 @@ Generated torrc is regenerated from ENV on restart. Persist operator changes in 
 
 **Battle-tested in production.** See it live: **[relays.brokenbotnet.com](https://relays.brokenbotnet.com/)**
 
-🌉 **Bridges** (Obfs4) • 🛡️ **Middle/Guard** • 🚪 **Exit** across **15 countries**
+🌉 **Bridges** (Obfs4) • 🛡️ **Middle/Guard** • 🚪 **Exit** across **16 countries**
 
-> 🇯🇵 • 🇰🇷 • 🇸🇬 • 🇲🇾 • 🇮🇩 • 🇻🇳 • 🇭🇰 • 🇦🇺 • 🇷🇺 • 🇹🇷 • 🇿🇦 • 🇨🇦 • 🇺🇸 • 🇲🇽 • 🇧🇷
+> 🇯🇵 • 🇰🇷 • 🇸🇬 • 🇲🇾 • 🇮🇩 • 🇻🇳 • 🇭🇰 • 🇦🇺 • 🇷🇺 • 🇹🇷 • 🇿🇦 • 🇨🇦 • 🇺🇸 • 🇲🇽 • 🇧🇷 • 🇨🇱
 
 ---
 
