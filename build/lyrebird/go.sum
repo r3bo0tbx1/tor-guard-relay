@@ -145,6 +145,7 @@ github.com/wlynxg/anet v0.0.5 h1:J3VJGi1gvo0JwZ/P1/Yc/8p63SoW98B5dHkYDmpgvvU=
 github.com/wlynxg/anet v0.0.5/go.mod h1:eay5PRQr7fIVAMbTbchTnO9gG65Hg/uYGdc7mguHxoA=
 github.com/xtaci/kcp-go/v5 v5.7.8 h1:RJy5nl1pu4ia/CilGBkGQx/4f0HM9QXogUuuk3KgPqU=
 github.com/xtaci/kcp-go/v5 v5.7.8/go.mod h1:BBaPbqNx7Ncx16+OIj5tIYLf1GW6U2B4uSIOEcO3Cfc=
+github.com/xtaci/kcp-go/v5 v5.7.9/go.mod h1:BBaPbqNx7Ncx16+OIj5tIYLf1GW6U2B4uSIOEcO3Cfc=
 github.com/xtaci/lossyconn v1.1.1 h1:VpQcz358ck3I51bmgmT6d8RO55yDJm4tj60YycbB0ew=
 github.com/xtaci/lossyconn v1.1.1/go.mod h1:HpMP7DB2CyokmAh4lp0EQnnWhmycP/TvwBGzvuie+H0=
 github.com/xtaci/smux v1.5.62 h1:RcrLeqTqsrQC6WUGTM2+/5SEurw5Dbq5pA6OcvRC1KM=
